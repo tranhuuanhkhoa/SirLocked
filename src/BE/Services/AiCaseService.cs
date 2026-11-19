@@ -1297,7 +1297,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 {deterministicFeedback}
                 """;
             }
-            var attempt = await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.CaseBlueprintV3Crack);
+            var attempt = await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.CaseBlueprintV3Crack, draft.GenerationRunId);
             rawBlueprint = await GenerateJsonAsync(
                 draft.Id,
                 forceRepair ? "RepairCaseBlueprint" : "GenerateCaseBlueprint",
@@ -1338,7 +1338,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         if (review.Status != AiV3SemanticReviewStatuses.Passed)
         {
             var failedIds = FailedSemanticChallengeIds(reviewCase, review);
-            var repairAttempt = await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.CaseBlueprintV3Crack);
+            var repairAttempt = await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.CaseBlueprintV3Crack, draft.GenerationRunId);
             var repairedRaw = await GenerateJsonAsync(
                 draft.Id,
                 "RepairV3CrackBlueprint",
@@ -1872,8 +1872,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             }
         }
         var schemaVersion = CaseLogicSchemaVersion(draft);
-        var attemptNumber = draft.GenerationAttempts.Count(attempt =>
-            attempt.SchemaVersion == schemaVersion) + 1;
+        var attemptNumber = await NextGenerationAttemptNumberAsync(draft.Id, schemaVersion, draft.GenerationRunId);
         var repairedJson = await GenerateJsonAsync(
             draft.Id,
             "RetryFullCaseJson",
@@ -2893,7 +2892,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             {
                 var semanticRepairAttempt = await NextGenerationAttemptNumberAsync(
                     draft.Id,
-                    CaseLogicSchemaVersion(draft));
+                    CaseLogicSchemaVersion(draft),
+                    draft.GenerationRunId);
                 var semanticRepairJson = await GenerateJsonAsync(
                     draft.Id,
                     "RepairV3SemanticLogic",
@@ -2973,7 +2973,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         return new V3SemanticGateResult(gameCase, false);
     }
 
-    private async Task<AiV3SemanticReview> ReviewV3LogicAsync(
+    internal async Task<AiV3SemanticReview> ReviewV3LogicAsync(
         AiCaseDraft draft,
         GameCase gameCase,
         IReadOnlyCollection<string>? challengeIds = null,
@@ -2986,6 +2986,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             var selectedChallenges = gameCase.EvidenceChallenges
                 .Where(challenge => selectedIds is null || selectedIds.Contains(challenge.ChallengeId))
                 .ToList();
+            // A completed batch is skipped on replay, so reserve attempts from persisted history
+            // instead of counting calls made by the current worker.
+            var lastAttempt = draft.GenerationAttempts
+                .Where(attempt => attempt.SchemaVersion == AiGenerationSchemaVersions.V3SemanticReview)
+                .Select(attempt => attempt.AttemptNumber)
+                .Concat(draft.V3SemanticReview.BatchCheckpoints.Select(checkpoint => checkpoint.AttemptNumber))
+                .DefaultIfEmpty(0).Max();
             foreach (var batch in BuildSemanticReviewBatches(selectedChallenges))
             {
                 var batchChallengeIds = batch.Select(challenge => challenge.ChallengeId).ToArray();
@@ -3041,16 +3048,25 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 };
                 if (!draft.V3SemanticReview.BatchCheckpoints.Contains(checkpoint))
                     draft.V3SemanticReview.BatchCheckpoints.Add(checkpoint);
-                for (var batchAttempt = 0; batchAttempt < 2; batchAttempt++)
+                var resumeBatch = checkpoint.Status is AwaitingClaudeCheckpointStatus or "RUNNING"
+                    && checkpoint.AttemptNumber > 0
+                    && (checkpoint.GenerationRunId.Length == 0 || checkpoint.GenerationRunId == draft.GenerationRunId);
+                var pendingStep = resumeBatch
+                    ? await ResolvePendingSemanticStepAsync(draft, checkpoint)
+                    : SemanticReviewStep;
+                var startAttempt = pendingStep == SemanticReviewRetryStep ? 1 : 0;
+                for (var batchAttempt = startAttempt; batchAttempt < 2; batchAttempt++)
                 {
-                    var attemptNumber = await NextGenerationAttemptNumberAsync(
-                        draft.Id,
-                        AiGenerationSchemaVersions.V3SemanticReview);
+                    var step = batchAttempt == 0 ? SemanticReviewStep : SemanticReviewRetryStep;
+                    var attemptNumber = resumeBatch && batchAttempt == startAttempt
+                        ? checkpoint.AttemptNumber : ++lastAttempt;
+                    if (!resumeBatch || batchAttempt != startAttempt) checkpoint.AttemptCount++;
                     checkpoint.Status = "RUNNING";
                     checkpoint.AttemptNumber = attemptNumber;
+                    checkpoint.GenerationRunId = draft.GenerationRunId;
+                    checkpoint.PendingStep = step;
                     checkpoint.AttemptId = $"{batchKey}:{attemptNumber}";
                     checkpoint.CallId = checkpoint.AttemptId;
-                    checkpoint.AttemptCount += 1;
                     checkpoint.UpdatedAt = DateTime.UtcNow;
                     await SaveV3SemanticBatchCheckpointsAsync(draft);
 
@@ -3059,7 +3075,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     {
                         raw = await GenerateJsonAsync(
                             draft.Id,
-                            batchAttempt == 0 ? "ReviewV3PairMatrix" : "RetryIncompleteV3PairBatch",
+                            step,
                             batchPrompt,
                             maxOutputTokens: 12000,
                             AiGenerationSchemaVersions.V3SemanticReview,
@@ -3068,10 +3084,11 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                             mockResponseFactory: () => AiV3SemanticReviewPolicy.BuildMockResponse(gameCase, batchChallengeIds),
                             generationRunId: draft.GenerationRunId);
                     }
-                    catch (AiAwaitingClaudeException)
+                    catch (AiAwaitingClaudeException exception)
                     {
                         // Parked for Claude: the replay finds the answer under the same bridge request key.
                         checkpoint.Status = AwaitingClaudeCheckpointStatus;
+                        checkpoint.CallId = exception.RequestId;
                         checkpoint.UpdatedAt = DateTime.UtcNow;
                         await SaveV3SemanticBatchCheckpointsAsync(draft);
                         throw;
@@ -3089,7 +3106,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                         .FirstOrDefaultAsync();
                     var recordedAttempt = recordedAttempts?
                         .LastOrDefault(item => item.SchemaVersion == AiGenerationSchemaVersions.V3SemanticReview
-                            && item.AttemptNumber == attemptNumber);
+                            && item.GenerationRunId == draft.GenerationRunId
+                            && item.Step == step && item.AttemptNumber == attemptNumber);
                     if (!string.IsNullOrWhiteSpace(recordedAttempt?.ResponseId))
                         checkpoint.CallId = recordedAttempt.ResponseId;
                     batchResult = JsonSerializer.Deserialize<GeneratedV3SemanticReview>(StripMarkdownFences(raw), PrettyJson)
@@ -3106,6 +3124,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     if (SemanticBatchComplete(batch, batchResult)) break;
                 }
                 checkpoint.Status = SemanticBatchComplete(batch, batchResult) ? "COMPLETED" : "FAILED";
+                checkpoint.PendingStep = string.Empty;
                 checkpoint.ResultJson = JsonSerializer.Serialize(batchResult, PrettyJson);
                 checkpoint.UpdatedAt = DateTime.UtcNow;
                 await SaveV3SemanticBatchCheckpointsAsync(draft);
@@ -3131,6 +3150,28 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     }
 
     internal const string AwaitingClaudeCheckpointStatus = "AWAITING_CLAUDE";
+    private const string SemanticReviewStep = "ReviewV3PairMatrix";
+    private const string SemanticReviewRetryStep = "RetryIncompleteV3PairBatch";
+
+    private async Task<string> ResolvePendingSemanticStepAsync(AiCaseDraft draft, AiV3SemanticBatchCheckpoint checkpoint)
+    {
+        if (!string.IsNullOrEmpty(checkpoint.PendingStep)) return checkpoint.PendingStep;
+        if (checkpoint.AttemptCount <= 1) return SemanticReviewStep;
+
+        // A checkpoint saved before PendingStep was introduced can already be waiting on a retry.
+        var retryKey = ClaudeBridgeTextProvider.BuildRequestKey(new AiTextRequest
+        {
+            OwnerType = AiBridgeOwnerTypes.CaseDraft,
+            OwnerId = draft.Id,
+            GenerationRunId = draft.GenerationRunId,
+            Step = SemanticReviewRetryStep,
+            AttemptNumber = checkpoint.AttemptNumber
+        }, ordinal: 0);
+        var retryExists = draft.Lane == AiDraftLanes.VipApi
+            ? await new Vip.VipLaneStore(_db).Calls.Find(call => call.RequestKey == retryKey).AnyAsync()
+            : await _db.AiBridgeRequests.Find(request => request.RequestKey == retryKey).AnyAsync();
+        return retryExists ? SemanticReviewRetryStep : SemanticReviewStep;
+    }
 
     internal static IReadOnlyList<IReadOnlyList<EvidenceChallenge>> BuildSemanticReviewBatches(GameCase gameCase) =>
         BuildSemanticReviewBatches(gameCase.EvidenceChallenges);
@@ -3182,11 +3223,36 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         return true;
     }
 
-    private async Task<int> NextGenerationAttemptNumberAsync(string draftId, string schemaVersion)
+    private readonly Dictionary<string, int> _runAttemptOrdinals = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Computes the deterministic attempt number for a step inside <paramref name="generationRunId"/>.
+    /// Attempts recorded during prior runs count toward the baseline; attempts already recorded by the
+    /// active run are excluded so replaying a bridge-parked run from the start always produces the same
+    /// attempt numbers and matches the stored bridge request keys.
+    /// </summary>
+    internal static int ComputeNextAttemptNumber(
+        IEnumerable<AiGenerationAttempt> attempts,
+        string schemaVersion,
+        string? generationRunId,
+        IDictionary<string, int> runOrdinals)
+    {
+        var prior = attempts.Count(item =>
+            item.SchemaVersion == schemaVersion
+            && (string.IsNullOrWhiteSpace(generationRunId)
+                || !string.Equals(item.GenerationRunId, generationRunId, StringComparison.Ordinal)));
+        var key = $"{generationRunId ?? string.Empty}|{schemaVersion}";
+        var ordinal = runOrdinals.TryGetValue(key, out var seen) ? seen : 0;
+        runOrdinals[key] = ordinal + 1;
+        return prior + ordinal + 1;
+    }
+
+    private async Task<int> NextGenerationAttemptNumberAsync(string draftId, string schemaVersion, string? generationRunId = null)
     {
         var current = await _db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
-        return current.GenerationAttempts.Count(item => item.SchemaVersion == schemaVersion) + 1;
+        var activeRunId = string.IsNullOrWhiteSpace(generationRunId) ? current.GenerationRunId : generationRunId;
+        return ComputeNextAttemptNumber(current.GenerationAttempts, schemaVersion, activeRunId, _runAttemptOrdinals);
     }
 
     private Task SaveV3SemanticReviewAsync(AiCaseDraft draft, AiV3SemanticReview review) =>

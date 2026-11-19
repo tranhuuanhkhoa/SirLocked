@@ -880,7 +880,7 @@ public partial class AiCaseService
         async Task<string> GenerateAsync(string activeStep, string activePrompt, int activeMaxOutputTokens) =>
             await GenerateJsonAsync(
                 draft.Id, activeStep, activePrompt, activeMaxOutputTokens, schemaVersion, schema,
-                await NextGenerationAttemptNumberAsync(draft.Id, schemaVersion),
+                await NextGenerationAttemptNumberAsync(draft.Id, schemaVersion, draft.GenerationRunId),
                 mockResponseFactory: () => AiCaseMockFactory.BuildMockTruthStageJson(draft, schemaVersion),
                 generationRunId: draft.GenerationRunId);
 
@@ -1238,7 +1238,7 @@ public partial class AiCaseService
                 """, 5000,
             AiGenerationSchemaVersions.CaseTruthReview,
             AiStrictSchemaProvider.CaseTruthFeasibilityReviewSchema(),
-            await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.CaseTruthReview),
+            await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.CaseTruthReview, draft.GenerationRunId),
             mockResponseFactory: () => JsonSerializer.Serialize(AiCaseMockFactory.BuildMockTruthReview(), PrettyJson),
             generationRunId: string.IsNullOrWhiteSpace(draft.GenerationRunId) ? null : draft.GenerationRunId);
         var review = JsonSerializer.Deserialize<CaseTruthFeasibilityReview>(StripMarkdownFences(raw), PrettyJson)
@@ -1317,7 +1317,7 @@ public partial class AiCaseService
                 """, 5000,
             AiGenerationSchemaVersions.BlindSolvabilityReview,
             AiStrictSchemaProvider.BlindSolvabilityReviewV3Schema(),
-            await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.BlindSolvabilityReview),
+            await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.BlindSolvabilityReview, draft.GenerationRunId),
             mockResponseFactory: () => JsonSerializer.Serialize(AiCaseMockFactory.BuildMockBlindReview(draft.CaseTruth, gameCase), PrettyJson),
             generationRunId: draft.GenerationRunId);
         var review = JsonSerializer.Deserialize<BlindSolvabilityReview>(StripMarkdownFences(raw), PrettyJson)

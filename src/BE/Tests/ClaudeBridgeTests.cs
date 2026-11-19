@@ -120,6 +120,42 @@ public sealed class ClaudeBridgeTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void ComputeNextAttemptNumber_StaysDeterministicAcrossBridgeReplaysOfTheSameRun()
+    {
+        var attempts = new List<AiGenerationAttempt>
+        {
+            new() { SchemaVersion = AiGenerationSchemaVersions.TrueTimeline, GenerationRunId = "run-1", AttemptNumber = 1 },
+            new() { SchemaVersion = AiGenerationSchemaVersions.OpportunityMatrix, GenerationRunId = "run-1", AttemptNumber = 1 }
+        };
+
+        // First pass of TruthRepair (run-2): Timeline asks for attempt 2 and parks.
+        var pass1 = new Dictionary<string, int>(StringComparer.Ordinal);
+        Assert.Equal(2, AiCaseService.ComputeNextAttemptNumber(attempts, AiGenerationSchemaVersions.TrueTimeline, "run-2", pass1));
+
+        // Bot answers Timeline attempt 2 -> ClaudeBridgeTextProvider records attempt 2 under run-2.
+        attempts.Add(new AiGenerationAttempt { SchemaVersion = AiGenerationSchemaVersions.TrueTimeline, GenerationRunId = "run-2", AttemptNumber = 2 });
+
+        // Replay of run-2 (no truth checkpoints persisted): Timeline MUST still compute 2 (matching the accepted request),
+        // and Opportunity computes 2.
+        var pass2 = new Dictionary<string, int>(StringComparer.Ordinal);
+        Assert.Equal(2, AiCaseService.ComputeNextAttemptNumber(attempts, AiGenerationSchemaVersions.TrueTimeline, "run-2", pass2));
+        Assert.Equal(2, AiCaseService.ComputeNextAttemptNumber(attempts, AiGenerationSchemaVersions.OpportunityMatrix, "run-2", pass2));
+
+        // Multiple calls of the same schema within ONE run still get distinct sequential numbers on every replay.
+        var multiCallRun = new Dictionary<string, int>(StringComparer.Ordinal);
+        Assert.Equal(1, AiCaseService.ComputeNextAttemptNumber(attempts, AiGenerationSchemaVersions.CaseBlueprintV3Crack, "run-2", multiCallRun));
+        Assert.Equal(2, AiCaseService.ComputeNextAttemptNumber(attempts, AiGenerationSchemaVersions.CaseBlueprintV3Crack, "run-2", multiCallRun));
+        attempts.Add(new AiGenerationAttempt { SchemaVersion = AiGenerationSchemaVersions.CaseBlueprintV3Crack, GenerationRunId = "run-2", AttemptNumber = 1 });
+        var multiCallReplay = new Dictionary<string, int>(StringComparer.Ordinal);
+        Assert.Equal(1, AiCaseService.ComputeNextAttemptNumber(attempts, AiGenerationSchemaVersions.CaseBlueprintV3Crack, "run-2", multiCallReplay));
+        Assert.Equal(2, AiCaseService.ComputeNextAttemptNumber(attempts, AiGenerationSchemaVersions.CaseBlueprintV3Crack, "run-2", multiCallReplay));
+
+        // A subsequent distinct run (run-3) counts prior runs (run-1 + run-2) and advances cleanly.
+        var pass3 = new Dictionary<string, int>(StringComparer.Ordinal);
+        Assert.Equal(3, AiCaseService.ComputeNextAttemptNumber(attempts, AiGenerationSchemaVersions.TrueTimeline, "run-3", pass3));
+    }
+
+    [Fact]
     public async Task MockMode_AnswersWithTheMock_WithoutTouchingTheQueue()
     {
         // Null store and database: any queue access would throw.
