@@ -19,6 +19,15 @@ const TABS = [
 ];
 
 /** /market[/sell|/trade|/orders] — Chợ đồ (Market.dc.html). */
+/** /market?q=… (the lobby's "see prices on the market" link) opens the buy tab already searching for that item. */
+function initialQuery() {
+  try {
+    return (new URLSearchParams(window.location.search).get('q') ?? '').trim().slice(0, 60);
+  } catch {
+    return '';
+  }
+}
+
 export async function renderMarketPage(app, tabParam) {
   const reducedMotion = (() => {
     try {
@@ -32,7 +41,7 @@ export async function renderMarketPage(app, tabParam) {
     wallet: null,
     flip: false,
     // MUA
-    q: '', category: '', rarities: new Set(RARITIES), sort: 'popular', page: 1, browse: null, selectedDef: null, detail: null, detailFlip: false, bidOpen: false,
+    q: initialQuery(), category: '', rarities: new Set(RARITIES), sort: 'popular', page: 1, browse: null, selectedDef: null, detail: null, detailFlip: false, bidOpen: false,
     // BÁN
     inventory: null, selectedItemId: null, price: '',
     // TRAO ĐỔI

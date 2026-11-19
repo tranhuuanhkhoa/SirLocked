@@ -581,13 +581,6 @@ body.game-page-active .nav-links { display: none; }
   text-overflow: ellipsis;
 }
 
-.point-game-phaser .game-hud-overlay .game-players {
-  display: flex;
-  gap: var(--s-2);
-  flex-wrap: wrap;
-  max-width: min(var(--drawer-w), calc(100vw - var(--s-6)));
-}
-
 .point-game-phaser .game-hud-actions {
   display: flex;
   gap: var(--s-2);
@@ -612,168 +605,9 @@ body.game-page-active .nav-links { display: none; }
 }
 
 /* --- objective brief: the dossier strip that carries the current lead --- */
-.objective-brief {
-  width: min(var(--hud-brief-w), calc(100vw - var(--hud-presence-w) - var(--s-8)));
-  min-width: var(--hud-brief-min);
-  padding: var(--s-3) var(--s-4);
-  border: var(--bw) solid var(--line);
-  border-left: var(--bw-thick) solid var(--gold);
-  border-radius: var(--r-md);
-  background: var(--glass-strong);
-  box-shadow: var(--e-2);
-  -webkit-backdrop-filter: blur(var(--blur-glass));
-  backdrop-filter: blur(var(--blur-glass));
-}
-
-.objective-kicker {
-  margin-bottom: var(--s-1);
-  color: var(--gold-light);
-  font-family: var(--font-mono);
-  font-size: var(--t-xs);
-  font-weight: 700;
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-}
-
-.objective-copy {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--white);
-  font-size: var(--t-base);
-  line-height: var(--lh-snug);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-}
-
-.scene-progress {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  margin-top: var(--s-2);
-  color: var(--beige-muted);
-  font-size: var(--t-xs);
-}
-
-.scene-progress > span {
-  width: var(--dot-sm);
-  height: var(--dot-sm);
-  flex: 0 0 var(--dot-sm);
-  border: var(--bw) solid currentColor;
-  border-radius: var(--r-pill);
-  background: transparent;
-}
-
-.scene-progress.is-ready { color: var(--gold-light); }
-.scene-progress.is-ready > span { background: var(--gold); box-shadow: var(--e-glow); }
-.scene-progress.is-complete { color: var(--ok); }
-.scene-progress.is-complete > span { background: var(--ok); }
-
-.coop-presence {
-  display: grid;
-  justify-items: end;
-  gap: var(--s-2);
-  max-width: min(var(--hud-presence-w), 42vw);
-  pointer-events: none;
-}
-
-.coop-presence .game-players {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--s-2);
-}
-
-.detective-presence {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  min-width: var(--s-9);
-  padding: var(--s-2) var(--s-3);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--glass-strong);
-  box-shadow: var(--e-2);
-  -webkit-backdrop-filter: blur(var(--blur-glass));
-  backdrop-filter: blur(var(--blur-glass));
-  transition: border-color var(--m-fast) var(--ease-out);
-}
-
-.detective-presence.is-local { border-color: var(--line-strong); }
-.detective-presence.is-offline { border-style: dashed; }
-
-.presence-dot {
-  width: var(--dot-sm);
-  height: var(--dot-sm);
-  flex: 0 0 var(--dot-sm);
-  border-radius: var(--r-pill);
-  background: var(--ok);
-  box-shadow: var(--e-1);
-}
-
-.is-offline .presence-dot { background: var(--bad); box-shadow: none; }
-
-.presence-copy { display: grid; min-width: 0; }
-
-.presence-copy strong {
-  overflow: hidden;
-  color: var(--white);
-  font-size: var(--t-sm);
-  line-height: var(--lh-tight);
-  text-overflow: ellipsis;
-}
-
-.presence-copy small {
-  color: var(--beige-muted);
-  font-family: var(--font-mono);
-  font-size: var(--t-xs);
-  letter-spacing: var(--tracking-label);
-}
-
-.partner-activity {
-  max-width: var(--hud-card-w);
-  padding: var(--s-2) var(--s-3);
-  border: var(--bw) solid var(--ok-line);
-  border-radius: var(--r-md);
-  background: var(--glass-strong);
-  color: var(--beige);
-  font-size: var(--t-sm);
-}
-
-.partner-activity span { margin-right: var(--s-1); color: var(--ok); font-weight: 700; }
-.coop-presence #abandon-game-btn { pointer-events: auto; }
 
 /* --- scene intro card: the location stamp when a scene opens.
        Sits below the HUD band so it never prints over the objective brief. */
-.scene-intro-toast {
-  position: absolute;
-  top: calc(var(--hud-safe-band) + var(--s-4));
-  left: var(--hud-safe-x);
-  max-width: min(var(--hud-card-w), calc(100vw - var(--drawer-gutter)));
-  padding: 0;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  color: var(--beige);
-  text-shadow: var(--e-2);
-  z-index: var(--z-hud);
-  pointer-events: none;
-}
-
-.scene-intro-toast h2 {
-  margin: 0;
-  color: var(--gold-light);
-  font-family: var(--font-mono);
-  font-size: var(--t-sm);
-  line-height: var(--lh-tight);
-  letter-spacing: var(--tracking-label);
-}
-
-.scene-intro-toast p {
-  margin: var(--s-1) 0 0;
-  color: var(--beige);
-  font-size: var(--t-base);
-  line-height: var(--lh-tight);
-}
 
 .hint-chip {
   display: none;
@@ -793,150 +627,13 @@ body.game-page-active .nav-links { display: none; }
 }
 
 /* --- context prompt: the key cap sits on the prompt, not beside it ----- */
-.context-action {
-  position: absolute;
-  left: 50%;
-  bottom: var(--hud-safe-bottom);
-  z-index: var(--z-hud);
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  min-width: var(--inv-drawer-w);
-  max-width: min(var(--hud-card-w), calc(100vw - var(--drawer-gutter)));
-  padding: var(--s-2) var(--s-3);
-  transform: translateX(-50%);
-  border: var(--bw) solid var(--line-strong);
-  border-radius: var(--r-md);
-  background: var(--glass-strong);
-  color: var(--white);
-  box-shadow: var(--e-3);
-  -webkit-backdrop-filter: blur(var(--blur-glass));
-  backdrop-filter: blur(var(--blur-glass));
-  pointer-events: none;
-}
-
-.context-action.is-disabled { border-color: var(--line); color: var(--beige-muted); }
-
-.context-key {
-  display: grid;
-  width: var(--key-cap);
-  height: var(--key-cap);
-  flex: 0 0 var(--key-cap);
-  place-items: center;
-  border: var(--bw) solid currentColor;
-  border-bottom-width: var(--bw-thick);
-  border-radius: var(--r-md);
-  background: var(--charcoal);
-  color: var(--gold-light);
-  font-family: var(--font-mono);
-  font-size: var(--t-sm);
-  font-weight: 700;
-}
-
-.context-copy { display: grid; min-width: 0; }
-.context-copy strong { font-size: var(--t-sm); }
-
-.context-copy small {
-  overflow: hidden;
-  color: var(--beige-muted);
-  font-size: var(--t-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* ==========================================================================
    4. Tool dock, badges, drawers
    ========================================================================== */
 
-.investigation-tool-dock {
-  position: absolute;
-  right: var(--hud-safe-x);
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-  z-index: var(--z-hud);
-  pointer-events: auto;
-}
-
-.floating-btn {
-  position: relative;
-  width: var(--tool-size);
-  height: var(--tool-size);
-  border-radius: var(--r-md);
-  background: var(--glass);
-  border: var(--bw) solid var(--line-strong);
-  color: var(--gold-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--e-2);
-  -webkit-backdrop-filter: blur(var(--blur-glass));
-  backdrop-filter: blur(var(--blur-glass));
-  transition:
-    background var(--m-fast) var(--ease-out),
-    border-color var(--m-fast) var(--ease-out),
-    color var(--m-fast) var(--ease-out),
-    box-shadow var(--m-fast) var(--ease-out);
-}
-
-.floating-btn:hover:not(:disabled),
-.floating-btn.is-hot,
-.floating-btn.is-open {
-  background: var(--gold-wash-strong);
-  border-color: var(--gold-light);
-  color: var(--white);
-  box-shadow: var(--e-glow);
-}
-
-.floating-btn svg {
-  width: var(--tool-icon);
-  height: var(--tool-icon);
-  stroke-width: 2;
-}
-
-.hotkey-label {
-  position: absolute;
-  top: calc(var(--s-2) * -1);
-  left: calc(var(--s-2) * -1);
-  width: var(--badge-size);
-  height: var(--badge-size);
-  display: grid;
-  place-items: center;
-  background: var(--charcoal);
-  border: var(--bw) solid var(--line-strong);
-  border-radius: var(--r-sm);
-  font-family: var(--font-mono);
-  font-size: var(--t-xs);
-  color: var(--beige);
-  font-weight: 700;
-}
-
-.tool-badge,
-.floating-badge,
-.camera-badge {
-  position: absolute;
-  top: calc(var(--s-2) * -1);
-  right: calc(var(--s-2) * -1);
-  min-width: var(--badge-size);
-  height: var(--badge-size);
-  padding: 0 var(--s-1);
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-pill);
-  background: var(--gold);
-  color: var(--navy);
-  border: var(--bw-thick) solid var(--navy);
-  font-family: var(--font-mono);
-  font-size: var(--t-xs);
-  font-weight: 700;
-}
-
 /* --- the one drawer surface: case file, map and inventory share it ----- */
-.case-file-drawer,
-.inventory-drawer {
+.case-file-drawer {
   position: absolute;
   top: var(--hud-safe-top);
   right: var(--drawer-offset);
@@ -958,8 +655,7 @@ body.game-page-active .nav-links { display: none; }
   --dossier-fold: var(--s-4);
 }
 
-.drawer-title-row,
-.inventory-drawer-header {
+.drawer-title-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -981,13 +677,6 @@ body.game-page-active .nav-links { display: none; }
   font-family: var(--font-display);
   font-size: var(--t-xl);
   line-height: var(--lh-tight);
-}
-
-.inventory-drawer-header {
-  align-items: center;
-  color: var(--gold-light);
-  font-weight: 700;
-  font-size: var(--t-base);
 }
 
 .close-drawer-btn {
@@ -1013,185 +702,9 @@ body.game-page-active .nav-links { display: none; }
 
 .close-drawer-btn svg { width: var(--tool-icon); height: var(--tool-icon); }
 
-.inventory-drawer-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--s-2);
-}
-
-.inventory-drawer-slot {
-  aspect-ratio: 1;
-  background: var(--well);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-md);
-  display: grid;
-  place-items: center;
-  position: relative;
-  overflow: hidden;
-  padding: var(--s-1);
-  transition:
-    background var(--m-fast) var(--ease-out),
-    border-color var(--m-fast) var(--ease-out),
-    box-shadow var(--m-fast) var(--ease-out);
-}
-
-.inventory-drawer-slot.is-filled {
-  cursor: pointer;
-  background: color-mix(in srgb, var(--beige) 6%, transparent);
-}
-
-.inventory-drawer-slot.is-filled:hover {
-  border-color: var(--line-strong);
-  background: var(--gold-wash);
-}
-
-.inventory-drawer-slot.is-selected {
-  border-color: var(--gold);
-  background: var(--gold-wash-strong);
-}
-
-.inventory-drawer-slot.is-combine-selected {
-  border-color: var(--teal);
-  box-shadow: var(--e-glow);
-}
-
-.inventory-icon {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-
-.inventory-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.inventory-detail-inline {
-  display: grid;
-  grid-template-columns: var(--portrait-lg) 1fr;
-  gap: var(--s-3);
-  margin-top: var(--s-4);
-  padding-top: var(--s-4);
-  border-top: var(--bw) solid var(--line);
-}
-
-.inventory-detail-art {
-  position: relative;
-  min-height: var(--portrait-lg);
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-md);
-  color: var(--gold-light);
-}
-
-.inventory-detail-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-.inventory-detail-art span { position: relative; z-index: 1; padding: var(--s-2); text-align: center; text-shadow: var(--e-1); }
-.inventory-detail-inline h3 { margin: 0 0 var(--s-1); color: var(--white); }
-.inventory-detail-inline p { margin: var(--s-1) 0; font-size: var(--t-sm); }
-
 /* ==========================================================================
    5. Discovery card and the final confrontation call-out (bottom safe zone)
    ========================================================================== */
-
-.discovery-card {
-  position: absolute;
-  left: var(--hud-safe-x);
-  bottom: var(--hud-safe-bottom);
-  z-index: var(--z-hud);
-  display: grid;
-  grid-template-columns: var(--portrait-lg) minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--s-3);
-  width: min(var(--conv-w), calc(50vw - var(--s-8)), calc(100vw - var(--drawer-gutter)));
-  padding: var(--s-3);
-  border: var(--bw) solid var(--line-strong);
-  border-radius: var(--r-md);
-  background: var(--glass-strong);
-  color: var(--beige);
-  box-shadow: var(--e-3);
-  -webkit-backdrop-filter: blur(var(--blur-glass));
-  backdrop-filter: blur(var(--blur-glass));
-  pointer-events: auto;
-}
-
-.discovery-art,
-.discovery-mark {
-  width: var(--portrait-lg);
-  height: var(--portrait-lg);
-  min-height: var(--portrait-lg);
-  aspect-ratio: 1;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--well);
-  color: var(--gold-light);
-  font-size: var(--t-xl);
-}
-
-.discovery-art img { width: 100%; height: 100%; object-fit: contain; object-position: center; }
-.discovery-copy { min-width: 0; }
-
-.discovery-kicker {
-  display: block;
-  color: var(--gold-light);
-  font-family: var(--font-mono);
-  font-size: var(--t-xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-}
-
-.discovery-copy strong { display: block; margin-top: var(--s-1); color: var(--white); }
-
-.discovery-copy p {
-  display: -webkit-box;
-  overflow: hidden;
-  margin: var(--s-1) 0;
-  font-size: var(--t-sm);
-  line-height: var(--lh-snug);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-}
-
-.discovery-copy small { color: var(--ok); }
-
-.discovery-case-link {
-  display: block;
-  margin-top: var(--s-2);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--gold-light);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--t-sm);
-  text-decoration: underline;
-  text-underline-offset: var(--s-1);
-  transition: color var(--m-fast) var(--ease-out);
-}
-
-.discovery-case-link:hover { color: var(--white); }
-
-.discovery-dismiss {
-  align-self: start;
-  padding: 0 var(--s-1);
-  border: 0;
-  background: transparent;
-  color: var(--beige-muted);
-  cursor: pointer;
-  font-size: var(--t-lg);
-  transition: color var(--m-fast) var(--ease-out);
-}
-
-.discovery-dismiss:hover { color: var(--white); }
 
 .final-confrontation-callout {
   position: absolute;
@@ -1230,78 +743,6 @@ body.game-page-active .nav-links { display: none; }
 /* ==========================================================================
    6. Mobile movement dock
    ========================================================================== */
-
-.mobile-movement-dock { display: none; }
-
-@media (max-width: 720px), (pointer: coarse) {
-  .mobile-movement-dock {
-    position: absolute;
-    left: var(--s-3);
-    right: var(--s-3);
-    bottom: var(--s-5);
-    z-index: var(--z-overlay);
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(var(--mobile-btn-h), var(--mobile-btn-col)));
-    justify-content: center;
-    gap: var(--s-3);
-    pointer-events: auto;
-  }
-
-  .mobile-move-btn,
-  .mobile-interact-btn,
-  .mobile-action-btn {
-    position: relative;
-    height: var(--mobile-btn-h);
-    border: var(--bw) solid var(--line-strong);
-    border-radius: var(--r-md);
-    background: var(--glass);
-    color: var(--gold-light);
-    box-shadow: var(--e-2);
-    -webkit-backdrop-filter: blur(var(--blur-glass));
-    backdrop-filter: blur(var(--blur-glass));
-    font-family: var(--font-mono);
-    font-weight: 700;
-    touch-action: none;
-    transition:
-      background var(--m-fast) var(--ease-out),
-      color var(--m-fast) var(--ease-out);
-  }
-
-  .mobile-action-btn { display: grid; place-items: center; }
-
-  .mobile-action-btn svg {
-    width: var(--tool-icon);
-    height: var(--tool-icon);
-    stroke-width: 2;
-  }
-
-  .mobile-action-badge {
-    position: absolute;
-    right: calc(var(--s-1) * -1);
-    top: calc(var(--s-2) * -1);
-    min-width: var(--badge-size);
-    height: var(--badge-size);
-    padding: 0 var(--s-1);
-    display: grid;
-    place-items: center;
-    border-radius: var(--r-pill);
-    background: var(--gold);
-    color: var(--navy);
-    font-size: var(--t-xs);
-  }
-
-  .mobile-move-btn span {
-    display: block;
-    font-size: var(--t-2xl);
-    line-height: var(--lh-tight);
-  }
-
-  .mobile-interact-btn,
-  .mobile-action-btn.is-hot {
-    background: var(--gold-wash-strong);
-    color: var(--white);
-  }
-}
 
 /* ==========================================================================
    7. Overlays and modals — one dossier surface for all of them
@@ -1358,95 +799,6 @@ body.game-page-active .nav-links { display: none; }
 .review-list { margin: var(--s-3) 0 var(--s-3) var(--s-5); color: var(--beige); }
 
 /* --- briefing: a case file handed over, not a notice popup ------------- */
-#intro-overlay .modal {
-  max-width: var(--intro-w);
-  padding: var(--s-7) var(--s-6) var(--s-6);
-  background: var(--panel-warm);
-  border: var(--bw) solid var(--line-strong);
-  border-top: var(--bw-thick) solid var(--gold-dim);
-  border-radius: var(--r-sm);
-  --dossier-fold: var(--s-6);
-}
-
-.intro-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--t-2xl);
-  line-height: var(--lh-tight);
-  color: var(--white);
-}
-
-.intro-premise {
-  margin: var(--s-3) 0 0;
-  color: var(--beige);
-  font-size: var(--t-base);
-  line-height: var(--lh-normal);
-}
-
-.intro-role {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s-3);
-  margin: var(--s-4) 0 0;
-  padding: var(--s-3) var(--s-4);
-  border-left: var(--bw-thick) solid var(--role-investigator);
-  background: color-mix(in srgb, var(--role-investigator) 10%, transparent);
-  color: var(--beige);
-  font-size: var(--t-sm);
-  line-height: var(--lh-snug);
-}
-
-.intro-role[data-role="INTERROGATOR"] {
-  border-left-color: var(--role-interrogator);
-  background: color-mix(in srgb, var(--role-interrogator) 10%, transparent);
-}
-
-.tutorial-steps {
-  list-style: none;
-  margin: var(--s-5) 0 var(--s-6);
-  padding: 0;
-  display: grid;
-  gap: var(--s-3);
-}
-
-.tutorial-steps li {
-  display: grid;
-  grid-template-columns: var(--s-4) minmax(0, 1fr);
-  align-items: baseline;
-  gap: var(--s-3);
-  padding-bottom: var(--s-3);
-  border-bottom: var(--bw) solid var(--line);
-  color: var(--beige);
-  font-size: var(--t-base);
-  line-height: var(--lh-snug);
-}
-
-.tutorial-steps li:last-child { border-bottom: 0; padding-bottom: 0; }
-
-.tutorial-steps li::before {
-  content: "";
-  width: var(--s-2);
-  height: var(--s-2);
-  border: var(--bw) solid var(--gold);
-  transform: rotate(45deg);
-  justify-self: center;
-}
-
-.key-cap {
-  display: inline-grid;
-  place-items: center;
-  min-width: var(--s-5);
-  padding: 0 var(--s-1);
-  border: var(--bw) solid var(--line-strong);
-  border-bottom-width: var(--bw-thick);
-  border-radius: var(--r-sm);
-  background: var(--charcoal);
-  color: var(--gold-light);
-  font-family: var(--font-mono);
-  font-size: var(--t-xs);
-  font-weight: 700;
-  line-height: var(--lh-normal);
-}
 
 /* --- inspect / puzzle ------------------------------------------------- */
 .inspect-modal {
@@ -1541,8 +893,7 @@ body.game-page-active .nav-links { display: none; }
 }
 
 .inspect-art img,
-.char-avatar img,
-.inventory-icon img { image-rendering: pixelated; }
+.char-avatar img { image-rendering: pixelated; }
 .inspect-art img { object-fit: contain !important; }
 .dialogue-copy h2 { margin-top: 0; }
 
@@ -3105,10 +2456,7 @@ body.game-page-active #toast-root > .toast { padding: 10px 12px; font-size: 13px
   border: 0;
 }
 
-.floating-btn:focus-visible,
 .close-drawer-btn:focus-visible,
-.discovery-case-link:focus-visible,
-.discovery-dismiss:focus-visible,
 .final-confrontation-callout:focus-visible,
 .conv-choice:focus-visible,
 .map-entry:focus-visible,
@@ -3348,11 +2696,9 @@ select.field-input:focus,
   .hotspot-ring { animation: hotspot-pulse 2.2s var(--ease-in-out) infinite; }
   .conv-text.is-typing::after { animation: conv-caret 0.9s steps(1) infinite; }
   .conv-choice.is-new { animation: conv-new-pulse 1.7s var(--ease-in-out) infinite; }
-  .scene-intro-toast { animation: slideInFadeOut 3s forwards; }
-  .partner-activity { animation: partner-activity-in var(--m-base) var(--ease-out); }
-  .case-file-drawer,
-  .inventory-drawer { animation: investigation-drawer-in var(--m-base) var(--ease-out); }
-  .discovery-card { animation: discovery-card-in var(--m-slow) var(--ease-out); }
+
+  .case-file-drawer { animation: investigation-drawer-in var(--m-base) var(--ease-out); }
+
   .v3-crack-overlay { animation: v3-payoff-dim var(--m-slow) var(--ease-out) both; }
   .v3-crack-stage { animation: v3-payoff-enter var(--m-slow) var(--ease-out) both; }
   .v3-crack-overlay.is-correct .v3-crack-stamp { animation: v3-stamp var(--m-slow) var(--m-base) var(--ease-out) both; }
@@ -3409,11 +2755,7 @@ select.field-input:focus,
   .hotspot-ring,
   .conv-text.is-typing::after,
   .conv-choice.is-new,
-  .scene-intro-toast,
-  .partner-activity,
   .case-file-drawer,
-  .inventory-drawer,
-  .discovery-card,
   .v3-crack-overlay,
   .v3-crack-stage,
   .v3-crack-overlay.is-correct .v3-crack-stamp { animation: none; }
@@ -3423,7 +2765,6 @@ select.field-input:focus,
   .case-card,
   .accusation-evidence-card,
   .final-confrontation-callout,
-  .floating-btn,
   .btn-primary,
   .btn-gold { transition: none; }
 
@@ -3480,11 +2821,8 @@ select.field-input:focus,
 }
 
 @media (max-width: 900px) {
-  .objective-brief { width: min(var(--hud-brief-w), calc(100vw - var(--hud-brief-min))); min-width: var(--inv-drawer-w); }
-  .detective-presence { min-width: 0; }
-  .presence-copy strong { max-width: var(--s-8); }
   .dialogue-overlay { background: linear-gradient(90deg, transparent 0 45%, var(--scrim) 75%); }
-  .dialogue-overlay .conversation-box { width: min(var(--conv-w), 55vw); }
+
   .accusation-evidence-workspace { grid-template-columns: 1fr; }
   .accusation-evidence-gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); max-height: var(--hud-brief-min); }
   body.game-page-active .app-nav { gap: var(--s-3); padding-inline: var(--s-3); }
@@ -3513,41 +2851,18 @@ select.field-input:focus,
   .point-game-phaser { width: 100%; height: 100%; min-height: 0; }
   .point-game-phaser .game-hud.game-hud-overlay { left: var(--s-2); right: var(--s-2); top: var(--s-2); gap: var(--s-2); }
   .game-hud-overlay > div:first-child,
-  .game-hud-overlay .game-players,
   .game-hud-overlay .game-hud-actions { min-width: 0; max-width: 100%; }
-  .game-hud-overlay .game-players,
   .game-hud-overlay .game-hud-actions { overflow-x: auto; }
   .game-hud-overlay .game-objective { font-size: var(--t-sm); }
   .point-game-phaser .game-hud-actions .round-tool { width: var(--tool-size-sm); height: var(--tool-size-sm); }
   .point-game-phaser .scene-title-card { display: none; }
-  .scene-intro-toast { left: var(--s-2); top: var(--hud-safe-band); max-width: calc(100vw - var(--s-9)); }
-  .investigation-tool-dock { right: var(--s-2); top: 50%; gap: var(--s-2); }
-  .objective-brief { width: calc(100vw - var(--s-9)); min-width: 0; padding: var(--s-2) var(--s-3); }
-  .objective-copy { font-size: var(--t-sm); }
-  .scene-progress { margin-top: var(--s-1); font-size: var(--t-xs); }
-  .coop-presence { max-width: var(--s-9); }
-  .detective-presence { padding: var(--s-2); min-width: 0; }
-  .detective-presence:not(.is-local) { display: flex; }
-  .presence-copy { display: none; }
-  .partner-activity { display: none; }
-  .case-file-drawer,
-  .inventory-drawer { top: auto; right: var(--s-2); bottom: var(--hud-safe-bottom); left: var(--s-2); width: auto; max-height: 64dvh; }
+
+  .case-file-drawer { top: auto; right: var(--s-2); bottom: var(--hud-safe-bottom); left: var(--s-2); width: auto; max-height: 64dvh; }
   .case-file-drawer { width: auto; }
   .case-file-drawer .case-file-grid { grid-template-columns: 1fr; }
-  .inventory-detail-inline { grid-template-columns: var(--portrait-md) 1fr; }
+
   .dialogue-overlay { align-items: end; padding: var(--s-2); background: var(--scrim); }
-  .dialogue-overlay .conversation-box { width: 100%; height: min(72dvh, var(--conv-h)); max-height: 72dvh; }
-  .context-action { bottom: var(--hud-safe-bottom); max-width: calc(100vw - var(--s-5)); }
-  .discovery-card {
-    top: var(--hud-safe-band);
-    right: var(--s-2);
-    bottom: auto;
-    left: var(--s-2);
-    width: auto;
-    grid-template-columns: var(--portrait-md) minmax(0, 1fr) auto;
-  }
-  .discovery-art,
-  .discovery-mark { width: var(--portrait-md); height: var(--portrait-md); min-height: var(--portrait-md); }
+
   .final-confrontation-callout { right: var(--s-2); bottom: var(--hud-safe-bottom); min-width: var(--inv-drawer-w); max-width: calc(100vw - var(--s-4)); }
   .suspect-grid { grid-template-columns: 1fr; }
   .result-stat-grid { grid-template-columns: 1fr 1fr; }
@@ -3561,56 +2876,9 @@ select.field-input:focus,
 }
 
 /* Narrative presentation: the witness remains in the scene while speech anchors the frame. */
-.dialogue-overlay.vn-overlay {
-  padding: clamp(12px, 3vw, 40px);
-  place-items: end center;
-  background: linear-gradient(180deg, rgb(4 9 18 / 10%) 0%, rgb(4 9 18 / 35%) 40%, rgb(4 9 18 / 92%) 100%);
-  overflow: hidden;
-}
-.vn-overlay .conversation-box.vn-conversation {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(200px, 30%) 1fr;
-  grid-template-rows: minmax(100px, 1fr) auto;
-  gap: 20px 30px;
-  width: min(1220px, 100%);
-  height: min(760px, 88dvh);
-  max-height: none;
-  padding: 0;
-  background: none;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  backdrop-filter: none;
-  overflow: visible;
-}
-.vn-portrait-stage { position: relative; grid-column: 1; grid-row: 1 / 3; min-width: 0; overflow: hidden; align-self: end; height: min(660px, 75dvh); border-bottom: 2px solid var(--gold-dim); }
-.vn-portrait-image, .vn-portrait-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 25%; mask-image: linear-gradient(#000 82%, transparent); }
-.vn-portrait-fallback { position: absolute; inset: 10% 0 0; display: grid; place-items: center; color: var(--gold-dim); font: 180px var(--font-display); background: radial-gradient(ellipse, var(--panel-warm), transparent 70%); }
-.vn-portrait-video[hidden], .vn-portrait-image[hidden], .vn-history[hidden], .comic-media [hidden] { display: none; }
-.vn-character-heading { grid-column: 2; align-self: end; padding-right: 170px; text-shadow: 0 3px 16px #000; }
-.vn-character-heading > span { color: var(--gold-light); text-transform: uppercase; letter-spacing: .16em; font-size: var(--t-xs); }
-.vn-character-heading h2 { font: clamp(28px, 3.5vw, 50px)/1.1 var(--font-display); color: var(--beige); margin: 8px 0; }
-.vn-character-heading h2:focus { outline: none; }
-.point-game-phaser.is-dialogue #game-hud-slot, .point-game-phaser.is-dialogue #inventory-slot, .point-game-phaser.is-dialogue #scene-intro-slot, .point-game-phaser.is-dialogue #game-coop-tools { visibility: hidden; }
-.vn-character-heading p { max-width: 540px; color: var(--beige-muted); margin: 10px 0 0; line-height: 1.5; }
-.vn-toolbar { position: absolute; top: 0; right: 0; display: flex; gap: 10px; }
-.vn-toolbar button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; background: var(--panel-strong); }
-.vn-speech-box { grid-column: 2; padding: clamp(18px, 2.5vw, 30px); border-top: 2px solid var(--gold-dim); background: rgb(11 20 32 / 97%); box-shadow: 0 16px 60px #0008; max-height: 57dvh; overflow-y: auto; }
-.vn-speaker { display: block; color: var(--gold-light); font-family: var(--font-display); font-size: var(--t-lg); margin-bottom: 12px; }
-.vn-line-button { display: block; border: 0; padding: 0; background: none; width: 100%; min-height: 100px; text-align: left; color: var(--beige); font: inherit; cursor: pointer; }
-.vn-current-text { display: block; min-height: 2.8em; line-height: 1.55; font-size: clamp(18px, 1.6vw, 23px); white-space: pre-wrap; }
-.vn-continue-hint { display: block; text-align: right; margin-top: 14px; color: var(--beige-muted); font: var(--t-xs) var(--font-mono); }
-.vn-speech-box .conversation-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); padding-top: 14px; margin-top: 16px; }
-.vn-speech-box .conv-choice { min-height: 48px; padding: 12px 14px; }
-.vn-speech-box .conv-locked, .vn-speech-box .conv-readonly { grid-column: 1 / -1; }
-.vn-history { position: absolute; right: 0; bottom: 0; width: min(640px, 75%); height: min(600px, 68dvh); overflow-y: auto; padding: 28px; background: var(--panel-strong); z-index: 2; }
-.vn-history .conversation-log { max-height: none; }
-.vn-history .conv-turn { padding: 14px 0; border-bottom: 1px solid var(--line); }
-.vn-history p { margin: 8px 0; line-height: 1.6; }
-.vn-line-button:focus-visible { outline: 2px solid var(--gold); outline-offset: 5px; }
-.vn-overlay.is-npc-speaking .vn-portrait-stage { border-bottom-color: var(--gold-light); }
-.vn-overlay.is-npc-speaking .vn-speaker::before { content: ''; display: inline-block; width: 7px; height: 7px; margin: 0 10px 3px 0; border-radius: 50%; background: var(--gold-light); }
+
+.comic-media [hidden] { display: none; }
+
 .point-game-phaser [role="dialog"] :is(button, a, input, select, textarea, summary):focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
 .comic-overlay { position: fixed; inset: 0; z-index: calc(var(--z-overlay) + 30); display: grid; place-items: center; padding: clamp(12px, 3vw, 36px); background: #030711ed; }
 .comic-stage { width: min(1100px, 100%); max-height: 94dvh; overflow-y: auto; padding: 12px; background: var(--panel-strong); }
@@ -3625,43 +2893,16 @@ select.field-input:focus,
 .comic-controls button { min-height: 44px; }
 .truth-recap { padding: 16px; margin-top: 18px; border-left: 2px solid var(--gold-dim); }
 .truth-recap h3 { margin-top: 0; color: var(--gold-light); }
-.game-coop-tools { position: absolute; left: 18px; bottom: 16px; z-index: 140; display: flex; align-items: end; gap: 10px; }
-.game-coop-tools details { position: relative; color: var(--beige); font-size: 14px; }
-.game-coop-tools summary { cursor: pointer; padding: 12px 16px; min-height: 44px; border: 1px solid var(--line-strong); background: var(--panel-strong); border-radius: var(--r-sm); }
-.game-coop-tools details[open] { padding: 12px; background: var(--panel-strong); border: 1px solid var(--line-strong); border-radius: var(--r-sm); }
-.game-coop-tools details[open] summary { padding: 6px 4px; background: none; border: 0; }
-.team-ping-options { display: grid; gap: 8px; }
-.team-ping-options button { min-height: 44px; }
-.game-audio-controls label { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; }
-.game-audio-controls input[type="range"] { width: 120px; accent-color: var(--gold); }
-.game-audio-controls output { width: 3.5ch; text-align: right; color: var(--gold-light); font-variant-numeric: tabular-nums; }
-.game-audio-controls[open] { max-width: calc(100vw - 36px); }
-.partner-ping { position: fixed; z-index: var(--z-overlay); top: 100px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; padding: 16px 24px; background: var(--panel-strong); border: 1px solid var(--gold-dim); border-radius: var(--r-sm); box-shadow: var(--e-3); pointer-events: none; }
-.partner-ping strong { color: var(--gold-light); font-family: var(--font-display); }
+
 .truth-recap article + article { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 14px; }
 @media (max-width: 760px) {
-  .game-coop-tools { left: 10px; bottom: calc(var(--hud-safe-bottom, 76px) + 14px); gap: 6px; }
-  .game-coop-tools summary { padding: 10px; font-size: 12px; }
-  .dialogue-overlay.vn-overlay { padding: 12px; }
-  .vn-overlay .conversation-box.vn-conversation { grid-template-columns: 1fr; grid-template-rows: 1fr auto; gap: 10px; height: calc(100dvh - 24px); }
-  .vn-portrait-stage { position: relative; grid-column: 1; grid-row: 1; top: auto; left: auto; width: 40%; height: 36dvh; }
-  .vn-character-heading { grid-column: 1; grid-row: 1; padding: 44px 0 0 43%; align-self: end; margin-bottom: 24px; }
-  .vn-character-heading h2 { font-size: 26px; }
-  .vn-character-heading p { display: none; }
-  .vn-toolbar { gap: 6px; }
-  .vn-toolbar button { font-size: 12px; padding-inline: 10px; }
-  .vn-speech-box { grid-column: 1; grid-row: 2; max-height: 60dvh; padding: 18px; align-self: end; }
-  .vn-speech-box .conversation-choices { grid-template-columns: 1fr; }
-  .vn-current-text { font-size: 18px; }
-  .vn-history { width: 100%; height: 65dvh; padding: 20px; }
   .comic-caption { padding: 12px 8px; }
   .comic-controls { gap: 6px; padding-inline: 0; }
   .comic-controls button { padding-inline: 10px; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .vn-overlay.is-npc-speaking .vn-speaker::before { animation: witness-speaking 700ms ease-in-out infinite alternate; }
   @keyframes witness-speaking { from { opacity: .4; } to { opacity: 1; } }
-  .vn-overlay .vn-conversation { animation: narrative-entrance 220ms ease-out; }
+
   .comic-stage { animation: narrative-entrance 180ms ease-out; }
   @keyframes narrative-entrance { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 }

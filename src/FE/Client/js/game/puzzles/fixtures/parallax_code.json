@@ -1,0 +1,19 @@
+{
+  "title": "Tủ đạo cụ ở hiệu ảnh Tô Khánh",
+  "prompt": "Kéo trên khung tranh để đổi chỗ đứng. Những vệt sơn trắng nằm trên các món đạo cụ ở độ sâu khác nhau — đúng góc, chúng ghép thành một ký tự. Ghi ba ký tự vào ô theo đúng thứ tự.",
+  "params": {
+    "frameLabel": "TỦ KÍNH ĐẠO CỤ · HIỆU ẢNH TÔ KHÁNH",
+    "clueTitle": "Bút chì trên khung kính",
+    "clueText": "Nét chì mảnh sát mép dưới khung kính của tủ đạo cụ, viết nghiêng như ghi vội cho chính mình.",
+    "partnerMono": "TV",
+    "partnerName": "Đồng đội",
+    "partnerSays": "Trịnh Lực khai:",
+    "partnerQuote": "có lần tôi chở ông Bửu tới hiệu ảnh; ông ngồi ghế chụp chân dung, nhìn tủ đạo cụ rất lâu, lẩm nhẩm ‘{order}’.",
+    "contextTitle": "Tủ đạo cụ khóa mã",
+    "contextText": "Ổ khóa ba ô chữ, cùng kiểu với két của tiệm cầm đồ. Trên các món đạo cụ có những vệt sơn trắng mới — không giống bụi hay vết bẩn."
+  },
+  "reveal": {
+    "title": "Mã két của Đặng Bửu: {code}",
+    "text": "Ba ký tự chỉ đọc được từ đúng một chỗ ngồi — chiếc ghế chụp chân dung mà ông Bửu hay ngồi. Đó chính là mã két của tiệm cầm đồ: két được mở bằng mã, không hề bị phá."
+  }
+}

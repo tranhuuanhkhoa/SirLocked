@@ -1,0 +1,66 @@
+{
+  "repository": "duongtuankiet-se/SirLocked",
+  "private": true,
+  "default_branch": "main",
+  "checked_sha": "d905bf2c318ae7696a54617f432e83eeb63ba229",
+  "runs": [
+    {
+      "id": 38880366801,
+      "name": "Secret scanning",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/duongtuankiet-se/SirLocked/actions/runs/38880366801",
+      "head_sha": "d905bf2c318ae7696a54617f432e83eeb63ba229",
+      "jobs": [
+        {
+          "id": 116905365609,
+          "name": "gitleaks",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/duongtuankiet-se/SirLocked/actions/runs/38880366801/job/116905365609",
+          "failed_steps": []
+        }
+      ]
+    },
+    {
+      "id": 38880366747,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/duongtuankiet-se/SirLocked/actions/runs/38880366747",
+      "head_sha": "d905bf2c318ae7696a54617f432e83eeb63ba229",
+      "jobs": [
+        {
+          "id": 116905365916,
+          "name": "api-smoke",
+          "status": "completed",
+          "conclusion": "failure",
+          "html_url": "https://github.com/duongtuankiet-se/SirLocked/actions/runs/38880366747/job/116905365916",
+          "failed_steps": [
+            "Start API"
+          ]
+        },
+        {
+          "id": 116905366079,
+          "name": "verify",
+          "status": "completed",
+          "conclusion": "failure",
+          "html_url": "https://github.com/duongtuankiet-se/SirLocked/actions/runs/38880366747/job/116905366079",
+          "failed_steps": [
+            "Test presentation and paired gameplay UI"
+          ]
+        },
+        {
+          "id": 116905366116,
+          "name": "two-browser-game",
+          "status": "completed",
+          "conclusion": "failure",
+          "html_url": "https://github.com/duongtuankiet-se/SirLocked/actions/runs/38880366747/job/116905366116",
+          "failed_steps": [
+            "Play V3 through real HTTP, MongoDB and two browsers"
+          ]
+        }
+      ]
+    }
+  ]
+}

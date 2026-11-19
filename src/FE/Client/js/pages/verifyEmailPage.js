@@ -3,6 +3,7 @@ import { session } from '../services/session.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { tr } from '../services/i18n.js';
 import { toast } from '../utils/toast.js';
+import { authErrorMessage } from '../services/authErrorMessages.js';
 import { pendingRoomInvite } from '../services/roomInvites.js';
 import { ICON_ARROW, authBoardMarkup, authHead, setBoardState } from './loginPage.js';
 
@@ -206,7 +207,7 @@ export function wireResend(app, button, result) {
       await authApi.resendVerification();
       result.innerHTML = resendSentMarkup();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(authErrorMessage(err.message), 'error');
     } finally {
       button.disabled = false;
       setBoardState(app, '');
@@ -277,7 +278,7 @@ export async function renderVerifyEmailPage(app) {
     settle('cold', `
       ${envelopeHero('bad')}
       <h2 id="verify-title" class="bpa-auth-title">${tr('Verification failed', 'Xác minh thất bại')}</h2>
-      <p class="bpa-auth-text">${escapeHtml(err.message || tr('The verification code is invalid or has already been used.', 'Mã xác minh không hợp lệ hoặc đã được dùng.'))}</p>
+      <p class="bpa-auth-text">${escapeHtml(authErrorMessage(err.message) || tr('The verification code is invalid or has already been used.', 'Mã xác minh không hợp lệ hoặc đã được dùng.'))}</p>
       ${canResend ? `<p class="bpa-auth-aside">${tr('Send the verification email again to get a new link.', 'Hãy gửi lại email xác minh để nhận liên kết mới.')}</p>` : ''}
       ${backToLogin}
       ${canResend ? `

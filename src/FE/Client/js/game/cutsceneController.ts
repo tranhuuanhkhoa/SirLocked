@@ -1,6 +1,8 @@
 import { escapeHtml } from '../utils/dom.js';
 import { tr } from '../services/i18n.js';
 import { PresentationMedia, type CasePresentation, type Cutscene } from './presentationMedia.js';
+import type { MotionComicHandle } from './cutscene/motionComic.js';
+import { storedAudioSettings, type AudioSettingsAccess } from './cutscene/audioSettings.js';
 
 /** Plays only content already authorized by the server; completion is local UI state. */
 export class CutsceneController {
@@ -13,9 +15,13 @@ export class CutsceneController {
   private previousFocus: HTMLElement | null = null;
   private storageKey: string;
   private motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  private onMotionChange = () => { if (this.current) this.render(); };
+  private onMotionChange = () => { if (this.current && !this.current.scene.motionComic) this.render(); };
+  private motionHandle: MotionComicHandle | null = null;
+  private motionToken = 0;
+  private replays = 0;
 
-  constructor(roomId: string, playerId: string, private onChange: () => void = () => {}) {
+  constructor(roomId: string, playerId: string, private onChange: () => void = () => {},
+    private audioSettings: AudioSettingsAccess = storedAudioSettings()) {
     this.storageKey = `sirlocked.presentation.${encodeURIComponent(roomId)}.${encodeURIComponent(playerId)}`;
     try { this.consumed = new Set(JSON.parse(localStorage.getItem(this.storageKey) || '[]')); } catch { /* storage is optional */ }
     this.motion.addEventListener('change', this.onMotionChange);
@@ -23,10 +29,22 @@ export class CutsceneController {
 
   get active() { return Boolean(this.current); }
 
+  /** True once this player has watched (or skipped) the cutscene; it will not start by itself again. */
+  wasPlayed(sceneId: string, presentationVersion: string | number | undefined = undefined): boolean {
+    return this.consumed.has(`${presentationVersion ?? '1'}:${sceneId}`);
+  }
+
+  /** Plays a cutscene again on request (the in-game "watch the opening again" button). Does not touch the saved state. */
+  replay(host: HTMLElement, scene: Cutscene) {
+    this.host = host;
+    this.queue.push({ scene, key: `replay:${++this.replays}:${scene.id}` });
+    if (!this.current) this.startNext();
+  }
+
   update(host: HTMLElement, presentation: CasePresentation | undefined, triggers: Cutscene['trigger'][]) {
     this.host = host;
     for (const scene of presentation?.cutscenes ?? []) {
-      if (!scene.id || !scene.panels?.length || !triggers.includes(scene.trigger)) continue;
+      if (!scene.id || !(scene.panels?.length || scene.motionComic) || !triggers.includes(scene.trigger)) continue;
       const key = `${presentation?.version ?? '1'}:${scene.id}`;
       if (this.consumed.has(key) || this.current?.key === key || this.queue.some((queued) => queued.key === key)) continue;
       this.queue.push({ scene, key });
@@ -40,7 +58,8 @@ export class CutsceneController {
     this.panel = 0;
     if (this.current) {
       this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      this.render();
+      if (this.current.scene.motionComic) void this.playMotion(this.current);
+      else this.render();
     } else {
       this.media.clear();
       if (this.host) this.host.innerHTML = '';
@@ -49,8 +68,27 @@ export class CutsceneController {
     this.onChange();
   }
 
+  /** Loads the comic player on demand so it never weighs down the page load. A failure just lets the game continue. */
+  private async playMotion(playing: { scene: Cutscene; key: string }) {
+    const token = ++this.motionToken;
+    const stale = () => this.current !== playing || token !== this.motionToken;
+    try {
+      const { playMotionComic } = await import('./cutscene/motionComic.js');
+      if (stale()) return;
+      const handle = await playMotionComic({
+        cutscene: playing.scene.motionComic!, audio: this.audioSettings, finishLabel: tr('Start investigating', 'Vào điều tra'),
+        onDone: () => { if (!stale()) this.finish(); },
+      });
+      if (stale()) { handle.dispose(); return; }
+      this.motionHandle = handle;
+    } catch (error) {
+      console.warn('Cutscene could not be played; continuing the game.', error);
+      if (!stale()) this.finish();
+    }
+  }
+
   private prepareMedia() {
-    if (!this.current) return;
+    if (!this.current || this.current.scene.motionComic) return;
     const current = this.current.scene.panels[this.panel];
     const next = this.current.scene.panels[this.panel + 1] ?? this.queue[0]?.scene.panels[0];
     this.media.retain([current.imageUrl, this.motion.matches ? undefined : current.videoUrl,
@@ -88,6 +126,8 @@ export class CutsceneController {
   private next() { if (!this.current) return; if (this.panel + 1 >= this.current.scene.panels.length) this.finish(); else { this.panel++; this.render(); } }
   private finish() {
     if (!this.current) return;
+    this.motionToken++;
+    this.motionHandle?.dispose(); this.motionHandle = null;
     this.consumed.add(this.current.key);
     try { localStorage.setItem(this.storageKey, JSON.stringify([...this.consumed].slice(-256))); } catch { /* no gameplay depends on persistence */ }
     this.current = null; this.startNext();
@@ -95,6 +135,7 @@ export class CutsceneController {
 
   handleKey(event: KeyboardEvent) {
     if (!this.current) return false;
+    if (this.current.scene.motionComic) return true; // the comic player handles its own keys; the game ignores everything meanwhile
     if (event.key === 'Escape') { event.preventDefault(); this.finish(); return true; }
     if ((event.key === ' ' || event.key === 'ArrowRight') && !(event.target instanceof HTMLButtonElement)) { event.preventDefault(); this.next(); return true; }
     if (event.key === 'Tab') {
@@ -105,5 +146,5 @@ export class CutsceneController {
     return true;
   }
 
-  dispose() { this.motion.removeEventListener('change', this.onMotionChange); this.media.clear(); if (this.host) this.host.innerHTML = ''; this.host = null; this.queue = []; this.current = null; }
+  dispose() { this.motionToken++; this.motionHandle?.dispose(); this.motionHandle = null; this.motion.removeEventListener('change', this.onMotionChange); this.media.clear(); if (this.host) this.host.innerHTML = ''; this.host = null; this.queue = []; this.current = null; }
 }

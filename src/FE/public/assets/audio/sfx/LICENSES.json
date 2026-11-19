@@ -1,0 +1,1077 @@
+{
+ "note": "Gói tiếng hiệu ứng của game. File Kenney đều CC0 (không bắt buộc ghi tên, vẫn ghi để tra cứu). Gói Impact Sounds không tải được (kenney.nl chỉ cho tải qua trang có JavaScript, bản sao trên GitHub đã gỡ), nên tiếng va chạm lấy từ RPG Audio cùng tác giả, cùng giấy phép. Mỗi file có .ogg và .mp3, đã chuẩn hóa bằng ffmpeg: cắt im lặng đầu, mono 44,1 kHz, mức trung bình -20 dB, đỉnh tối đa -1 dB.",
+ "packs": [
+  {
+   "name": "Kenney UI Audio",
+   "link": "https://kenney.nl/assets/ui-audio",
+   "downloadedFrom": "https://github.com/Calinou/kenney-ui-audio",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)"
+  },
+  {
+   "name": "Kenney Interface Sounds",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)"
+  },
+  {
+   "name": "Kenney RPG Audio",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)"
+  }
+ ],
+ "sfx": [
+  {
+   "file": "/assets/audio/sfx/ui/dialogue.ogg",
+   "fallback": "/assets/audio/sfx/ui/dialogue.mp3",
+   "use": {
+    "cue": "dialogue"
+   },
+   "labels": [
+    "giao diện",
+    "hỏi",
+    "thoại"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "question_002.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -10
+  },
+  {
+   "file": "/assets/audio/sfx/ui/discovery.ogg",
+   "fallback": "/assets/audio/sfx/ui/discovery.mp3",
+   "use": {
+    "cue": "discovery"
+   },
+   "labels": [
+    "giao diện",
+    "tìm thấy",
+    "manh mối"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "confirmation_001.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -8.7
+  },
+  {
+   "file": "/assets/audio/sfx/ui/reveal.ogg",
+   "fallback": "/assets/audio/sfx/ui/reveal.mp3",
+   "use": {
+    "cue": "reveal"
+   },
+   "labels": [
+    "giao diện",
+    "lật mở",
+    "thành công"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "confirmation_003.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -4.8
+  },
+  {
+   "file": "/assets/audio/sfx/ui/scene.ogg",
+   "fallback": "/assets/audio/sfx/ui/scene.mp3",
+   "use": {
+    "cue": "scene"
+   },
+   "labels": [
+    "giao diện",
+    "chuyển cảnh",
+    "cửa"
+   ],
+   "source": "Kenney RPG Audio",
+   "sourceFile": "doorOpen_1.ogg",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1.6
+  },
+  {
+   "file": "/assets/audio/sfx/ui/ping.ogg",
+   "fallback": "/assets/audio/sfx/ui/ping.mp3",
+   "use": {
+    "cue": "ping"
+   },
+   "labels": [
+    "giao diện",
+    "gọi đồng đội",
+    "chuông"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "bong_001.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -3.8
+  },
+  {
+   "file": "/assets/audio/sfx/ui/interact.ogg",
+   "fallback": "/assets/audio/sfx/ui/interact.mp3",
+   "use": {
+    "cue": "interact"
+   },
+   "labels": [
+    "giao diện",
+    "bấm",
+    "khám nghiệm"
+   ],
+   "source": "Kenney UI Audio",
+   "sourceFile": "click1.wav",
+   "link": "https://kenney.nl/assets/ui-audio",
+   "downloadedFrom": "https://github.com/Calinou/kenney-ui-audio",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1
+  },
+  {
+   "file": "/assets/audio/sfx/ui/error.ogg",
+   "fallback": "/assets/audio/sfx/ui/error.mp3",
+   "use": {
+    "cue": "error"
+   },
+   "labels": [
+    "giao diện",
+    "lỗi",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "error_004.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -6.6
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/balance_scale-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/balance_scale-tap.mp3",
+   "use": {
+    "puzzleKind": "balance_scale",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "cân",
+    "quả cân",
+    "đồng xu"
+   ],
+   "source": "Kenney RPG Audio",
+   "sourceFile": "handleCoins.ogg",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/balance_scale-probe.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/balance_scale-probe.mp3",
+   "use": {
+    "puzzleKind": "balance_scale",
+    "event": "probe"
+   },
+   "labels": [
+    "giải đố",
+    "cân",
+    "cân thử",
+    "kim loại"
+   ],
+   "source": "Kenney RPG Audio",
+   "sourceFile": "metalPot2.ogg",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -8.5
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/balance_scale-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/balance_scale-solve.mp3",
+   "use": {
+    "puzzleKind": "balance_scale",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "cân",
+    "giải xong"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "confirmation_002.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -5.1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/balance_scale-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/balance_scale-wrong.mp3",
+   "use": {
+    "puzzleKind": "balance_scale",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "cân",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "error_006.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -2.2
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/doc_forgery-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/doc_forgery-tap.mp3",
+   "use": {
+    "puzzleKind": "doc_forgery",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "giấy tờ",
+    "lật giấy"
+   ],
+   "source": "Kenney RPG Audio",
+   "sourceFile": "bookFlip1.ogg",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/doc_forgery-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/doc_forgery-solve.mp3",
+   "use": {
+    "puzzleKind": "doc_forgery",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "giấy tờ",
+    "giải xong"
+   ],
+   "source": "Kenney RPG Audio",
+   "sourceFile": "bookClose.ogg",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -3.1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/doc_forgery-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/doc_forgery-wrong.mp3",
+   "use": {
+    "puzzleKind": "doc_forgery",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "giấy tờ",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "error_003.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -3
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/fingerprint-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/fingerprint-tap.mp3",
+   "use": {
+    "puzzleKind": "fingerprint",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "vân tay",
+    "rắc bột",
+    "chổi"
+   ],
+   "source": "Kenney RPG Audio",
+   "sourceFile": "cloth3.ogg",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": 7.5
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/fingerprint-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/fingerprint-solve.mp3",
+   "use": {
+    "puzzleKind": "fingerprint",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "vân tay",
+    "khớp"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "maximize_003.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -0.1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/fingerprint-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/fingerprint-wrong.mp3",
+   "use": {
+    "puzzleKind": "fingerprint",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "vân tay",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "error_005.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1.6
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/gear_train-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/gear_train-tap.mp3",
+   "use": {
+    "puzzleKind": "gear_train",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "bánh răng",
+    "cơ khí"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "switch_004.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/gear_train-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/gear_train-solve.mp3",
+   "use": {
+    "puzzleKind": "gear_train",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "bánh răng",
+    "giải xong"
+   ],
+   "source": "Kenney RPG Audio",
+   "sourceFile": "metalLatch.ogg",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1.2
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/gear_train-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/gear_train-wrong.mp3",
+   "use": {
+    "puzzleKind": "gear_train",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "bánh răng",
+    "kẹt"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "glitch_002.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -9.2
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/lockpick-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/lockpick-tap.mp3",
+   "use": {
+    "puzzleKind": "lockpick",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "mở khóa",
+    "kim loại"
+   ],
+   "source": "Kenney RPG Audio",
+   "sourceFile": "metalClick.ogg",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": 4.3
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/lockpick-probe.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/lockpick-probe.mp3",
+   "use": {
+    "puzzleKind": "lockpick",
+    "event": "probe"
+   },
+   "labels": [
+    "giải đố",
+    "mở khóa",
+    "thử chốt"
+   ],
+   "source": "Kenney UI Audio",
+   "sourceFile": "switch7.wav",
+   "link": "https://kenney.nl/assets/ui-audio",
+   "downloadedFrom": "https://github.com/Calinou/kenney-ui-audio",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/lockpick-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/lockpick-solve.mp3",
+   "use": {
+    "puzzleKind": "lockpick",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "mở khóa",
+    "mở cửa"
+   ],
+   "source": "Kenney RPG Audio",
+   "sourceFile": "doorOpen_2.ogg",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/lockpick-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/lockpick-wrong.mp3",
+   "use": {
+    "puzzleKind": "lockpick",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "mở khóa",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "error_001.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -4
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/music_box-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/music_box-tap.mp3",
+   "use": {
+    "puzzleKind": "music_box",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "hộp nhạc",
+    "gảy"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "pluck_001.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -2.5
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/music_box-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/music_box-solve.mp3",
+   "use": {
+    "puzzleKind": "music_box",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "hộp nhạc",
+    "giải xong"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "maximize_008.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -7.3
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/music_box-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/music_box-wrong.mp3",
+   "use": {
+    "puzzleKind": "music_box",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "hộp nhạc",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "error_007.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -6.9
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/parallax_code-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/parallax_code-tap.mp3",
+   "use": {
+    "puzzleKind": "parallax_code",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "thấu kính",
+    "thủy tinh"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "glass_002.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1.1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/parallax_code-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/parallax_code-solve.mp3",
+   "use": {
+    "puzzleKind": "parallax_code",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "thấu kính",
+    "giải xong"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "glass_005.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -0.1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/parallax_code-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/parallax_code-wrong.mp3",
+   "use": {
+    "puzzleKind": "parallax_code",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "thấu kính",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "error_008.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": 0
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/reagent_mix-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/reagent_mix-tap.mp3",
+   "use": {
+    "puzzleKind": "reagent_mix",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "thuốc thử",
+    "giọt"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "drop_002.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -3.1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/reagent_mix-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/reagent_mix-solve.mp3",
+   "use": {
+    "puzzleKind": "reagent_mix",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "thuốc thử",
+    "ống nghiệm"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "glass_006.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -0.6
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/reagent_mix-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/reagent_mix-wrong.mp3",
+   "use": {
+    "puzzleKind": "reagent_mix",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "thuốc thử",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "glitch_004.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -7.3
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/tilt_maze-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/tilt_maze-tap.mp3",
+   "use": {
+    "puzzleKind": "tilt_maze",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "mê cung",
+    "viên bi"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "tick_002.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -3.4
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/tilt_maze-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/tilt_maze-solve.mp3",
+   "use": {
+    "puzzleKind": "tilt_maze",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "mê cung",
+    "bi vào ổ"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "drop_004.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -2.2
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/tilt_maze-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/tilt_maze-wrong.mp3",
+   "use": {
+    "puzzleKind": "tilt_maze",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "mê cung",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "back_001.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": 0
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/torn_paper-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/torn_paper-tap.mp3",
+   "use": {
+    "puzzleKind": "torn_paper",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "giấy rách",
+    "ghép mảnh"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "scratch_002.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -8.3
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/torn_paper-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/torn_paper-solve.mp3",
+   "use": {
+    "puzzleKind": "torn_paper",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "giấy rách",
+    "giải xong"
+   ],
+   "source": "Kenney RPG Audio",
+   "sourceFile": "bookPlace1.ogg",
+   "link": "https://kenney.nl/assets/rpg-audio",
+   "downloadedFrom": "https://opengameart.org/content/50-rpg-sound-effects",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -3.9
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/torn_paper-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/torn_paper-wrong.mp3",
+   "use": {
+    "puzzleKind": "torn_paper",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "giấy rách",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "error_002.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -5.4
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/classic-tap.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/classic-tap.mp3",
+   "use": {
+    "puzzleKind": "classic",
+    "event": "tap"
+   },
+   "labels": [
+    "giải đố",
+    "mã số",
+    "thứ tự",
+    "ký hiệu"
+   ],
+   "source": "Kenney UI Audio",
+   "sourceFile": "switch3.wav",
+   "link": "https://kenney.nl/assets/ui-audio",
+   "downloadedFrom": "https://github.com/Calinou/kenney-ui-audio",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -1
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/classic-solve.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/classic-solve.mp3",
+   "use": {
+    "puzzleKind": "classic",
+    "event": "solve"
+   },
+   "labels": [
+    "giải đố",
+    "mã số",
+    "giải xong"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "confirmation_004.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -8.2
+  },
+  {
+   "file": "/assets/audio/sfx/puzzle/classic-wrong.ogg",
+   "fallback": "/assets/audio/sfx/puzzle/classic-wrong.mp3",
+   "use": {
+    "puzzleKind": "classic",
+    "event": "wrong"
+   },
+   "labels": [
+    "giải đố",
+    "mã số",
+    "sai"
+   ],
+   "source": "Kenney Interface Sounds",
+   "sourceFile": "back_002.ogg",
+   "link": "https://kenney.nl/assets/interface-sounds",
+   "downloadedFrom": "https://opengameart.org/content/interface-sounds",
+   "author": "Kenney (www.kenney.nl)",
+   "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+   "levelDb": -3
+  }
+ ],
+ "fallback": [
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/dialogue.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/dialogue.mp3",
+   "use": {
+    "cue": "dialogue",
+    "role": "fallback"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "dialogue"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "dialogue.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  },
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/discovery.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/discovery.mp3",
+   "use": {
+    "cue": "discovery",
+    "role": "fallback"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "discovery"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "discovery.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  },
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/error.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/error.mp3",
+   "use": {
+    "cue": "error",
+    "role": "fallback"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "error"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "error.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  },
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/fingerprint-brush.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/fingerprint-brush.mp3",
+   "use": {
+    "name": "fingerprint-brush",
+    "role": "sample-case"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "fingerprint-brush"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "fingerprint-brush.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  },
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/fingerprint-lift.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/fingerprint-lift.mp3",
+   "use": {
+    "name": "fingerprint-lift",
+    "role": "sample-case"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "fingerprint-lift"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "fingerprint-lift.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  },
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/interact.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/interact.mp3",
+   "use": {
+    "cue": "interact",
+    "role": "fallback"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "interact"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "interact.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  },
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/ping.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/ping.mp3",
+   "use": {
+    "cue": "ping",
+    "role": "fallback"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "ping"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "ping.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  },
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/puzzle-fail.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/puzzle-fail.mp3",
+   "use": {
+    "name": "puzzle-fail",
+    "role": "sample-case"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "puzzle-fail"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "puzzle-fail.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  },
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/puzzle-success.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/puzzle-success.mp3",
+   "use": {
+    "name": "puzzle-success",
+    "role": "sample-case"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "puzzle-success"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "puzzle-success.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  },
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/reveal.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/reveal.mp3",
+   "use": {
+    "cue": "reveal",
+    "role": "fallback"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "reveal"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "reveal.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  },
+  {
+   "file": "/assets/audio/sfx/tu-tong-hop/scene.ogg",
+   "fallback": "/assets/audio/sfx/tu-tong-hop/scene.mp3",
+   "use": {
+    "cue": "scene",
+    "role": "fallback"
+   },
+   "labels": [
+    "tự tổng hợp",
+    "dự phòng",
+    "scene"
+   ],
+   "source": "Sir Locked (vụ mẫu \"Đồng hồ bỏ túi đêm mưa\")",
+   "sourceFile": "scene.ogg",
+   "link": "tools/studio-mcp (bot xưởng), Claude outputs/vu-an-mau/dong-ho-dem-mua/nguon/build_assets.py",
+   "downloadedFrom": null,
+   "author": "Claude (bot xưởng Sir Locked)",
+   "license": "Sir Locked (tự tổng hợp bằng code, dùng tự do trong dự án)"
+  }
+ ],
+ "totalBytes": 507977
+}

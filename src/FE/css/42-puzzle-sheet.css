@@ -1,0 +1,107 @@
+/*
+ * Interactive puzzle sheet — shared by every puzzle kind (src/FE/Client/js/game/puzzles).
+ * Extracted from design/PUZZLE-TEMPLATE.dc.html (s-, g-, pz- classes). Kind modules add their own
+ * CSS with their own short prefix (e.g. tm- for the tilt maze).
+ */
+.s-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+a{color:#07111f}a:hover{color:#9e3f2a}
+.s-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 20px;box-sizing:border-box;border:0;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;letter-spacing:.18em;text-decoration:none;cursor:pointer;transition:background-color .12s,color .12s,transform .12s,box-shadow .12s}
+.s-btn:active:not(:disabled){transform:translateY(2px)}
+.s-btn:focus-visible{outline:2px solid #efd486;outline-offset:3px}
+.s-paper .s-btn:focus-visible{outline-color:#07111f}
+.s-btn-red{background:#9e3f2a;color:#fbf6ed;box-shadow:0 3px 0 #6b2a1c,0 10px 20px rgba(158,63,42,.3)}
+.s-btn-red:hover:not(:disabled){background:#b2472f;color:#fbf6ed}
+.s-btn-red:disabled{cursor:not-allowed;background:#5a4a3e;color:#c9bfae;box-shadow:0 3px 0 #3a3029}
+.s-btn-ink{background:transparent;color:#07111f;box-shadow:inset 0 0 0 1.5px #07111f}
+.s-btn-ink:hover:not(:disabled){background:#07111f;color:#fbf6ed}
+.s-btn-ink:disabled{cursor:not-allowed;color:#6b6257;box-shadow:inset 0 0 0 1.5px rgba(91,82,72,.35)}
+.s-btn-gold{background:transparent;color:#efd486;box-shadow:inset 0 0 0 1.5px rgba(239,212,134,.6)}
+.s-btn-gold:hover:not(:disabled){background:rgba(239,212,134,.12);color:#fbf6ed}
+.s-btn-gold:disabled{cursor:not-allowed;color:#7d7262;box-shadow:inset 0 0 0 1.5px rgba(239,212,134,.2)}
+.s-btn-sm{min-height:36px;padding:0 14px;font-size:11px}
+.s-pin{position:absolute;z-index:3;width:18px;height:18px;border-radius:50%;box-shadow:0 4px 5px rgba(0,0,0,.55)}
+.s-pin.red{background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%)}
+.s-pin.gold{background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%)}
+.s-chip{display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:2px;background:rgba(251,246,237,.7);box-shadow:inset 0 0 0 1px rgba(79,69,54,.35);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;color:#3b3328;white-space:nowrap}
+.s-chip.dark{background:#0d1014;color:#efd486;box-shadow:none}
+.s-stamp{display:inline-block;padding:6px 12px;border:4px double currentColor;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;transform:rotate(-8deg);mix-blend-mode:multiply}
+.g-glass{background:rgba(10,12,15,.9);box-shadow:inset 0 0 0 1px rgba(239,212,134,.22),0 14px 30px rgba(0,0,0,.55)}
+.g-kick{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.2em;color:#efd486}
+.g-mute{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:600;letter-spacing:.16em;color:#b3a794}
+.g-mono{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:999px;background:#1a2c42;box-shadow:inset 0 0 0 1px #c7a24b;color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:14px;font-weight:700}
+.g-mono.rust{background:#3a1d12;box-shadow:inset 0 0 0 1px #c98a63;color:#f2c9a9}
+.g-dot{width:8px;height:8px;border-radius:999px;background:#5fb3a8;box-shadow:0 0 0 2px rgba(95,179,168,.25)}
+/* ---- puzzle overlay (pz-) — shared by every puzzle artboard ---- */
+.pz-veil{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:28px;box-sizing:border-box;background:rgba(8,6,4,.74);animation:pzFade .35s ease-out both}
+.pz-sheet{position:relative;display:flex;flex-direction:column;width:min(1240px,100%);height:min(836px,calc(100vh - 56px));box-sizing:border-box;border-radius:3px;
+  background:radial-gradient(ellipse 70% 60% at 52% 38%,rgba(255,206,140,.13),rgba(255,206,140,0) 70%),linear-gradient(180deg,#2c241c,#1d1712);
+  box-shadow:inset 0 0 0 1px rgba(199,162,75,.55),inset 0 0 0 6px #17120d,inset 0 0 0 7px rgba(199,162,75,.28),0 30px 70px rgba(0,0,0,.7);
+  animation:pzOpen .55s cubic-bezier(.4,0,.2,1) .1s both}
+.pz-sheet::before{content:"";position:absolute;inset:7px;pointer-events:none;border-radius:2px;background-image:repeating-linear-gradient(94deg,rgba(255,255,255,.012) 0 2px,rgba(0,0,0,.025) 2px 5px);mix-blend-mode:screen}
+.pz-head{position:relative;z-index:2;display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px 22px;padding:22px 26px 14px}
+.pz-label{position:relative;display:inline-flex;flex-direction:column;gap:2px;padding:10px 18px 11px;background:#0d1014;box-shadow:0 1px 0 rgba(0,0,0,.4),0 12px 24px rgba(0,0,0,.45);transform:rotate(-1.2deg)}
+.pz-label h2{margin:0;font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;line-height:1.1;color:#fbf6ed}
+.pz-kick{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.22em;color:#efd486}
+.pz-sub{flex:1 1 320px;min-width:0;margin:4px 0 0;font-size:17px;font-style:italic;line-height:1.4;color:#d9cfbd}
+.pz-head-act{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-left:auto}
+.pz-role{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 10px 0 4px;border-radius:999px;background:rgba(47,99,99,.28);box-shadow:inset 0 0 0 1px rgba(95,179,168,.45);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:#cfe7e3;white-space:nowrap}
+.pz-role .g-mono{width:28px;height:28px;font-size:12px}
+.pz-kbd{display:inline-grid;place-items:center;min-width:26px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:2px;box-shadow:inset 0 0 0 1px currentColor;font-size:9px;letter-spacing:.06em;opacity:.8}
+.pz-body{position:relative;z-index:1;flex:1;min-height:0;display:flex;gap:22px;padding:4px 26px 0}
+.pz-foot{position:relative;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:14px 26px 20px;border-top:1px solid rgba(239,212,134,.16)}
+.pz-status{flex:1 1 320px;min-width:0;margin:0;font-size:17px;line-height:1.35;color:#e2d8c6}
+.pz-status b{font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.16em;color:#efd486}
+.pz-actions{display:flex;flex-wrap:wrap;gap:10px;margin-left:auto}
+/* clue / evidence cards pinned on the side */
+.pz-card{position:relative;padding:16px 16px 14px 28px;background:#fbf6ed;color:#2a2318;box-shadow:0 1px 0 rgba(0,0,0,.2),0 18px 34px rgba(0,0,0,.5)}
+.pz-card::before{content:"";position:absolute;top:0;bottom:0;left:16px;width:1.5px;background:rgba(182,64,48,.5)}
+.pz-card h3{margin:0;font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:700;line-height:1.15;color:#07111f}
+.pz-card p{margin:6px 0 0;font-size:16px;line-height:1.38;color:#3b3328}
+.pz-tag{display:inline-block;margin-top:8px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em}
+.pz-tag.mine{color:#2f6363}.pz-tag.partner{color:#7a3f27}
+/* hint sticky note */
+.pz-hint{position:absolute;z-index:6;top:86px;right:30px;width:300px;padding:20px 18px 16px;box-sizing:border-box;background:linear-gradient(180deg,#f0dc93,#e4cc78);color:#3b2a10;box-shadow:0 1px 0 rgba(0,0,0,.2),0 18px 30px rgba(0,0,0,.45);transform:rotate(1.5deg);transform-origin:50% 0;animation:pzDrop .45s cubic-bezier(.2,.9,.3,1.3) both}
+.pz-hint b{display:block;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.18em;color:#7a5410}
+.pz-hint p{margin:6px 0 0;font-size:17px;line-height:1.35}
+/* success layer */
+.pz-win{position:absolute;inset:0;z-index:7;display:grid;place-items:center;padding:24px;box-sizing:border-box;background:radial-gradient(ellipse 60% 55% at 50% 45%,rgba(20,15,10,.35),rgba(10,8,6,.82));animation:pzFade .4s ease-out both}
+.pz-win-card{position:relative;width:min(520px,100%);padding:26px 26px 22px 40px;box-sizing:border-box;background:#fbf6ed;color:#2a2318;box-shadow:0 1px 0 rgba(0,0,0,.2),0 30px 60px rgba(0,0,0,.6);transform:rotate(-.6deg);animation:pzRise .6s cubic-bezier(.2,.8,.2,1) .25s both}
+.pzh-win-title{margin:10px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:700;line-height:1.15;color:#07111f}
+.pzh-win-text{margin:8px 0 18px;font-size:17px;line-height:1.4;color:#3b3328}
+.pz-status[data-tone="ok"]{color:#bfe8e0}
+.pz-status[data-tone="bad"]{color:#f3c0b4}
+.pz-status[data-tone="warn"]{color:#f1dc9c}
+.s-btn[hidden],.pz-actions[hidden]{display:none !important}
+.pz-win-card::before{content:"";position:absolute;top:0;bottom:0;left:24px;width:1.5px;background:rgba(182,64,48,.5)}
+.pz-stamp{position:absolute;top:-26px;right:-14px;z-index:2;padding:8px 14px;border:5px double #9e3f2a;background:rgba(251,246,237,.4);color:#9e3f2a;font-family:'Source Code Pro',ui-monospace,monospace;font-size:15px;font-weight:700;letter-spacing:.22em;white-space:nowrap;transform:rotate(-9deg);animation:pzSlam .5s cubic-bezier(.2,.9,.3,1.2) .55s both}
+.pz-shake{animation:pzShake .42s cubic-bezier(.36,.07,.19,.97) both}
+.pz-shake-b{animation:pzShakeB .42s cubic-bezier(.36,.07,.19,.97) both}
+@keyframes pzFade{from{opacity:0}to{opacity:1}}
+@keyframes pzOpen{0%{clip-path:circle(0% at 50% 100%)}100%{clip-path:circle(150% at 50% 100%)}}
+@keyframes pzDrop{0%{opacity:0;transform:translateY(-18px) rotate(-4deg)}100%{opacity:1;transform:rotate(1.5deg)}}
+@keyframes pzRise{0%{opacity:0;transform:translateY(28px) rotate(-3deg) scale(.96)}100%{opacity:1;transform:rotate(-.6deg)}}
+@keyframes pzSlam{0%{opacity:0;transform:rotate(-24deg) scale(2.3)}60%{opacity:1;transform:rotate(-7deg) scale(.94)}100%{opacity:1;transform:rotate(-9deg) scale(1)}}
+@keyframes pzShake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+@keyframes pzShakeB{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+@keyframes pzDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes sLens{0%{clip-path:circle(0px at 50% 46%)}16%{clip-path:circle(66px at 50% 46%)}34%{clip-path:circle(66px at 50% 46%)}100%{clip-path:circle(150% at 50% 46%)}}
+@keyframes sZoom{0%,34%{transform:scale(1.14)}100%{transform:none}}
+@keyframes sRim{0%{width:0;height:0;opacity:0}16%{width:132px;height:132px;opacity:1}34%{width:132px;height:132px;opacity:1}100%{width:3200px;height:3200px;opacity:0}}
+.s-enter{animation:sLens 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-enter-zoom{transform-origin:50% 46%;animation:sZoom 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim{position:absolute;left:50%;top:46%;z-index:20;width:0;height:0;opacity:0;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);border:8px solid #c7a24b;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.14),rgba(255,255,255,0) 42%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 14px 30px rgba(0,0,0,.6);pointer-events:none;animation:sRim 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim::after{content:"";position:absolute;left:85%;top:85%;width:18px;height:90px;margin-left:-9px;border-radius:6px;background:linear-gradient(90deg,#2a1b10,#5a3b22 45%,#2a1b10);box-shadow:0 0 0 2px #5e4a1c;transform-origin:50% 0;transform:rotate(-45deg)}
+@media (max-width:900px){
+  .pz-veil{padding:0;place-items:stretch}
+  .pz-sheet{width:100%;height:100vh;border-radius:0;overflow:auto}
+  .pz-head{padding:16px 16px 10px}
+  .pz-label h2{font-size:23px}
+  .pz-head-act{margin-left:0;width:100%}
+  .pz-body{flex-direction:column;padding:4px 16px 0;min-height:auto}
+  .pz-foot{padding:12px 16px 16px}
+  .pz-actions{margin-left:0;width:100%}
+  .pz-hint{top:auto;bottom:96px;right:12px;left:12px;width:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  .s-enter,.s-enter-zoom,.s-rim,.pz-veil,.pz-sheet,.pz-hint,.pz-win,.pz-win-card,.pz-stamp,.pz-shake,.pz-shake-b{animation:none !important}
+}
