@@ -154,6 +154,8 @@ public sealed class GameCaseProjectionCompiler : IGameCaseProjectionCompiler
                     TruthBoundPuzzleAnswers.ApplyFingerprint(puzzle, owner, gameCase, cards);
             // The kind generates everything the AI did not write (geometry, the answer, the reveal), then checks it.
             PuzzleKindRegistry.FillMissing(gameCase);
+            foreach (var puzzle in gameCase.Puzzles.Where(PuzzleKindRegistry.IsInteractive))
+                OptionalPuzzleHints.TopUp(puzzle, gameCase.Language);
             var puzzleErrors = new List<string>();
             foreach (var puzzle in gameCase.Puzzles.Where(PuzzleKindRegistry.IsInteractive))
                 PuzzleKindRegistry.Validate(puzzle, $"puzzles.{puzzle.PuzzleId}",
