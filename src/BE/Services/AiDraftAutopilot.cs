@@ -91,7 +91,7 @@ public sealed class AiDraftAutopilot(
     }
 
     /// <summary>Takes the draft's next step as <see cref="AutopilotUser"/>. Returns the step taken, or null (nothing to do, or another action won the race).</summary>
-    public static async Task<string?> AdvanceAsync(AiCaseDraft draft, IAiCaseService cases)
+    public static async Task<string?> AdvanceAsync(AiCaseDraft draft, IAiCaseService cases, Action<string, ApiException>? refused = null)
     {
         var step = NextStep(draft);
         if (step is null) return null;
@@ -113,8 +113,9 @@ public sealed class AiDraftAutopilot(
             };
             return step.Name;
         }
-        catch (ApiException)
+        catch (ApiException exception)
         {
+            refused?.Invoke(step.Name, exception);
             return null;
         }
     }
@@ -127,14 +128,21 @@ public sealed class AiDraftAutopilot(
         if (step is null) return;
         if (step.CostsRepair)
         {
-            // Claim one repair from the budget first, so two sweeps never repair the same failure twice.
+            // Claim one repair from the budget first, so two sweeps never repair the same failure twice. A draft that
+            // was never repaired has no autopilotRepairs field at all (it is written only when not 0), and an equality
+            // on 0 does not match a missing field in MongoDB.
+            var filter = Builders<AiCaseDraft>.Filter;
+            var used = draft.AutopilotRepairs == 0
+                ? filter.Or(filter.Eq(item => item.AutopilotRepairs, 0), filter.Exists(item => item.AutopilotRepairs, false))
+                : filter.Eq(item => item.AutopilotRepairs, draft.AutopilotRepairs);
             var claimed = await db.AiCaseDrafts.UpdateOneAsync(
-                item => item.Id == draftId && item.AutopilotRepairs == draft.AutopilotRepairs && item.Status == draft.Status,
+                filter.And(filter.Eq(item => item.Id, draftId), filter.Eq(item => item.Status, draft.Status), used),
                 Builders<AiCaseDraft>.Update.Inc(item => item.AutopilotRepairs, 1),
                 cancellationToken: ct);
             if (claimed.ModifiedCount == 0) return;
         }
-        var taken = await AdvanceAsync(draft, cases);
+        var taken = await AdvanceAsync(draft, cases, (name, exception) =>
+            logger.LogWarning("Autopilot step {Step} on draft {DraftId} was refused: {Reason}", name, draftId, exception.Message));
         if (taken is null) return;
         logger.LogInformation("Autopilot took step {Step} on draft {DraftId} (repairs used {Repairs}/{Max}).",
             taken, draftId, draft.AutopilotRepairs + (step.CostsRepair ? 1 : 0), MaxRepairs);
