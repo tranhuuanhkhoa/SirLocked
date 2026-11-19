@@ -34,6 +34,9 @@ function assertLoopback(url: string | undefined, label: string): void {
 }
 
 export async function playtest(ctx: ToolContext, args: PlaytestArgs) {
+  if (ctx.config.unattended && (args.apiUrl || args.webUrl || args.casePath)) {
+    throw new StudioError('PLAYTEST_NOT_LOCAL', 'Runner chạy playtest bằng draftId trên stack local riêng.');
+  }
   assertLoopback(args.apiUrl, 'apiUrl');
   assertLoopback(args.webUrl, 'webUrl');
   let casePath: string;

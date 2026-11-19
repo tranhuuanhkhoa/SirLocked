@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { StudioError } from '../bridge-client.js';
-import { display, readJsonFile, requireFile, resolveInput, tmpDir, writeJsonFile } from '../files.js';
+import { display, readJsonFile, requireFile, resolveInput, resolveOutput, tmpDir, writeJsonFile } from '../files.js';
 import {
   checkSize, cleanText, cover, cutBackground, fit, foregroundLayer, iconSheetCells, idleSheet, inspect, maskFromShapes, npcCheck, npcFromZip,
   portrait, walkableFromMask, walkOverlay, type NpcSources, type WalkShape,
@@ -30,15 +30,15 @@ function defaultOutput(ctx: ToolContext, input: string | undefined, suffix: stri
 
 /** A picture by path, or by library key (local build or cached download). */
 async function loadPicture(ctx: ToolContext, ref: string): Promise<{ image: Rgba; file: string }> {
-  const direct = resolveInput(ctx.config, ref);
-  if (existsSync(direct)) return { image: await loadRgba(readFileSync(direct)), file: direct };
+  const direct = ctx.config.unattended && /^[a-z0-9-]+(?:#[a-z0-9_-]+)?$/i.test(ref) ? null : resolveInput(ctx.config, ref);
+  if (direct && existsSync(direct)) return { image: await loadRgba(readFileSync(direct)), file: direct };
   const index = loadIndex(ctx.config.libraryIndexPath);
   const [key, role = 'main'] = ref.split('#');
   const item = index.items.find((entry) => entry.key === key);
   if (!item) throw new StudioError('FILE_NOT_FOUND', `Không thấy file hay mục thư viện "${ref}".`);
   const local = item.local?.files?.[role];
   if (local && existsSync(path.resolve(ctx.config.repoRoot, local))) {
-    const file = path.resolve(ctx.config.repoRoot, local);
+    const file = requireFile(ctx.config, local);
     return { image: await loadRgba(readFileSync(file)), file };
   }
   const url = role === 'main' ? item.url : item.files[role];
@@ -84,13 +84,13 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
     case 'cut_background': {
       const { image } = await loadPicture(ctx, args.input ?? '');
       const result = cutBackground(image, { tolerance: p.tolerance, color: p.color });
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'nen-trong', '.png');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'nen-trong', '.png');
       await saveRgba(result.image, output);
       return { output: display(ctx.config, output), removedPixels: result.removed };
     }
     case 'to_webp': {
       const { image } = await loadPicture(ctx, args.input ?? '');
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'webp', '.webp');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'webp', '.webp');
       if (!output.toLowerCase().endsWith('.webp')) throw new StudioError('BAD_ARGS', 'output của to_webp phải là .webp');
       const bytes = await saveRgba(image, output);
       return { output: display(ctx.config, output), bytes, lossless: true };
@@ -100,7 +100,7 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       const rects: Rect[] = (p.rects ?? []).map(asRect);
       if (rects.length === 0) throw new StudioError('BAD_ARGS', 'clean_text cần params.rects: [[x0,y0,x1,y1], ...] (pixel của ảnh, Claude tự nhìn ảnh để chấm).');
       const result = cleanText(image, rects, { threshold: p.threshold, mode: p.mode });
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'sach-chu', '.png');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'sach-chu', '.png');
       await saveRgba(result.image, output);
       const compare = output.replace(/\.[^.]+$/, '-so-sanh.png');
       const zoom = (img: Rgba) => resizeNearest(img, img.width * 4, img.height * 4);
@@ -113,7 +113,7 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       const scene = (await loadPicture(ctx, sceneRef)).image;
       const portraits: Rgba[] = [];
       for (const ref of p.portraits ?? args.inputs ?? []) portraits.push((await loadPicture(ctx, ref)).image);
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, sceneRef, 'bia', '.png');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, sceneRef, 'bia', '.png');
       await saveRgba(cover(scene, portraits, { size: p.size }), output, { opaque: true });
       return { output: display(ctx.config, output), portraits: portraits.length, size: p.size ?? 512 };
     }
@@ -123,21 +123,21 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       requireNpcStandard(npc);
       if (args.op === 'idle_breathe') npc.idle = [];
       const sheet = idleSheet(npc);
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'idle', '.png');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'idle', '.png');
       await saveRgba(sheet.image, output);
       return { output: display(ctx.config, output), width: sheet.image.width, height: sheet.image.height, frames: 9, source: sheet.source, anchorY: sheet.anchorY, pixelLabCredits: 0 };
     }
     case 'portrait': {
       const npc = await loadNpc(ctx, args.input ?? '');
       requireNpcStandard(npc);
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'portrait', '.png');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'portrait', '.png');
       await saveRgba(portrait(npc.south, p.size ?? 288), output);
       return { output: display(ctx.config, output), width: p.size ?? 288, height: p.size ?? 288, scaling: 'nearest-neighbor' };
     }
     case 'npc_bundle': {
       const npc = await loadNpc(ctx, args.input ?? '');
       requireNpcStandard(npc);
-      const dir = args.output ? resolveInput(ctx.config, args.output) : tmpDir(ctx.config, 'assets', path.basename(args.input ?? 'npc').replace(/\.[^.]+$/, ''));
+      const dir = args.output ? resolveOutput(ctx.config, args.output) : tmpDir(ctx.config, 'assets', path.basename(args.input ?? 'npc').replace(/\.[^.]+$/, ''));
       const ext = p.format === 'png' ? '.png' : '.webp';
       const sheet = idleSheet(npc);
       const files = {
@@ -164,11 +164,11 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       }
       const result = foregroundLayer(map, mask, asRect(p.rect), { pixelScale: p.pixelScale, threshold: p.threshold, invert: p.invert, baseRow: p.baseRow, tight: p.tight });
       const id = String(p.id ?? 'layer').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, mapRef.split('#')[0], `fg-${id}`, '.png');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, mapRef.split('#')[0], `fg-${id}`, '.png');
       await saveRgba(result.image, output);
       return {
         output: display(ctx.config, output), native: `${result.image.width}x${result.image.height}`, pixels: result.pixels,
-        layer: { id, url: `<URL sau khi tải lên thư viện: POST /api/bridge/library/files, role fg-${id}>`, ...result.layer },
+        layer: { id, url: '<URL từ foreground_upload>', ...result.layer },
         hint: 'Đưa layer vào foreground[] của câu trả lời bố cục (đơn vị runtime = native x 4). baseY là đường chạm đất; cây, cột đèn có gốc cao hơn đáy vết cắt thì truyền params.baseRow (hàng native của gốc).',
       };
     }
@@ -177,7 +177,7 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       const { image } = await loadPicture(ctx, args.input ?? '');
       const names: (string | null | undefined)[] = p.names ?? [];
       const base = path.basename(args.input ?? 'icons').replace(/\.[^.]+$/, '');
-      const dir = args.output ? resolveInput(ctx.config, args.output) : tmpDir(ctx.config, 'assets', base);
+      const dir = args.output ? resolveOutput(ctx.config, args.output) : tmpDir(ctx.config, 'assets', base);
       const cells = iconSheetCells(image, { columns: p.columns, rows: p.rows, cell: p.cell });
       const files = [];
       for (const cell of cells) {
@@ -194,14 +194,14 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       if (!p.width || !p.height) throw new StudioError('BAD_ARGS', 'fit cần params.width và params.height (kích thước ô hình).');
       const { image } = await loadPicture(ctx, args.input ?? '');
       const result = fit(image, p.width, p.height, { mode: p.mode, background: p.background, scale: p.scale });
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, `${p.width}x${p.height}`, '.png');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, args.input, `${p.width}x${p.height}`, '.png');
       await saveRgba(result.image, output);
       return { output: display(ctx.config, output), width: p.width, height: p.height, mode: p.mode ?? 'contain', scale: result.scale };
     }
     case 'mask_from_shapes': {
       const width = p.width ?? 512, height = p.height ?? 512;
       const mask = maskFromShapes(width, height, (p.walk ?? []) as WalkShape[], (p.block ?? []) as WalkShape[]);
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'mask', '.png');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'mask', '.png');
       await saveRgba(mask, output, { opaque: true });
       return { output: display(ctx.config, output), width, height, next: 'asset_process { op: "walkable", input: <mask>, params: { picture: <ảnh cảnh> } }' };
     }
@@ -211,7 +211,7 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
         nativeWidth: p.nativeWidth, nativeHeight: p.nativeHeight, pixelScale: p.pixelScale, cellSize: p.cellSize,
         threshold: p.threshold, invert: p.invert, channel: p.channel,
       });
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'walk', '.json');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, args.input, 'walk', '.json');
       writeJsonFile(output, result);
       let overlay: string | undefined;
       if (p.picture) {
@@ -261,7 +261,7 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       }
       const id = String(p.id ?? 'vat').toLowerCase().replace(/[^a-z0-9-]+/g, '-');
       const base = path.basename(sceneRef.split('#')[0]).replace(/\.[^.]+$/, '');
-      const dir = args.output ? resolveInput(ctx.config, args.output) : tmpDir(ctx.config, 'assets', `${base}-inpaint-${id}`);
+      const dir = args.output ? resolveOutput(ctx.config, args.output) : tmpDir(ctx.config, 'assets', `${base}-inpaint-${id}`);
       const inputs = inpaintInputs(scene, plan, sceneShape);
       const files = {
         source: path.join(dir, 'source.png'), mask: path.join(dir, 'mask.png'), context: path.join(dir, 'context.png'),
@@ -340,7 +340,7 @@ export async function assetProcess(ctx: ToolContext, args: { op: ProcessOp; inpu
       if (!merged.drawn) {
         throw new StudioError('INPAINT_EMPTY', 'PixelLab gần như không vẽ gì trong vùng mask. Báo chủ dự án, đề xuất sửa description hoặc tô mask rộng hơn rồi chờ đồng ý trước khi gọi lại.');
       }
-      const output = args.output ? resolveInput(ctx.config, args.output) : defaultOutput(ctx, sceneRef.split('#')[0], 've-vat', '.png');
+      const output = args.output ? resolveOutput(ctx.config, args.output) : defaultOutput(ctx, sceneRef.split('#')[0], 've-vat', '.png');
       await saveRgba(merged.image, output);
       const compare = output.replace(/\.[^.]+$/, '-so-sanh.png');
       const zoom = (img: Rgba) => {
@@ -461,7 +461,7 @@ export async function assetVariant(ctx: ToolContext, args: VariantArgs) {
     }
   }
   const dir = tmpDir(ctx.config, 'variants', key);
-  const output = args.output ? resolveInput(ctx.config, args.output) : path.join(dir, `${key}.png`);
+  const output = args.output ? resolveOutput(ctx.config, args.output) : path.join(dir, `${key}.png`);
   await saveRgba(image!, output);
   const compareFile = path.join(dir, `${key}-so-sanh.png`);
   await saveRgba(sideBySide(source, image!), compareFile);
