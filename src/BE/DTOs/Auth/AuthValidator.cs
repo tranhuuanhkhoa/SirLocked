@@ -56,6 +56,22 @@ public static class AuthValidator
         ThrowIfInvalid(errors);
     }
 
+    /// <summary>
+    /// An account an admin creates or edits, by the sign-up rules. Only the parts passed are checked: a null
+    /// <paramref name="password"/> skips the password (an edit of name and email), a null name and email check only it.
+    /// </summary>
+    public static Dictionary<string, string[]> AccountErrors(string? fullName, string? email, string? password, bool checkIdentity = true, bool checkPassword = true)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (checkIdentity)
+        {
+            Name(fullName, errors);
+            Email(email, errors);
+        }
+        if (checkPassword) Password(password, "newPassword", errors);
+        return errors;
+    }
+
     private static void Name(string? value, Dictionary<string, string[]> errors)
     {
         var length = value?.Trim().Length ?? 0;

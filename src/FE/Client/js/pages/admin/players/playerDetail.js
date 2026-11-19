@@ -6,6 +6,7 @@ import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
 import { categoryLabel, defName, itemTile, rarityLabel } from '../../market/marketKit.js';
 import { auditTable } from './auditTable.js';
+import { deleteAccountDialog, editAccountDialog, passwordDialog, restoreAccountDialog } from './accountDialogs.js';
 import {
   AVATAR_REASONS, TRADE_STATUS, actionDialog, alertBox, coins, dateTime, num, pagedList, playerLink, roleChip, routeParams, statusChip, tableHtml, writeRouteParams,
 } from './shared.js';
@@ -232,12 +233,19 @@ export function mountPlayerDetail(host, userId, { signal }) {
         ${pill(account.hasSession ? 'Có phiên đăng nhập' : 'Không có phiên đăng nhập', '', { small: true })}
       </span>
       <span class="adp-created">Tạo lúc ${escapeHtml(dateTime(account.createdAt))} · <span class="adp-break">Mã: <code class="adp-code">${escapeHtml(account.userId)}</code></span></span>`;
-    const canLock = account.role !== 'ADMIN' && account.status !== 'DELETED';
+    const deleted = account.status === 'DELETED';
+    const canEdit = account.role !== 'ADMIN' && !deleted;
     const locked = account.status === 'LOCKED';
-    host.querySelector('[data-adp-actions]').innerHTML = `
-      ${canLock ? `<button class="btn btn-ghost ${locked ? 'adm-btn-ok' : 'adm-btn-danger'}" type="button" data-adp-lock>${locked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button>` : ''}
+    // A deleted account offers only its way back; an admin account is not edited from here.
+    host.querySelector('[data-adp-actions]').innerHTML = deleted
+      ? `${account.role !== 'ADMIN' ? '<button class="btn btn-ghost adm-btn-ok" type="button" data-adp-restore>Khôi phục tài khoản</button>' : ''}`
+      : `
+      ${canEdit ? '<button class="btn btn-ghost" type="button" data-adp-edit>Sửa thông tin</button>' : ''}
+      ${canEdit ? '<button class="btn btn-ghost" type="button" data-adp-password>Đặt mật khẩu mới</button>' : ''}
+      ${canEdit ? `<button class="btn btn-ghost ${locked ? 'adm-btn-ok' : 'adm-btn-danger'}" type="button" data-adp-lock>${locked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button>` : ''}
       <button class="btn btn-ghost" type="button" data-adp-logout>Ép đăng xuất</button>
-      <button class="btn btn-ghost" type="button" data-adp-avatar-remove${progress.avatarUrl ? '' : ' hidden'}>Xóa ảnh đại diện</button>`;
+      <button class="btn btn-ghost" type="button" data-adp-avatar-remove${progress.avatarUrl ? '' : ' hidden'}>Xóa ảnh đại diện</button>
+      ${canEdit ? '<button class="btn btn-ghost adm-btn-danger" type="button" data-adp-delete>Xóa tài khoản</button>' : ''}`;
   };
 
   // ---- actions ----
@@ -354,6 +362,40 @@ export function mountPlayerDetail(host, userId, { signal }) {
     drawHeader();
   };
 
+  // ---- the account itself ----
+
+  const editAccount = async () => {
+    const result = await editAccountDialog(state.account, { signal });
+    if (!result) return;
+    toast('Đã cập nhật tài khoản.', 'success');
+    state.account = { ...state.account, fullName: result.fullName, email: result.email, isEmailVerified: result.isEmailVerified };
+    drawHeader();
+  };
+
+  const newPassword = async () => {
+    const result = await passwordDialog(state.account, { signal });
+    if (!result) return;
+    toast('Đã đặt mật khẩu mới. Người chơi đã bị đăng xuất.', 'success');
+    state.account = { ...state.account, hasSession: false };
+    drawHeader();
+  };
+
+  const deleteAccount = async () => {
+    const result = await deleteAccountDialog(state.account, { signal });
+    if (!result) return;
+    toast('Đã xóa tài khoản.', 'success');
+    state.account = { ...state.account, status: result.status, hasSession: false };
+    drawHeader();
+  };
+
+  const restoreAccount = async () => {
+    const result = await restoreAccountDialog(state.account, { signal });
+    if (!result) return;
+    toast('Đã khôi phục tài khoản.', 'success');
+    state.account = { ...state.account, status: result.status };
+    drawHeader();
+  };
+
   // The same lock and unlock as the list, through the same older routes.
   const toggleLock = async () => {
     const locked = state.account.status === 'LOCKED';
@@ -431,6 +473,10 @@ export function mountPlayerDetail(host, userId, { signal }) {
       '[data-adp-avatar-remove]': removeAvatar,
       '[data-adp-logout]': forceLogout,
       '[data-adp-lock]': toggleLock,
+      '[data-adp-edit]': editAccount,
+      '[data-adp-password]': newPassword,
+      '[data-adp-delete]': deleteAccount,
+      '[data-adp-restore]': restoreAccount,
     };
     page.addEventListener('click', (event) => {
       const tab = event.target.closest('[data-tab]');

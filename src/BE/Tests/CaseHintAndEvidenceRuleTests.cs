@@ -60,6 +60,8 @@ public sealed class CaseHintAndEvidenceRuleTests
     public void OldCases_HaveNoAlternatives_AndScoreExactlyAsBefore(string relative)
     {
         var gameCase = LoadSeed(relative);
+        // The three samples are new cases written to the new rules; SampleCaseTests checks their alternatives.
+        if (SampleCaseTests.IsSampleCase(gameCase.CaseId)) return;
         Assert.All(gameCase.FinalLogic.RequiredEvidenceLinks, link => Assert.Null(link.AcceptedEvidenceIds));
         if (gameCase.FinalLogic.RequiredEvidenceLinks.Count == 0) return;
 
@@ -241,8 +243,9 @@ public sealed class CaseHintAndEvidenceRuleTests
         PuzzleKindsFill(gameCase);
         var before = _validator.Validate(gameCase);
         Assert.DoesNotContain(before.Errors, error => CaseHintCodes.All.Contains(error.Code));
-        // The newcomer tutorial ships with every hint level (it is the model case); the older seeds still lack some.
-        if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2 && !TutorialRules.IsTutorialCase(gameCase.CaseId))
+        // The newcomer tutorial and the three samples ship with every hint level; the older seeds still lack some.
+        if (gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2 && !TutorialRules.IsTutorialCase(gameCase.CaseId)
+            && !SampleCaseTests.IsSampleCase(gameCase.CaseId))
             Assert.Contains(before.Warnings, warning => CaseHintCodes.All.Contains(warning.Code));
     }
 

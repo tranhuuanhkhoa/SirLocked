@@ -68,6 +68,7 @@ public sealed class AdminPlayersEnv : IAsyncDisposable
         var catalog = FixedCatalogProvider.Default;
         Operations = new AdminPlayerOperations(AdminStore, Store, Market, Progress, Audit, Remover, NullLogger<AdminPlayerOperations>.Instance, catalog);
         Players = new AdminPlayersService(AdminStore, Store, CatalogStore, Market, Progress, catalog);
+        Accounts = new AdminAccountsService(Db, Audit);
         Moderation = new AdminAvatarModeration(AdminStore, Store, Audit);
         Economy = new AdminEconomyService(AdminStore, Store, Market, Chests, Progress, Operations, Moderation, Audit, catalog);
         Rooms = new AdminRoomsService(Db, proxy, new RoomDisconnectTimeoutService(Db, proxy, TimeProvider.System), Audit);
@@ -87,6 +88,7 @@ public sealed class AdminPlayersEnv : IAsyncDisposable
     public RecordingNotifier Notifications { get; }
     public AdminPlayerOperations Operations { get; }
     public AdminPlayersService Players { get; }
+    public AdminAccountsService Accounts { get; }
     public AdminAvatarModeration Moderation { get; }
     public AdminEconomyService Economy { get; }
     public AdminRoomsService Rooms { get; }

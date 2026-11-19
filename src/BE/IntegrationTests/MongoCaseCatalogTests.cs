@@ -30,13 +30,19 @@ public sealed partial class MongoCaseCatalogTests
 {
     private const string Classic = "case-v3-broken-seal-vi";
     private const string ClassicEn = "case-v3-broken-seal-en";
-    private static readonly string[] PixelIds = ["case-pixel-lo-thuoc-thu-nam-vi", "case-pixel-tram-hong-ngoc-vi"];
+    private static readonly string[] PixelIds =
+    [
+        "case-pixel-lo-thuoc-thu-nam-vi", "case-pixel-tram-hong-ngoc-vi",
+        "case-pixel-chuoi-ngoc-vi", "case-pixel-chen-tra-vi", "case-pixel-dem-tuyet-vi"
+    ];
+    /// <summary>The older (non-pixel) cases SeedEverythingAsync adds next to the pixel ones.</summary>
+    private const int ClassicCount = 4;
 
     [Fact]
     public Task PixelOnly_ListsAndOpensOnlyPixelCases_WhileAdminStillSeesEverything() => WithCatalog(async c =>
     {
         await c.SeedEverythingAsync();
-        Assert.Equal(6, (await c.Open.Cases.GetPublishedAsync()).Count);
+        Assert.Equal(ClassicCount + PixelIds.Length, (await c.Open.Cases.GetPublishedAsync()).Count);
 
         var visible = await c.PixelOnly.Cases.GetPublishedAsync();
         Assert.Equal(PixelIds.OrderBy(id => id), visible.Select(summary => summary.CaseId).OrderBy(id => id));
@@ -48,7 +54,7 @@ public sealed partial class MongoCaseCatalogTests
         Assert.Equal(404, hidden.StatusCode);
         // Not deleted: the admin list and the case itself are intact, and with the switch off it opens again.
         var admin = await c.PixelOnly.Cases.GetAllForAdminAsync();
-        Assert.Equal(6, admin.Count);
+        Assert.Equal(ClassicCount + PixelIds.Length, admin.Count);
         Assert.Contains(admin, summary => summary.CaseId == Classic && !summary.IsPixel && !summary.PlayerVisible);
         Assert.All(admin.Where(summary => summary.IsPixel), summary => Assert.True(summary.PlayerVisible));
         Assert.All((await c.Open.Cases.GetAllForAdminAsync()), summary => Assert.True(summary.PlayerVisible));
@@ -104,10 +110,10 @@ public sealed partial class MongoCaseCatalogTests
         await c.SeedPixelOnlyAsync();
         var a = await c.UserAsync("Alice");
         var b = await c.UserAsync("Bob");
-        // Trâm hồng ngọc is ~20 minutes (short); Lọ thuốc thứ Năm is ~30 (medium)
+        // Trâm hồng ngọc (~20 minutes) and the easy sample Chuỗi ngọc (~12) are short; the others are medium or long.
         await c.PixelOnly.Matchmaking.EnqueueAsync(a, Prefs("en", "SHORT"));
         var found = await c.PixelOnly.Matchmaking.EnqueueAsync(b, Prefs("en", "SHORT"));
-        Assert.Equal("case-pixel-tram-hong-ngoc-vi", found.Match!.CaseId);
+        Assert.Contains(found.Match!.CaseId, new[] { "case-pixel-tram-hong-ngoc-vi", "case-pixel-chuoi-ngoc-vi" });
     });
 
     [Fact]
@@ -124,9 +130,9 @@ public sealed partial class MongoCaseCatalogTests
     {
         await c.SeedEverythingAsync();
         var all = await c.Open.Workshop.GetWorkshopCasesAsync(null, "hot", 1, 48);
-        Assert.Equal(6, all.Total);
+        Assert.Equal(ClassicCount + PixelIds.Length, all.Total);
         var pixel = await c.PixelOnly.Workshop.GetWorkshopCasesAsync(null, "hot", 1, 48);
-        Assert.Equal(2, pixel.Total);
+        Assert.Equal(PixelIds.Length, pixel.Total);
         Assert.All(pixel.Items, item => Assert.Contains(item.CaseId, PixelIds));
         Assert.Equal(PixelIds[1], (await c.PixelOnly.Workshop.GetCaseStatsAsync(PixelIds[1])).CaseId);
         var hidden = await Assert.ThrowsAsync<ApiException>(() => c.PixelOnly.Workshop.GetCaseStatsAsync(Classic));
@@ -192,12 +198,12 @@ public sealed partial class MongoCaseCatalogTests
         var worker = new PixelCaseSeedWorker(scopes, Options.Create(new CaseCatalogSettings { SeedPixelOnStartup = true }), NullLogger<PixelCaseSeedWorker>.Instance);
 
         Assert.True(await worker.RunPassAsync(CancellationToken.None));
-        Assert.Equal(2, await c.Db.Cases.CountDocumentsAsync(x => PixelIds.Contains(x.CaseId) && x.Status == CaseStatus.Published));
+        Assert.Equal(PixelIds.Length, await c.Db.Cases.CountDocumentsAsync(x => PixelIds.Contains(x.CaseId) && x.Status == CaseStatus.Published));
         // a room is playing one of them: another pass changes nothing and does not fail
         var host = await c.UserAsync("Đang chơi");
         await c.Open.Rooms.CreateAsync(host, PixelIds[1], "PRIVATE");
         Assert.True(await worker.RunPassAsync(CancellationToken.None));
-        Assert.Equal(2, await c.Db.Cases.CountDocumentsAsync(x => PixelIds.Contains(x.CaseId)));
+        Assert.Equal(PixelIds.Length, await c.Db.Cases.CountDocumentsAsync(x => PixelIds.Contains(x.CaseId)));
     });
 
     [Fact]
@@ -205,20 +211,20 @@ public sealed partial class MongoCaseCatalogTests
     {
         await c.SeedEverythingAsync();
         var all = await c.PixelOnly.Cases.GetAllForAdminAsync();
-        Assert.Equal(6, all.Count);
+        Assert.Equal(ClassicCount + PixelIds.Length, all.Count);
 
         var defaultList = c.PixelOnly.Legacy.FilterAdminList(all, includeLegacy: false);
         Assert.Equal(PixelIds.OrderBy(id => id), defaultList.Select(summary => summary.CaseId).OrderBy(id => id));
-        Assert.Equal(6, c.PixelOnly.Legacy.FilterAdminList(all, includeLegacy: true).Count);
+        Assert.Equal(ClassicCount + PixelIds.Length, c.PixelOnly.Legacy.FilterAdminList(all, includeLegacy: true).Count);
         // with the switch off nothing is hidden, whatever the flag says
-        Assert.Equal(6, c.Open.Legacy.FilterAdminList(await c.Open.Cases.GetAllForAdminAsync(), includeLegacy: false).Count);
+        Assert.Equal(ClassicCount + PixelIds.Length, c.Open.Legacy.FilterAdminList(await c.Open.Cases.GetAllForAdminAsync(), includeLegacy: false).Count);
 
-        Assert.Equal(4, (await c.PixelOnly.Legacy.GetHiddenCaseIdsAsync()).Count);
+        Assert.Equal(ClassicCount, (await c.PixelOnly.Legacy.GetHiddenCaseIdsAsync()).Count);
         Assert.Empty(await c.Open.Legacy.GetHiddenCaseIdsAsync());
         Assert.True(await c.PixelOnly.Legacy.IsHiddenAsync(Classic));
         Assert.False(await c.PixelOnly.Legacy.IsHiddenAsync(PixelIds[0]));
         Assert.False(await c.PixelOnly.Legacy.IsHiddenAsync("case-that-does-not-exist"));
-        Assert.Equal(4, await c.Db.Cases.CountDocumentsAsync(x => !PixelIds.Contains(x.CaseId)));
+        Assert.Equal(ClassicCount, await c.Db.Cases.CountDocumentsAsync(x => !PixelIds.Contains(x.CaseId)));
     });
 
     [Fact]
@@ -267,9 +273,9 @@ public sealed partial class MongoCaseCatalogTests
 
         var openBoard = System.Text.Json.JsonSerializer.SerializeToElement(await c.Open.Admin.GetDashboardAsync());
         var pixelBoard = System.Text.Json.JsonSerializer.SerializeToElement(await c.PixelOnly.Admin.GetDashboardAsync());
-        Assert.Equal(6, openBoard.GetProperty("totalCases").GetInt32());
-        Assert.Equal(2, pixelBoard.GetProperty("totalCases").GetInt32());
-        Assert.Equal(2, pixelBoard.GetProperty("publishedCases").GetInt32());
+        Assert.Equal(ClassicCount + PixelIds.Length, openBoard.GetProperty("totalCases").GetInt32());
+        Assert.Equal(PixelIds.Length, pixelBoard.GetProperty("totalCases").GetInt32());
+        Assert.Equal(PixelIds.Length, pixelBoard.GetProperty("publishedCases").GetInt32());
         Assert.Equal(2, openBoard.GetProperty("totalRooms").GetInt32());
         Assert.Equal(1, pixelBoard.GetProperty("totalRooms").GetInt32());
         Assert.Equal(3, openBoard.GetProperty("totalResults").GetInt32());

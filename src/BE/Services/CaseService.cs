@@ -40,11 +40,17 @@ public class CaseService : ICaseService, IPixelCaseSeeder, ITutorialCaseSeeder
         "case-point-click-night-ledger-vi.json"
     ];
 
-    /// <summary>Hand-authored PixelLab case: one outdoor map, five interiors, pixel render mode.</summary>
+    /// <summary>
+    /// Hand-authored pixel cases, published on startup when missing. The last three are the easy, medium and hard
+    /// samples built from library rooms and maps no case used before (SampleCaseTests).
+    /// </summary>
     private static readonly string[] PixelDemoFiles =
     [
         "case-pixel-lo-thuoc-thu-nam-vi.json",
-        "case-pixel-tram-hong-ngoc-vi.json"
+        "case-pixel-tram-hong-ngoc-vi.json",
+        "case-pixel-chuoi-ngoc-vi.json",
+        "case-pixel-chen-tra-vi.json",
+        "case-pixel-dem-tuyet-vi.json"
     ];
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)

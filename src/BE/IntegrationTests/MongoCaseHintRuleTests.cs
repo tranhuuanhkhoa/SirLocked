@@ -89,7 +89,7 @@ public sealed class MongoCaseHintRuleTests
     public Task PublishedPixelCases_WithoutHints_StillSeedImportAndPublish() => WithCases(async cases =>
     {
         // Startup seeding of the bundled cases is never blocked by the rule ...
-        Assert.Equal(2, (await cases.SeedPixelDemoAsync()).Count);
+        Assert.Equal(5, (await cases.SeedPixelDemoAsync()).Count);
         // ... nor is importing one of them by hand, even into an empty database (the studio playtest does that).
         await cases.Db.Cases.DeleteOneAsync(item => item.CaseId == PixelSeed);
         var summary = await cases.ImportJsonAsync(Element(Seed(PixelSeed)), overwrite: true);
