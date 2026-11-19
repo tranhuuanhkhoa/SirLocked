@@ -102,6 +102,64 @@ public sealed class TruthStageAnswerCheckTests
         Assert.Null(Rules.CheckAnswer(draft, Request(AiGenerationSchemaVersions.StatementLedger), Statements(truth)));
     }
 
+    private static string ProofGraph(CaseTruthPackage truth) =>
+        JsonSerializer.Serialize(new { proofGraph = truth.ProofGraph, redHerringLedger = truth.RedHerringLedger }, Json);
+
+    /// <summary>
+    /// Run 8: the opportunity step gave an innocent suspect a verified alibi that only their own unseen visit backs (nobody
+    /// else there, no trace from it). That step has no alibi rule, so it was locked; only the whole-truth check at the proof
+    /// graph finds it.
+    /// </summary>
+    private static void LockAnUncorroboratedAlibi(CaseTruthPackage truth)
+    {
+        var row = truth.OpportunityMatrix.First(item => item.CharacterId != truth.CoreTruth.CulpritId);
+        var visit = truth.TrueTimeline.First(item => item.ActorId == row.CharacterId
+            && item.WitnessIds.All(id => id == row.CharacterId)
+            && truth.TraceLedger.All(trace => trace.SourceActionId != item.EventId));
+        row.AlibiVerified = true;
+        row.AlibiEventIds = [visit.EventId];
+    }
+
+    [Fact]
+    public void AnErrorOfALockedEarlierStep_DoesNotBlockTheProofGraph_TheRepairStartsAtThatStep()
+    {
+        var (draft, truth) = PausedAt(CaseTruthArtifacts.Statements);
+        LockAnUncorroboratedAlibi(draft.CaseTruth!);
+        var service = new CaseTruthService();
+        var whole = service.Validate(draft.CaseTruth!, AiCaseService.TruthBudgetForDraft(draft));
+        Assert.Contains(whole.Errors, error => error.Code == "UncorroboratedAlibi");
+        Assert.Equal(CaseTruthArtifacts.Opportunity, service.PlanRepair(whole.Errors).RegenerateFromArtifact);
+
+        var result = Rules.CheckAnswer(draft, Request(AiGenerationSchemaVersions.ProofGraph), ProofGraph(truth));
+
+        Assert.Empty(result!.Errors);
+    }
+
+    [Fact]
+    public void AProofGraphError_IsStillRefused_AndTheLockedStepsErrorIsNotListed()
+    {
+        var (draft, truth) = PausedAt(CaseTruthArtifacts.Statements);
+        LockAnUncorroboratedAlibi(draft.CaseTruth!);
+        truth.ProofGraph.Conclusions.RemoveAt(0);
+
+        var result = Rules.CheckAnswer(draft, Request(AiGenerationSchemaVersions.ProofGraph), ProofGraph(truth));
+
+        Assert.Contains(result!.Errors, error => (error.Path ?? string.Empty).StartsWith("proofGraph", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Errors, error => error.Code == "UncorroboratedAlibi");
+    }
+
+    [Fact]
+    public void ACoreTruthGap_DoesNotBlockTheTimeline_ItIsNotTheTimelinesToFix()
+    {
+        var (draft, truth) = PausedAt(CaseTruthArtifacts.CoreTruth);
+        draft.CaseTruth!.CoreTruth.Motive = string.Empty;
+        var answer = JsonSerializer.Serialize(new { trueTimeline = truth.TrueTimeline }, Json);
+
+        var result = Rules.CheckAnswer(draft, Request(AiGenerationSchemaVersions.TrueTimeline), answer);
+
+        Assert.Empty(result!.Errors);
+    }
+
     [Fact]
     public void Errors_ReadLikeTheDraftsValidationReport()
     {
