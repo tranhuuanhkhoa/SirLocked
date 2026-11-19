@@ -1,0 +1,17 @@
+{
+  "title": "Hộp mê cung của Trịnh Lực",
+  "prompt": "Nghiêng hộp bằng nút mũi tên, phím mũi tên hoặc kéo hộp. Viên bi lăn tới khi chạm vách — tránh các lỗ. Bi vào ổ đồng thì nắp hộp mở.",
+  "params": {
+    "labelTitle": "Nhãn dưới đáy hộp",
+    "labelKick": "NÉT CHÌ · CHỮ CỦA LỰC",
+    "labelQuote": "‘Bi chỉ dừng khi chạm vách.’",
+    "partnerMono": "TV",
+    "partnerQuote": "Trịnh Lực khai: anh cất giấy tờ trong hộp mê cung ở nhà xe. Hộp kêu ‘tách’ mỗi khi bi lăn qua cái cần đồng bên trong — sau đó có tiếng cửa nhỏ mở.",
+    "insideTitle": "Bên trong hộp",
+    "openText": "Biên nhận sửa xe của nhà xe họ Lâm đã được thêm vào hồ sơ."
+  },
+  "reveal": {
+    "title": "Biên nhận sửa xe — 23:30",
+    "text": "Biên nhận của nhà xe họ Lâm: “Thay trục bánh sau, giao xe lúc 23 giờ 30 tối thứ Sáu. Thợ: Trịnh Lực.” Đến 23:30 Lực vẫn ở nhà xe — anh không thể có mặt ở tiệm cầm đồ lúc két bị mở."
+  }
+}

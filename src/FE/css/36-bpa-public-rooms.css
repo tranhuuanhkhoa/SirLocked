@@ -1,0 +1,169 @@
+/* ==========================================================================
+   "Bảng phá án" — Public rooms (/rooms, roomsPage.js) and the public/private
+   choice of the create card (roomCreateCard.js, also on /create-room).
+   Design: Rooms.dc.html (rm-* classes). Builds on 30-bpa-rooms.css.
+   ========================================================================== */
+
+/* ---- create card: visibility toggle, stamp, case dropdown ---- */
+.bpa-rooms-create { position: relative; }
+.bpa-rooms-visstamp {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 5px 10px;
+  pointer-events: none;
+}
+.bpa-rooms-visgroup {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.bpa-rooms-vis {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 92px;
+  padding: 14px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .55);
+  box-shadow: inset 0 0 0 1px rgba(91, 82, 72, .35);
+  color: var(--bpa-ink-3);
+  text-align: left;
+  font-family: var(--bpa-font-body);
+  font-size: 15px;
+  line-height: 1.25;
+  cursor: pointer;
+  transition: background-color .15s, box-shadow .15s, color .15s;
+}
+.bpa-rooms-vis strong {
+  font-family: var(--bpa-font-label);
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.bpa-rooms-vis--teal svg, .bpa-rooms-vis--teal strong { color: var(--bpa-teal); }
+.bpa-rooms-vis--rust svg, .bpa-rooms-vis--rust strong { color: var(--bpa-rust); }
+.bpa-rooms-vis:hover { box-shadow: inset 0 0 0 1.5px var(--bpa-ink); }
+.bpa-rooms-vis[aria-pressed="true"] { background: var(--bpa-ink); color: #e9dfcc; box-shadow: inset 0 0 0 1px var(--bpa-ink); }
+.bpa-rooms-vis[aria-pressed="true"] svg,
+.bpa-rooms-vis[aria-pressed="true"] strong { color: var(--bpa-gold); }
+.bpa-rooms-vis:focus-visible { outline: 2px solid var(--bpa-red); outline-offset: 2px; }
+
+.bpa-rooms-casefield { margin-top: 16px; }
+.bpa-rooms-selectwrap { position: relative; }
+.bpa-rooms-select { padding-right: 36px; cursor: pointer; text-overflow: ellipsis; }
+.bpa-rooms-selarrow { position: absolute; right: 8px; top: 15px; color: var(--bpa-ink); pointer-events: none; }
+#room-visibility-note { margin-top: 16px; }
+#room-visibility-note .bpa-rooms-codeslot { margin-top: 0; }
+.bpa-rooms-pubnote {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 78px;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  background: var(--bpa-teal-fill);
+  box-shadow: inset 0 0 0 1px rgba(47, 99, 99, .45);
+  color: #1f4545;
+  font-size: 16px;
+  line-height: 1.35;
+}
+.bpa-rooms-pubnote svg { flex: none; color: var(--bpa-teal); }
+
+/* ---- public room ledger ---- */
+.bpa-prooms-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bpa-prooms-head .bpa-rooms-h2 { margin: 0; }
+.bpa-prooms-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.bpa-prooms-segs { display: inline-flex; gap: 4px; }
+.bpa-prooms-filters .bpa-seg { min-height: 40px; text-transform: uppercase; }
+.bpa-prooms-search { position: relative; margin-top: 14px; }
+.bpa-prooms-searchicon { position: absolute; left: 12px; top: 12px; color: var(--bpa-muted); pointer-events: none; }
+.bpa-prooms-searchinput {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 42px;
+  padding: 8px 12px 8px 38px;
+  border: 0;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .6);
+  box-shadow: inset 0 0 0 1px rgba(91, 82, 72, .35);
+  color: var(--bpa-ink);
+  font-family: var(--bpa-font-body);
+  font-size: 16px;
+  outline: none;
+}
+.bpa-prooms-searchinput::placeholder { color: #6b6257; opacity: 1; }
+.bpa-prooms-searchinput:focus { box-shadow: inset 0 0 0 1.5px var(--bpa-ink); }
+.bpa-prooms-body { min-height: 120px; }
+.bpa-prooms-tablewrap { margin-top: 10px; overflow-x: auto; }
+.bpa-prooms-table thead th { text-transform: uppercase; }
+.bpa-prooms-table td { vertical-align: middle; }
+.bpa-prooms-table tbody tr { transition: background-color .15s; }
+.bpa-prooms-code {
+  font-family: var(--bpa-font-label);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  color: var(--bpa-ink);
+  white-space: nowrap;
+}
+.bpa-prooms-case strong { display: block; font-weight: 600; color: var(--bpa-ink); overflow-wrap: anywhere; }
+.bpa-prooms-case > span { display: block; font-size: 14px; color: var(--bpa-muted); }
+.bpa-prooms-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bpa-prooms-act { width: 1%; text-align: right; white-space: nowrap; }
+.bpa-prooms-sm { display: none; }
+.bpa-prooms-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 2px;
+  font-family: var(--bpa-font-label);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.bpa-prooms-tag.is-wait { background: var(--bpa-teal-fill); color: var(--bpa-teal); box-shadow: inset 0 0 0 1px rgba(47, 99, 99, .4); }
+.bpa-prooms-tag.is-play { background: var(--bpa-rust-fill); color: var(--bpa-rust); box-shadow: inset 0 0 0 1px rgba(122, 63, 39, .4); }
+.bpa-prooms-body .bpa-rooms-state .bpa-btn { margin-left: auto; }
+
+.bpa-prooms-joinbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  box-shadow: inset 0 0 0 1px rgba(239, 212, 134, .35), 0 12px 26px rgba(0, 0, 0, .5);
+  color: var(--bpa-gold);
+  font-family: var(--bpa-font-label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 760px) {
+  .bpa-prooms-ledger { padding: 20px 14px 16px 40px; }
+  .bpa-prooms-lg { display: none; }
+  .bpa-prooms-sm { display: inline; }
+  .bpa-prooms-table th, .bpa-prooms-table td { padding-left: 6px; padding-right: 6px; }
+  .bpa-rooms-visgroup { grid-template-columns: minmax(0, 1fr); }
+  .bpa-rooms-vis { min-height: 0; }
+  .bpa-rooms-visstamp { top: 14px; right: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bpa-rooms-vis, .bpa-prooms-table tbody tr { transition: none; }
+}

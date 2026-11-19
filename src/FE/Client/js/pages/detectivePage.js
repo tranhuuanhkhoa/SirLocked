@@ -6,6 +6,7 @@ import { escapeHtml, render } from '../utils/dom.js';
 import { mountCosmeticsPanel } from './detective/cosmeticsPanel.js';
 import { ICON_ALERT, accountTab } from './detective/accountTab.js';
 import { navigate } from '../services/navigation.js';
+import { authorBadge } from '../components/authorBadge.js';
 
 export async function renderDetectivePage(app, userIdParam) {
   const userId = userIdParam || session.user()?.userId;
@@ -61,6 +62,7 @@ export async function renderDetectivePage(app, userIdParam) {
       <div class="bpa-label bpa-profile-title">
         <p class="bpa-kicker">${escapeHtml(tr('Detective file', 'Hồ sơ thám tử'))}</p>
         <h1 class="bpa-profile-h1">${escapeHtml(displayName)}</h1>
+        ${authorBadge(profile.creatorStats?.authorTier)}
       </div>
       <p class="bpa-profile-intro">${escapeHtml(intro)}</p>
       ${alertLink}

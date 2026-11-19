@@ -1,0 +1,24 @@
+{
+  "title": "Đồng hồ cột ở quảng trường",
+  "prompt": "Lắp bánh răng từ khay lên các trục để nối tay quay với kim. Kim phải chạy thuận chiều tới đúng giờ đồng hồ đã dừng.",
+  "params": {
+    "targetMin": 640,
+    "note": {
+      "title": "Ghi chú của thợ đồng hồ",
+      "text": "‘Đủ bánh cho một đường — đừng dùng bánh cong.’",
+      "caption": "Mẩu giấy kẹp dưới khay đồ nghề, nét bút chì."
+    },
+    "witness": {
+      "text": "Người gác quảng trường khai: đồng hồ cột dừng ở 10 giờ 40 đêm thứ Sáu; sáng ra mấy bánh răng bị tháo, và kim chạy ngược khi ông thử lắp lại."
+    },
+    "maker": {
+      "name": "ĐỒNG HỒ CỘT HÀNG ĐƯỜNG",
+      "line": "HÀ NỘI · 1912 · Nº 7"
+    },
+    "door": "Nº 7"
+  },
+  "reveal": {
+    "title": "Đồng hồ cột dừng lúc 22:40",
+    "text": "Bộ máy chạy lại và kim dừng đúng 10 giờ 40 — giờ đồng hồ cột bị va đêm thứ Sáu, cùng lúc tiếng động bên tiệm cầm đồ. Đặng Bửu khai nghe tiếng động lúc 23:30, gần một tiếng sau; khi ấy Trịnh Lực vẫn đang sửa xe trong nhà xe họ Lâm."
+  }
+}

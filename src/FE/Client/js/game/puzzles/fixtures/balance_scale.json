@@ -1,0 +1,19 @@
+{
+  "title": "Chín lọ bột ở hiệu thuốc Hưng Long",
+  "prompt": "Đặt lọ lên hai đĩa cân rồi bấm Cân — mỗi lần cân tốn một thẻ đồng. Hết thẻ thì hãy chỉ ra lọ nặng hơn.",
+  "params": {
+    "shop": "HIỆU THUỐC",
+    "shopName": "HƯNG LONG",
+    "batch": "MẺ 14",
+    "grams": 20,
+    "bookTitle": "Sổ hiệu thuốc Hưng Long",
+    "bookText": "Chín lọ bột cùng một mẻ, mỗi lọ đúng 20 gam.",
+    "partnerMono": "TV",
+    "partnerQuote": "Ông lang khai: tối thứ Sáu ông Đặng Bửu mang sang một lọ bột nhờ ‘giữ hộ’, ông đặt lẫn vào hàng lọ trên quầy. Cầm lên thấy nặng tay hơn một chút.",
+    "noteLines": ["Giữ hộ", "— Đ.B."]
+  },
+  "reveal": {
+    "title": "Trâm hồng ngọc trong lọ bột",
+    "text": "Dưới lớp bột của lọ nặng hơn là chiếc trâm hồng ngọc của bà Lâm, gói trong giấy dầu. Nhãn viết tay ‘Giữ hộ — Đ.B.’: chính Đặng Bửu gửi nó sang hiệu thuốc — chiếc trâm chưa từng bị trộm khỏi két."
+  }
+}

@@ -18,6 +18,7 @@ const MAT = {
   lacquer:['#22171A','#43302F','#0D0809'], vermil:['#9E2420','#CF4A3E','#5A100D'], jade:['#3E9A78','#93E3C1','#1C5A43'],
   pearl:['#CFE3E6','#F6FCFD','#8DA9AE'], bronze:['#9A6A2E','#CB9550','#573812'], sapphire:['#2F5FD0','#93B8FF','#17307A'],
   glaze:['#2E5FA8','#73A0E3','#173569'], mint:['#5E8C6A','#8DBB98','#33553D'],
+  onyx:['#2B2331','#4B4057','#120D17'], silver:['#8D96A6','#D6DCE6','#4A505E'], crimson:['#7A1226','#B32A42','#3A0712'],
 };
 const FLAT = new Set(['seam', 'rivet', 'black', 'white', 'dark']);
 const NAMES = Object.keys(MAT);
@@ -140,6 +141,61 @@ function chestUnderside() {
   g.rect(3, 12, 44, 13, 'gold');
   return g.render({ bottom: false });
 }
+/* ---------- the Whitechapel night case: onyx and silver, a storm-lantern lock, crimson velvet ---------- */
+function wcBody(sealed) {
+  const g = new G(48, 23);
+  g.rect(3, 0, 44, 21, 'onyx');
+  g.rect(3, 0, 44, 0, 'seam');
+  // quilted crimson velvet in silver frames, left and right of the lock
+  for (const x0 of [11, 28]) {
+    g.rect(x0, 2, x0 + 8, 16, 'silver'); g.rect(x0 + 1, 3, x0 + 7, 15, 'crimson');
+    for (let y = 5; y <= 13; y += 4) for (let x = x0 + 2 + ((y - 5) / 4 % 2) * 2; x <= x0 + 6; x += 4) g.set(x, y, 'silver');
+  }
+  // silver straps, studs and corner braces
+  g.rect(7, 1, 8, 18, 'silver'); g.rect(39, 1, 40, 18, 'silver');
+  for (const y of [4, 10, 16]) { g.set(7, y, 'rivet'); g.set(40, y, 'rivet'); }
+  for (const [x, y] of [[3, 1], [42, 1], [3, 14], [42, 14]]) { g.rect(x, y, x + 2, y + 4, 'silver'); g.set(x + 1, y + 2, 'black'); }
+  // plinth with a crimson inlay
+  g.rect(1, 19, 46, 22, 'silver'); g.rect(2, 20, 45, 20, 'crimson');
+  for (const x of [6, 14, 22, 25, 33, 41]) g.set(x, 21, 'black');
+  // the storm-lantern lock: brass roof, glowing glass, keyhole plate
+  g.rect(23, 0, 24, 0, 'gold'); g.poly([[19.5, 3], [28.5, 3], [25.5, 0.5], [22.5, 0.5]], 'gold');
+  g.rect(19, 3, 28, 11, 'gold'); g.rect(20, 4, 27, 10, 'flame'); g.rect(23, 5, 24, 9, 'white'); g.set(22, 7, 'white'); g.set(25, 7, 'white');
+  g.rect(19, 11, 28, 12, 'gold');
+  g.poly([[20, 13], [28, 13], [26.5, 18], [21.5, 18]], 'gold');
+  g.circ(23.5, 14.4, 1.1, 'black'); g.rect(23, 15, 24, 16, 'black');
+  if (sealed) {
+    // red wax seal on a silver cord, hanging from the lantern
+    g.line(27, 12, 30, 14, 'silver');
+    g.circ(31.5, 15.5, 2.6, 'ruby'); g.rect(31, 15, 32, 16, 'ribbon'); g.set(30, 18, 'ribbon'); g.set(33, 18, 'ribbon');
+  }
+  return g.render({ top: false });
+}
+function wcLid() {
+  const g = new G(48, 18);
+  g.ell(3, 0, 44, 27, 'onyx'); g.rect(3, 11, 44, 17, 'onyx');
+  g.rect(4, 11, 43, 11, 'seam', true);
+  // a row of silver studs following the dome
+  for (let k = 1; k < 12; k++) { const a = Math.PI + k * Math.PI / 12; g.set(23.5 + Math.cos(a) * 16.5, 12.5 + Math.sin(a) * 9.5, 'silver', true); }
+  g.rect(7, 3, 8, 17, 'silver', true); g.rect(39, 3, 40, 17, 'silver', true);
+  g.set(7, 8, 'rivet', true); g.set(40, 8, 'rivet', true);
+  g.rect(3, 14, 44, 17, 'silver'); g.rect(4, 15, 43, 15, 'crimson');
+  for (const x of [3, 42]) g.rect(x, 12, x + 2, 17, 'silver');
+  // the silver magnifier, crimson lens, gold ferrule
+  g.circ(22.5, 6.5, 4.3, 'silver'); g.circ(22.5, 6.5, 2.8, 'crimson'); g.set(21, 5, 'white'); g.set(20, 6, 'white');
+  g.line(25.5, 9.5, 29, 12.5, 'silver', 2); g.rect(29, 12, 30, 13, 'gold');
+  return g.render({ bottom: false });
+}
+function wcUnderside() {
+  const g = new G(48, 14);
+  g.rect(3, 0, 44, 13, 'onyx');
+  g.rect(6, 2, 41, 11, 'crimson');
+  for (let y = 4; y <= 10; y += 3) for (let x = 9 + ((y / 3) % 2) * 3; x <= 39; x += 6) g.set(x, y, 'silver');
+  g.rect(3, 12, 44, 13, 'silver');
+  g.circ(23.5, 7, 2.2, 'flame'); g.set(23, 6, 'white');
+  return g.render({ bottom: false });
+}
+
 /* ---------- the loupe key (40 px wide) ---------- */
 function keySprite() {
   const g = new G(40, 18);
@@ -298,6 +354,11 @@ const CHEST_LOOKS = {
     shards: ['#E8F4FF', '#BEC6D1', '#9FD4E8'],
     sprites: () => ({ frame: safeFrame(), door: safeDoor(), doorBack: safeDoorBack() }),
   },
+  chest_whitechapel: {
+    mech: 'lid', light: '190,52,58', hi: '255,150,140', core: '255,222,214', hole: [23.5, 35], brk: [33, 32],
+    shards: ['#B8233A', '#F26E80', '#610C1B', '#EEF2F8'],
+    sprites: () => ({ body: wcBody(true), bodyBare: wcBody(false), lid: wcLid(), under: wcUnderside() }),
+  },
   chest_lacquer: {
     mech: 'lid', light: '70,200,150', hi: '170,250,210', core: '222,255,238', hole: [23.5, 29], brk: [23.5, 23],
     shards: ['#3E9A78', '#93E3C1', '#1C5A43', '#C9934E'],
@@ -381,6 +442,39 @@ export function defSprite(def) {
   return def?.visual?.imageUrl ? imageSprite(def.visual.imageUrl) : itemSprite(def?.iconKey);
 }
 
+/** Only an upload (https) or a picture shipped under /assets/; anything else is no picture. The server checks the same. */
+const PICTURE_URL = /^(https:\/\/|\/assets\/)[^\s"'<>]+$/;
+const pictureOf = (url) => (typeof url === 'string' && PICTURE_URL.test(url) ? url : '');
+
+/** A chest's own picture, when an admin gave it one (look.imageUrl). '' means: no picture of its own. */
+export const ownChestPictureUrl = (chest) => pictureOf(chest?.look?.imageUrl);
+
+/** The key's own picture (look.keyImageUrl), or ''. */
+export const ownKeyPictureUrl = (chest) => pictureOf(chest?.look?.keyImageUrl);
+
+/**
+ * What a chest looks like: its own picture, else the picture of the scene an admin made for it (look.scene), else ''
+ * (draw its template).
+ */
+export const chestPictureUrl = (chest) => ownChestPictureUrl(chest) || pictureOf(chest?.look?.scene?.chestImageUrl);
+
+/** The key's picture: its own, else its scene's, else ''. */
+export const keyPictureUrl = (chest) => ownKeyPictureUrl(chest) || pictureOf(chest?.look?.scene?.keyImageUrl);
+
+/** A scene's picture (room, particle), checked like every other picture. */
+export const scenePictureUrl = (url) => pictureOf(url);
+
+/** A chest for an <img>: its own picture, else its pixel drawing. `chest` needs iconKey and look. */
+export function chestIconUrl(chest) {
+  return chestPictureUrl(chest) || pixelIconUrl(chest?.iconKey);
+}
+
+/** The key as a sprite: its own picture, else its pixel drawing. A picture lands later; see `ready`. */
+export function keyArtSprite(chest) {
+  const url = keyPictureUrl(chest);
+  return url ? imageSprite(url) : itemSprite(chest?.keyIconKey);
+}
+
 /** Copies a sprite onto a canvas of any size, centred. */
 export function paintSprite(canvas, sprite) {
   const x = canvas.getContext('2d');
@@ -391,7 +485,7 @@ export function paintSprite(canvas, sprite) {
 }
 
 /** Which chest drawing each template of the catalog means. */
-const TEMPLATE_ICON = { seal: 'chest_seal', bank: 'chest_bank', lacquer: 'chest_lacquer' };
+const TEMPLATE_ICON = { seal: 'chest_seal', bank: 'chest_bank', lacquer: 'chest_lacquer', whitechapel: 'chest_whitechapel' };
 
 /**
  * Everything the stage needs to draw and open one chest type, with its key. `look` is what an admin chose: it picks the

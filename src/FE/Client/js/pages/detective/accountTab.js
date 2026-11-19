@@ -1,4 +1,5 @@
 import { authApi } from '../../api/authApi.js';
+import { authErrorMessage } from '../../services/authErrorMessages.js';
 import { tr } from '../../services/i18n.js';
 import { escapeHtml } from '../../utils/dom.js';
 import { toast } from '../../utils/toast.js';
@@ -99,7 +100,7 @@ function wireResend(root) {
           <span>${escapeHtml(tr('A new verification email is on its way. Check your inbox (and the Spam folder), then open the link in the email.', 'Đã gửi lại email xác minh. Kiểm tra hộp thư (cả mục Spam) rồi nhấn liên kết trong email.'))}</span>
         </p>`;
     } catch (err) {
-      toast(err.message, 'error');
+      toast(authErrorMessage(err.message), 'error');
     } finally {
       button.disabled = false;
     }
@@ -155,7 +156,7 @@ function wirePassword(root) {
       form.reset();
       updateRules();
     } catch (err) {
-      toast(err.message, 'error');
+      toast(authErrorMessage(err.message), 'error');
     } finally {
       btn.disabled = false;
     }

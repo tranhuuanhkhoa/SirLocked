@@ -1,0 +1,23 @@
+/* Khối "Cutscene mở đầu" trong trang chi tiết vụ án (admin). Nằm trong tab của thẻ nội dung, nên không có khung riêng.
+   Màu lấy từ token --adm-* của 60-admin-theme.css (có giá trị dự phòng nếu khối này được đặt ngoài vùng admin). */
+.cs-panel { display: flex; flex-direction: column; gap: 16px; padding: 20px; min-width: 0; }
+.cs-panel > * { margin: 0; }
+.cs-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 0; }
+.cs-meta-code { font-family: var(--adm-mono, ui-monospace, monospace); font-size: 13px; color: var(--adm-text-2, #4d4538); overflow-wrap: anywhere; }
+.cs-note { margin: 0; color: var(--adm-text-2, #4d4538); font-size: 15px; }
+.cs-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
+.cs-editor {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--adm-r-tile, 14px);
+  background: var(--adm-tile, #f6f1e8);
+}
+.cs-row { display: grid; gap: 6px; min-width: 0; }
+.cs-label { font-size: 13px; font-weight: 600; color: var(--adm-text-2, #4d4538); }
+.cs-row .field-input { width: 100%; box-sizing: border-box; }
+.cs-count { font-size: 12px; color: var(--adm-muted, #6a6153); justify-self: end; font-variant-numeric: tabular-nums; }
+.cs-count.cs-over { color: var(--adm-bad, #9a4426); font-weight: 700; }
+.cs-editor-actions { padding-top: 4px; }
+/* "Sửa chữ" stays pressed while the editor is open */
+body[data-area="admin"] #app .cs-actions .btn[aria-pressed="true"] { background: var(--adm-tile); border-color: var(--adm-navy); }
