@@ -186,6 +186,8 @@ public sealed class MongoLobbyOutfitHostTests
                 new Claim(ClaimTypes.NameIdentifier, GuestId),
                 new Claim(ClaimTypes.Name, "Khách"),
                 new Claim(ClaimTypes.Role, UserRole.Player),
+                // UserStatusMiddleware refuses a token without the authorization version (45f56a9); a fresh user is at 0.
+                new Claim(SirLocked.Api.Models.User.AuthorizationVersionClaim, "0"),
             }, SchemeName);
             return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName)));
         }
