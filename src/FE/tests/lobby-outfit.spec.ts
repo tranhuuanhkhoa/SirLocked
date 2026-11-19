@@ -49,6 +49,7 @@ async function prepare(page: Page, { currentRoom = room(), items = [], equipped 
   });
   let current = currentRoom;
   const puts: { category: string; itemId: string | null }[] = [];
+  const calls = { inventory: 0 };
   await page.route((url) => url.pathname.startsWith('/api/'), async (route) => {
     const url = new URL(route.request().url());
     const method = route.request().method();
@@ -70,12 +71,24 @@ async function prepare(page: Page, { currentRoom = room(), items = [], equipped 
       };
       return ok(route, current);
     }
-    if (url.pathname === '/api/market/inventory') return ok(route, { items, wallet: { coins: 0 }, equipped });
+    if (url.pathname === '/api/market/inventory') {
+      calls.inventory += 1;
+      return ok(route, { items, wallet: { coins: 0 }, equipped });
+    }
     if (url.pathname === '/api/chests') return ok(route, chests);
     return ok(route, null);
   });
-  return { puts };
+  return { puts, calls };
 }
+
+/** Whether a canvas has any painted pixel: the animator really drew the sheet. */
+const painted = (page: Page, selector: string) => page.locator(selector).evaluate((canvas: HTMLCanvasElement) => {
+  const context = canvas.getContext('2d');
+  if (!context || !canvas.width) return false;
+  const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+  for (let index = 3; index < data.length; index += 4) if (data[index] > 0) return true;
+  return false;
+});
 
 const emit = (page: Page, event: string, payload: unknown) =>
   page.evaluate(([name, data]) => (window as any).__sirlockedEmitSignalR?.(name, data), [event, payload] as const);
@@ -122,6 +135,7 @@ test('picking Thẩm vấn viên shows Sherlock\'s outfits, a missing one locked
   await expect(locked).toHaveClass(/is-locked/);
   await expect(strip(page)).toContainText('Có trong Hòm Đêm Whitechapel');
   await expect(strip(page).locator('a[href="/kho-ruong"]')).toHaveAttribute('target', '_blank');
+  await expect(strip(page).locator('a[href="/kho-ruong"]')).toContainText('mở trong tab mới');
   await expect(strip(page).locator(`a[href^="/market?q="]`)).toHaveAttribute('target', '_blank');
   await expect(card(page, WATSON)).toHaveCount(0);
   await expect(strip(page).locator('canvas[data-outfit-preview]')).toHaveCount(2);
@@ -155,6 +169,8 @@ test('an owned outfit is worn with one click and the seat card shows it; Thườ
   await expect(card(page, SHERLOCK)).toHaveAttribute('aria-pressed', 'true');
   await expect(card(page, 'normal')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('[data-seat-user="me"] canvas[data-seat-figure]')).toHaveAttribute('data-look', SHERLOCK);
+  await expect.poll(() => painted(page, '[data-seat-user="me"] canvas[data-seat-figure]')).toBe(true);
+  await expect.poll(() => painted(page, `[data-outfit-preview="${SHERLOCK}"]`)).toBe(true);
 
   await card(page, 'normal').click();
 
@@ -190,20 +206,52 @@ test('the partner\'s seat follows the outfit the room says they wear', async ({ 
   await expect(figure).toHaveAttribute('data-look', WATSON);
 });
 
-test('a refused change shows the server\'s reason and keeps the old outfit', async ({ page }) => {
-  await prepare(page, {
+test('a refused change shows the server\'s reason, keeps the old outfit and asks for the inventory again', async ({ page }) => {
+  const { calls } = await prepare(page, {
     currentRoom: room([player('me', 'Tuấn Yên', { role: 'INTERROGATOR' }), player('b', 'Bảo Ngọc')]),
     items: [owned('it-1', SHERLOCK_DEF)],
   });
   await page.route(`**/api/rooms/${ROOM_ID}/outfit`, (route) => route.fulfill({
-    status: 409, json: { success: false, message: 'Ván đã bắt đầu; chỉ đổi trang phục được trong phòng chờ.', data: null, errors: null },
+    status: 409, json: { success: false, message: 'Món này đang được rao bán.', data: null, errors: null },
   }));
   await openLobby(page);
+  await expect(card(page, SHERLOCK)).not.toHaveClass(/is-locked/);
+  const before = calls.inventory;
 
   await card(page, SHERLOCK).click();
 
-  await expect(page.getByText('Ván đã bắt đầu; chỉ đổi trang phục được trong phòng chờ.')).toBeVisible();
+  await expect(page.getByText('Món này đang được rao bán.')).toBeVisible();
   await expect(card(page, 'normal')).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => calls.inventory).toBe(before + 1); // it may have been listed or sold in another tab
+});
+
+test('choosing with the keyboard keeps focus on the chosen card', async ({ page }) => {
+  await prepare(page, {
+    currentRoom: room([player('me', 'Tuấn Yên', { role: 'INTERROGATOR' }), player('b', 'Bảo Ngọc')]),
+    items: [owned('it-1', SHERLOCK_DEF)],
+  });
+  await openLobby(page);
+  await expect(card(page, SHERLOCK)).not.toHaveClass(/is-locked/);
+
+  await card(page, SHERLOCK).focus();
+  await page.keyboard.press('Enter');
+
+  await expect(card(page, SHERLOCK)).toHaveAttribute('aria-pressed', 'true');
+  await expect(card(page, SHERLOCK)).toBeFocused();
+});
+
+test('coming back to the tab with nothing new leaves the page as it was', async ({ page }) => {
+  const { calls } = await prepare(page, { currentRoom: room([player('me', 'Tuấn Yên', { role: 'INTERROGATOR' }), player('b', 'Bảo Ngọc')]) });
+  await openLobby(page);
+  await expect(card(page, SHERLOCK)).toBeVisible();
+  await strip(page).evaluate((el) => { (el as any).__sameNode = true; });
+  const before = calls.inventory;
+
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+
+  await expect.poll(() => calls.inventory).toBe(before + 1);
+  await page.waitForTimeout(300);
+  expect(await strip(page).evaluate((el) => (el as any).__sameNode === true)).toBe(true);
 });
 
 test('in English the strip is in English', async ({ page }) => {

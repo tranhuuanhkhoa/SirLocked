@@ -543,7 +543,8 @@ public partial class RoomService : IRoomService
         }
     }
 
-    private static ApiException NotLobbyConflict(string status) =>
+    /// <summary>The refusal of a lobby action on a room past its lobby: ROOM_ENDED once it has ended, so the lobby shows its closed page.</summary>
+    internal static ApiException NotLobbyConflict(string status) =>
         RoomLifecycle.IsTerminal(status)
             ? ApiException.Conflict(RoomEndedMessage, RoomEndedCode, RoomEndedMessageKey)
             : ApiException.Conflict(GameAlreadyStartedMessage);

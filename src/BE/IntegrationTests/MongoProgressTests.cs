@@ -1195,9 +1195,10 @@ public sealed class MongoProgressTests
     }
 
     [Theory]
-    [InlineData(RoomStatus.InProgress)]
-    [InlineData(RoomStatus.Completed)]
-    public async Task OnceTheGameHasStarted_TheOutfitStaysAsItWas(string status)
+    [InlineData(RoomStatus.InProgress, null)]
+    [InlineData(RoomStatus.Completed, RoomService.RoomEndedCode)]
+    [InlineData(RoomStatus.Abandoned, RoomService.RoomEndedCode)]
+    public async Task OnceTheGameHasStarted_TheOutfitStaysAsItWas(string status, string? code)
     {
         if (!Enabled) return;
         await using var env = await Env.CreateAsync();
@@ -1209,8 +1210,25 @@ public sealed class MongoProgressTests
         var error = await Throws(() => env.Outfits.WearAsync(guest, room.Id, MarketCategories.SkinSherlock, outfit));
 
         Assert.Equal(409, error.StatusCode);
+        Assert.Equal(code, Code(error)); // ROOM_ENDED lets the lobby show its closed-room page, as every other lobby action does
         Assert.Empty(await env.Market.GetEquippedAsync(guest.Id));
         Assert.Empty(env.Notifier.RoleUpdates);
+    }
+
+    [Fact]
+    public async Task ARoomWhereBothAreReady_StillTakesAChangeOfClothes()
+    {
+        if (!Enabled) return;
+        await using var env = await Env.CreateAsync();
+        var host = await env.AddUserAsync();
+        var guest = await env.AddUserAsync();
+        var outfit = await env.GiveAsync(guest.Id, WatsonOutfit);
+        var room = await env.AddLobbyAsync(host, guest, RoomStatus.Ready);
+
+        var response = await env.Outfits.WearAsync(guest, room.Id, MarketCategories.SkinWatson, outfit);
+
+        Assert.Equal(new[] { WatsonOutfit }, response.Players.Single(p => p.UserId == guest.Id).SkinDefIds);
+        Assert.Equal(RoomStatus.Ready, response.Status);
     }
 
     // ------------------------------------------------------------------ helpers

@@ -14,6 +14,9 @@ export const DETECTIVE_OF_ROLE = { INTERROGATOR: 'Sherlock', INVESTIGATOR: 'Wats
 const LOCK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="10.5" width="16" height="11" rx="1.5"></rect><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"></path></svg>';
 const OUT = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M14 5h5v5"></path><path d="M19 5l-8 8"></path><path d="M18 14v4.5A1.5 1.5 0 0 1 16.5 20h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"></path></svg>';
 
+/** Said to screen readers only: the links leave the lobby open in this tab. */
+const NEW_TAB = () => `<span class="bpa-sr"> (${tr('opens in a new tab', 'mở trong tab mới')})</span>`;
+
 /** "Sherlock · Kẻ Săn Bóng Đêm" → "Kẻ Săn Bóng Đêm": the strip's heading already names the detective. */
 const shortName = (name) => {
   const parts = String(name ?? '').split(' · ');
@@ -93,8 +96,8 @@ export function outfitStripHTML(choices, { busy = false } = {}) {
     const query = encodeURIComponent(card.fullName);
     return `
       <p class="bpa-lobby-outfit-src"><span class="bpa-lobby-outfit-lock">${LOCK}</span><strong>${escapeHtml(card.name)}</strong> · ${escapeHtml(where)}
-        ${card.chest ? `· <a class="bpa-link bpa-link--gold" href="/kho-ruong" target="_blank" rel="noopener">${tr('Chest Vault', 'Kho Rương')}${OUT}</a>` : ''}
-        · <a class="bpa-link bpa-link--gold" href="/market?q=${query}" target="_blank" rel="noopener">${tr('See prices on the market', 'Xem giá trên chợ')}${OUT}</a></p>`;
+        ${card.chest ? `· <a class="bpa-link bpa-link--gold" href="/kho-ruong" target="_blank" rel="noopener">${tr('Chest Vault', 'Kho Rương')}${OUT}${NEW_TAB()}</a>` : ''}
+        · <a class="bpa-link bpa-link--gold" href="/market?q=${query}" target="_blank" rel="noopener">${tr('See prices on the market', 'Xem giá trên chợ')}${OUT}${NEW_TAB()}</a></p>`;
   }).join('');
   return `
     <div class="bpa-lobby-outfits" data-outfit-strip${busy ? ' aria-busy="true"' : ''}>

@@ -189,22 +189,24 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
     Promise.allSettled([marketApi.inventory(), chestApi.list()]).then(([inventory, chests]) => {
       wardrobePending = false;
       if (disposed) return;
-      // A failed refresh keeps what the strip already knew.
-      wardrobe = {
+      // A failed refresh keeps what the strip already knew; an unchanged answer leaves the page alone.
+      const next = {
         inventory: inventory.status === 'fulfilled' ? inventory.value : wardrobe.inventory,
         chests: chests.status === 'fulfilled' ? chests.value : wardrobe.chests,
       };
-      draw();
+      const changed = JSON.stringify(next) !== JSON.stringify(wardrobe);
+      wardrobe = next;
+      if (changed) draw();
     });
   };
-  // The strip's links open the chest vault and the market in another tab: an outfit won or bought there shows up
-  // when the player comes back to this one.
-  const onReturn = () => {
+  // Asks again: the strip's links open the chest vault and the market in another tab, so an outfit won, bought,
+  // listed or sold there shows up when the player comes back to this one (or a change of clothes was refused).
+  const reloadWardrobe = () => {
     if (disposed || !wardrobeRequested || wardrobePending) return;
     wardrobeRequested = false;
     if (room?.players.find((p) => p.userId === me.userId)?.role) loadWardrobe();
   };
-  window.addEventListener('focus', onReturn);
+  window.addEventListener('focus', reloadWardrobe);
   // Only ever plays while this room is still waiting: the game starting ends it.
   const entrances = createEntranceQueue({
     canPlay: () => !disposed && room?.status === 'WAITING',
@@ -276,7 +278,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
     closeStage(true);
     painter.dispose();
     figures.dispose();
-    window.removeEventListener('focus', onReturn);
+    window.removeEventListener('focus', reloadWardrobe);
     return hub.stop();
   };
   signal?.addEventListener('abort', cleanup, { once: true });
@@ -571,6 +573,9 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
       </button>`;
     }).join('');
 
+    // A redraw replaces every button: an outfit card that had the keyboard focus gets it back below.
+    const focusedOutfit = document.activeElement?.closest?.('[data-outfit]')?.dataset.outfit ?? null;
+
     render(app, `
     <div class="bpa-container bpa-lobby-page${intro ? ' is-intro' : ''}">
       ${topRow({ closed: false })}
@@ -627,6 +632,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
 
     // Someone may wear what was made after this page loaded.
     loadCosmeticsIfUnknown(room.players.flatMap((player) => [player.frameDefId, player.titleDefId])).then((changed) => { if (changed && !disposed) draw(); });
+    if (focusedOutfit) app.querySelector(`[data-outfit="${CSS.escape(focusedOutfit)}"]`)?.focus({ preventScroll: true });
     if (my?.role) loadWardrobe();
     // The redraw replaced the seats and the strip: every figure starts again on its new canvas.
     figures.clear();
@@ -701,6 +707,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
           room = await roomApi.wearOutfit(roomId, choices.category, choice.itemId);
         } catch (err) {
           handleActionError(err);
+          reloadWardrobe(); // the outfit may have been listed, traded or sold since the strip was drawn
         } finally {
           outfitBusy = false;
           if (!disposed) draw();

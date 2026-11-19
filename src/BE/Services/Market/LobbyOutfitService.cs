@@ -40,7 +40,7 @@ public sealed class LobbyOutfitService
 
         var room = await _rooms.GetAsync(user.Id, roomId); // 404 for no room, 403 for someone outside it
         if (!RoomLifecycle.AllowsLobbyMutation(room.Status))
-            throw ApiException.Conflict("Ván đã bắt đầu; chỉ đổi trang phục được trong phòng chờ.");
+            throw RoomService.NotLobbyConflict(room.Status);
 
         if (string.IsNullOrWhiteSpace(itemId))
         {
