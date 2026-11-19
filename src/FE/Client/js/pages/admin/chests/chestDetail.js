@@ -119,6 +119,8 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     previewOpen: null,
     // The pictures still on their way (imageUrl, keyImageUrl): both can be uploading at once.
     uploading: new Set(),
+    // A new chest's form starts empty, which is not a list of mistakes: its rules show once the admin tries to create it.
+    showErrors: !isNew,
   };
 
   const dirty = () => JSON.stringify(state.draft) !== state.baseline;
@@ -195,9 +197,10 @@ export async function renderChestDetail(app, id, { signal } = {}) {
           <h2 class="adm-card-title" id="ac-look-title">Hình hòm và ánh sáng</h2>
           <div class="ac-look-preview" data-ac-look-preview><img alt="Hình hòm" draggable="false"></div>
           <label class="ac-field"><span>Kiểu hòm</span>
-            <select class="field-input" name="template">
+            <select class="field-input" name="template" aria-describedby="ac-template-hint">
               ${LOOKS.map((look) => `<option value="${look.id}"${look.id === draft.look.template ? ' selected' : ''}>${escapeHtml(look.label)}</option>`).join('')}
             </select>
+            <span class="ac-field-hint" id="ac-template-hint">Kiểu hòm là cảnh mở hòm (phòng, con dấu, hạt bay), vẽ sẵn trong game. Muốn hòm có hình mới thì tải Ảnh riêng bên dưới.</span>
           </label>
           <div class="ac-colours">
             ${colour('light', 'Ánh sáng', draft.look.light)}
@@ -455,9 +458,10 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     $('[data-ac-ev]').textContent = check ? xu(check.expectedValue) : xu(state.chest.expectedValue);
     $('[data-ac-cost]').textContent = xu(check?.cost ?? (Number(draft.chestPrice) + Number(draft.keyPrice)));
     const messages = checkFailed ? [checkFailed] : (check?.violations ?? []).map((violation) => violation.message);
-    $('[data-ac-violations]').innerHTML = errorsHtml(messages);
+    $('[data-ac-violations]').innerHTML = errorsHtml(state.showErrors ? messages : []);
     // While a picture is on its way, saving would store the draft without it.
-    const blocked = !dirty() || state.pending || state.uploading.size > 0 || messages.length > 0;
+    // "Tạo hòm" stays clickable while the form is not ready: clicking it is how the admin asks what is missing.
+    const blocked = !dirty() || state.pending || state.uploading.size > 0 || (!isNew && messages.length > 0);
     $('[data-ac-save]').disabled = blocked;
     $('[data-ac-save-head]').disabled = blocked;
   }
@@ -539,6 +543,12 @@ export async function renderChestDetail(app, id, { signal } = {}) {
   function save() {
     if ($('[data-ac-save]').disabled) return;
     if (isNew) {
+      if (state.checkFailed || (state.check?.violations?.length ?? 0) > 0) {
+        state.showErrors = true;
+        paintSaveBar();
+        $('[data-ac-violations]').scrollIntoView({ block: 'nearest' });
+        return;
+      }
       create();
       return;
     }

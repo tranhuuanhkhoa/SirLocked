@@ -555,15 +555,23 @@ test.describe('/admin/chests', () => {
     await expect(page.locator('[data-ac-preview]')).toHaveCount(0);
     await expect(page.locator('[data-ac-save]')).toHaveText('Tạo hòm');
     await expect(page.locator('[data-ac-save]')).toBeDisabled();
+    // An empty form is not a list of mistakes: nothing is listed before the admin tries to create the chest.
+    await expect.poll(() => sent(s, 'POST', '/api/admin/chests/check').length).toBeGreaterThan(0);
+    await expect(page.locator('[data-ac-violations]')).toBeEmpty();
 
     await page.locator('input[name="name"]').fill('Hòm Gió Mùa');
-    await expect(page.locator('[data-ac-violations]')).toContainText('Tổng trọng số phải bằng 10.000');
-    await expect(page.locator('[data-ac-violations]')).not.toContainText('Tên hòm');
     await page.locator('input[name="nameEn"]').fill('Monsoon Chest');
     await page.locator('input[name="keyName"]').fill('chìa gió');
     await page.locator('input[name="keyNameEn"]').fill('wind key');
     await page.locator('input[name="chestPrice"]').fill('150');
     await page.locator('input[name="keyPrice"]').fill('200');
+    await expect.poll(() => sent(s, 'POST', '/api/admin/chests/check').at(-1)?.body?.keyPrice).toBe(200);
+    await expect(page.locator('[data-ac-violations]')).toBeEmpty();
+
+    // Trying to create a chest that is not ready lists what is missing, and asks nothing yet.
+    await page.locator('[data-ac-save]').click();
+    await expect(page.locator('[data-ac-violations]')).toContainText('Tổng trọng số phải bằng 10.000');
+    await expect(page.locator('dialog.ac-dialog[open]')).toHaveCount(0);
 
     await page.locator('[data-ac-tab="bang-roi"]').click();
     await page.locator('[data-ac-add-item]').click();
@@ -571,6 +579,8 @@ test.describe('/admin/chests', () => {
     await picker.locator('[data-pick-item="VC-0388"]').click();
     await page.locator('dialog.ac-dialog[open] [data-ac-dialog-close]').click();
     await page.locator('input[data-weight="COMMON"]').fill('100');
+    // Once listed, the list follows the form: fixed, it is gone.
+    await expect(page.locator('[data-ac-violations]')).toBeEmpty();
     await expect(page.locator('[data-ac-save]')).toBeEnabled();
 
     await page.locator('[data-ac-save]').click();
