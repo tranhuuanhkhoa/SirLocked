@@ -1029,3 +1029,6 @@ body[data-area="admin"] #app .aai-decision-chosen { margin: 0; color: var(--adm-
   .aai-vip-speed { grid-template-columns: auto 1fr; }
   .aai-vip-speed strong { grid-column: 2; }
 }
+
+/* /admin/vip: the VIP settings and report, one card under another. */
+.avp-cards { display: grid; gap: 20px; }

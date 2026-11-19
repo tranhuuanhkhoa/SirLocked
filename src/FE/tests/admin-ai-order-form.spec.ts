@@ -577,7 +577,8 @@ test('the language switch translates every new label, and English orders read th
   await expect(page.locator('#ai-more summary')).toContainText('More options');
   await expect(page.locator('[data-field="weather"]')).toContainText('Let the bot choose');
   await expect(page.locator('#ai-idea-count')).toHaveText('0 / 2,000 characters');
-  await expect(page.locator('.aai-settings')).toContainText('Orders per VIP each week');
+  // The VIP settings are on /admin/vip; an admin reaches them from here.
+  await expect(page.locator('[data-vip-settings-link]')).toHaveText('VIP settings');
   await openMore(page);
   await expect(page.locator('[data-location="h-map-ben-cang"]')).toHaveAttribute('aria-label', 'Harbour (Outdoor)');
 
@@ -661,12 +662,11 @@ test('the bot report renders as safe Markdown in the draft detail: tables and li
   expect(mock.errors).toEqual([]);
 });
 
-test('ADMIN sets the VIP weekly limit through the settings API; a wrong value never leaves the page', async ({ page }) => {
+test('ADMIN sets the VIP weekly limit on /admin/vip through the settings API; a wrong value never leaves the page', async ({ page }) => {
   const mock = await setUp(page, 'ADMIN');
-  await open(page);
+  await page.goto('/admin/vip');
   const input = page.locator('#ai-vip-weekly-limit');
   await expect(input).toHaveValue('2');
-  await page.locator('#ai-creator-direction').fill('Giữ nguyên ý tưởng này.');
   await input.fill('99');
   await page.locator('#ai-save-settings').click();
   await expect(page.locator('#ai-settings-status')).toHaveText('Giới hạn mỗi tuần phải là số nguyên từ 0 đến 50.');
@@ -676,7 +676,6 @@ test('ADMIN sets the VIP weekly limit through the settings API; a wrong value ne
   await expect(page.locator('#ai-settings-status')).toHaveText('Đã lưu: mỗi VIP được gửi 3 đơn mỗi tuần.');
   expect(mock.settingsPuts).toEqual([{ vipWeeklyOrderLimit: 3 }]);
   await expect(page.locator('#ai-vip-weekly-limit')).toHaveValue('3');
-  await expect(page.locator('#ai-creator-direction')).toHaveValue('Giữ nguyên ý tưởng này.');
   expect(mock.errors).toEqual([]);
 });
 

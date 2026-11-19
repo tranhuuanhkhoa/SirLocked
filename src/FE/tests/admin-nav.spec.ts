@@ -14,13 +14,14 @@ const TABS = [
   ['Mỹ phẩm', '/admin/cosmetics'],
   ['Người chơi', '/admin/players'],
   ['Kinh tế & chợ', '/admin/economy'],
+  ['VIP', '/admin/vip'],
   ['Nhật ký', '/admin/audit'],
 ] as const;
 
 const tabs = (page: Page) => page.locator('#admin-nav-root .admin-nav-tab');
 const activeTab = (page: Page) => page.locator('#admin-nav-root .admin-nav-tab.is-active');
 
-test('an admin sees the nine tabs on every admin page, old and new', async ({ page }) => {
+test('an admin sees the ten tabs on every admin page, old and new', async ({ page }) => {
   await signInAs(page, 'ADMIN');
   for (const [label, href] of TABS) {
     await page.goto(href);
@@ -39,7 +40,7 @@ test('the tabs navigate, and the bar outlives each page render', async ({ page }
   await expect(activeTab(page)).toHaveText('Hòm & vật phẩm');
   await bar.getByRole('link', { name: 'Vụ án', exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/cases$/);
-  await expect(tabs(page)).toHaveCount(9);
+  await expect(tabs(page)).toHaveCount(10);
 });
 
 const SUB_ROUTES: [string, string][] = [
@@ -86,7 +87,7 @@ for (const [address, tab] of WITH_QUERY) {
 test('the bar disappears when an admin leaves the admin pages', async ({ page }) => {
   await signInAs(page, 'ADMIN');
   await page.goto('/admin/chests');
-  await expect(tabs(page)).toHaveCount(9);
+  await expect(tabs(page)).toHaveCount(10);
   await page.evaluate(() => { history.pushState(null, '', '/cases'); dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page).toHaveURL(/\/cases$/);
   await expect(page.locator('#admin-nav-root')).toBeHidden();
@@ -129,7 +130,7 @@ test('on a phone the sidebar folds into a menu, the page does not scroll sideway
   await expect(active).toBeHidden();
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-  await expect(tabs(page)).toHaveCount(9);
+  await expect(tabs(page)).toHaveCount(10);
   await expect(active).toBeInViewport({ ratio: 1 });
   const box = await active.boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);

@@ -20,6 +20,7 @@ export const ADMIN_TABS = [
   { href: '/admin/cosmetics', label: 'Mỹ phẩm', icon: 'gem' },
   { href: '/admin/players', label: 'Người chơi', icon: 'users', count: 'users' },
   { href: '/admin/economy', label: 'Kinh tế & chợ', icon: 'coins' },
+  { href: '/admin/vip', label: 'VIP', icon: 'star' },
   { href: '/admin/audit', label: 'Nhật ký', icon: 'clock' },
 ];
 

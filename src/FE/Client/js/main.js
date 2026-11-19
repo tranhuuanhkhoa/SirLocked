@@ -32,6 +32,7 @@ import { renderAdminItemsPage } from './pages/adminItemsPage.js';
 import { renderAdminCosmeticsPage } from './pages/adminCosmeticsPage.js';
 import { renderAdminPlayersPage } from './pages/adminPlayersPage.js';
 import { renderAdminEconomyPage } from './pages/adminEconomyPage.js';
+import { renderAdminVipPage } from './pages/adminVipPage.js';
 import { renderAdminAuditPage } from './pages/adminAuditPage.js';
 import { renderOAuthCallbackPage } from './pages/oauthCallbackPage.js';
 import { renderVerifyEmailPage } from './pages/verifyEmailPage.js';
@@ -145,6 +146,8 @@ const routes = [
   { pattern: /^\/admin\/cosmetics(?:\/([^/]+))?$/, page: renderAdminCosmeticsPage, admin: true, lifecycle: true },
   { pattern: /^\/admin\/players(?:\/([^/]+))?$/, page: renderAdminPlayersPage, admin: true, lifecycle: true },
   { pattern: /^\/admin\/economy$/, page: renderAdminEconomyPage, admin: true, lifecycle: true },
+  // VIP prices, hints, authors and the VIP report: ADMIN only, never on the order page VIPs use.
+  { pattern: /^\/admin\/vip$/, page: renderAdminVipPage, admin: true, lifecycle: true },
   { pattern: /^\/admin\/audit$/, page: renderAdminAuditPage, admin: true, lifecycle: true },
 ];
 

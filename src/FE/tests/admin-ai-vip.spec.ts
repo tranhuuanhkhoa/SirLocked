@@ -161,9 +161,31 @@ test('without the Claude API key a VIP order is free: no price, no hold, the VIP
   expect(mock.errors).toEqual([]);
 });
 
+test('the VIP settings and report live on their own admin page, never on the order page', async ({ page }) => {
+  await setUp(page, 'ADMIN');
+  await page.goto('/admin/ai');
+  await expect(page.locator('#quick-create-btn')).toBeVisible();
+  await expect(page.locator('.aai-vip-settings, .aai-vip-report, .aai-settings')).toHaveCount(0);
+  await page.locator('[data-vip-settings-link]').click();
+  await expect(page).toHaveURL(/\/admin\/vip$/);
+  await expect(page.locator('.aai-vip-settings')).toBeVisible();
+  await expect(page.locator('.aai-vip-report')).toBeVisible();
+  await expect(page.locator('.aai-settings')).toBeVisible();
+});
+
+test('a VIP sees neither the VIP settings nor the way to them, and cannot open /admin/vip', async ({ page }) => {
+  await setUp(page, 'VIP');
+  await page.goto('/admin/ai');
+  await expect(page.locator('#quick-create-btn')).toBeVisible();
+  await expect(page.locator('[data-vip-settings-link], .aai-vip-settings, .aai-vip-report, .aai-settings')).toHaveCount(0);
+  await page.goto('/admin/vip');
+  await expect(page).not.toHaveURL(/\/admin\/vip$/);
+  await expect(page.locator('.aai-vip-settings, .aai-vip-report')).toHaveCount(0);
+});
+
 test('ADMIN edits VIP prices and hint prices, reads the cost report, and revokes a payout with a reason typed in the page', async ({ page }) => {
   const mock = await setUp(page, 'ADMIN');
-  await page.goto('/admin/ai');
+  await page.goto('/admin/vip');
   const card = page.locator('.aai-vip-settings');
   await expect(card).toContainText('Đã đặt khóa Claude API');
   await card.locator('input[name="fast-NORMAL_RANDOM"]').fill('8500');

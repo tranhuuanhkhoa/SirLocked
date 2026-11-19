@@ -8,10 +8,7 @@ import { renderSafeMarkdown } from '../utils/safeMarkdown.js';
 import { icon, pageHead, pill, stateBox, tile } from '../components/admin/ui.js';
 import { gateCheckText, isV3, v3PublishGate } from './adminV3Gates.js';
 import { mountPresentationEditor, presentationPlaceholder } from './adminPresentation.js';
-import {
-  askReason, confirmVipHold, loadVipQuotes, loadVipReport, readVipSettings, vipBlockReason, vipDraftLine,
-  vipOrderPanelHtml, vipReportCardHtml, vipSettingsCardHtml,
-} from './adminAiVip.js';
+import { confirmVipHold, loadVipQuotes, vipBlockReason, vipDraftLine, vipOrderPanelHtml } from './adminAiVip.js';
 
 const STATUS_AWAITING_APPROVAL = 'STORY_AWAITING_APPROVAL';
 const STATUS_TRUTH_AWAITING_APPROVAL = 'CASE_TRUTH_AWAITING_APPROVAL';
@@ -426,10 +423,6 @@ export async function renderAdminAiPage(app) {
   let libraryError = null;
   let quota = null;
   let quotaError = null;
-  let settings = null;
-  let settingsError = null;
-  let settingsNotice = '';
-  let savingSettings = false;
   let vipQuotes = null;
   let vipQuoteError = null;
   /**
@@ -438,9 +431,6 @@ export async function renderAdminAiPage(app) {
    * bot like an ADMIN order, with its own cap and review mode.
    */
   const vipPaidLane = () => isVip && vipQuotes?.FAST?.laneConfigured === true;
-  let vipSettingsStatus = '';
-  let vipReport = null;
-  let vipReportError = null;
   const pageAbort = new AbortController();
 
   async function loadCapabilities() {
@@ -487,16 +477,6 @@ export async function renderAdminAiPage(app) {
     }
   }
 
-  async function loadSettings() {
-    if (!isAdmin) return;
-    try {
-      settings = await aiCaseApi.settings();
-      settingsError = null;
-    } catch (error) {
-      settingsError = error;
-    }
-  }
-
   /** VUAN-7: what the VIP's order costs at both speeds, and their coins. */
   async function loadQuotes() {
     if (!isVip) return;
@@ -508,18 +488,7 @@ export async function renderAdminAiPage(app) {
     }
   }
 
-  /** VUAN-7, ADMIN: VIP cost and revenue, authors and payouts. */
-  async function loadReport() {
-    if (!isAdmin) return;
-    try {
-      vipReport = await loadVipReport();
-      vipReportError = null;
-    } catch (error) {
-      vipReportError = error;
-    }
-  }
-
-  await Promise.all([loadCapabilities(), loadDraftList(), loadLibrary(), loadQuota(), loadSettings(), loadQuotes(), loadReport()]);
+  await Promise.all([loadCapabilities(), loadDraftList(), loadLibrary(), loadQuota(), loadQuotes()]);
   draw();
 
   function creationBlocked() {
@@ -960,30 +929,6 @@ export async function renderAdminAiPage(app) {
     return entries.map((entry) => pickButton(entry, 'npc', form.npcIds.includes(entry.key), npcPortrait(entry))).join('');
   }
 
-  function settingsStatusHtml() {
-    if (settingsNotice) return escapeHtml(settingsNotice);
-    if (settingsError) return escapeHtml(aiErrorText(settingsError));
-    return '';
-  }
-
-  /** ADMIN only: how many orders each VIP may send per week (GET/PUT /api/admin/ai-cases/settings). */
-  function settingsCardHtml() {
-    const value = settings?.vipWeeklyOrderLimit ?? '';
-    return `
-      <section class="adm-card aai-settings" aria-labelledby="aai-settings-title">
-        <h2 class="aai-flow-title" id="aai-settings-title">${tr('VIP orders', 'Đơn của VIP')}</h2>
-        <form class="aai-settings-form" id="ai-settings-form" novalidate>
-          <label class="aai-label" for="ai-vip-weekly-limit">${tr('Orders per VIP each week', 'Số đơn mỗi VIP được gửi mỗi tuần')}</label>
-          <div class="aai-settings-row">
-            <input class="field-input" id="ai-vip-weekly-limit" name="vipWeeklyOrderLimit" type="number" inputmode="numeric" min="0" max="50" step="1" value="${escapeHtml(value)}" aria-describedby="ai-settings-help ai-settings-status" ${settings ? '' : 'disabled'}>
-            <button class="btn btn-primary btn-sm" type="submit" id="ai-save-settings" ${settings && !savingSettings ? '' : 'disabled'}>${savingSettings ? tr('Saving…', 'Đang lưu…') : tr('Save', 'Lưu')}</button>
-          </div>
-          <p class="aai-help" id="ai-settings-help">${tr('0 pauses VIP orders. A week runs Monday to Sunday, Vietnam time; rejected orders do not count.', '0 là tạm dừng nhận đơn VIP. Tuần tính từ thứ Hai đến Chủ nhật (giờ Việt Nam); đơn bị từ chối không tính.')}</p>
-          <p class="aai-settings-status${settingsError && !settingsNotice ? ' is-error' : ''}" id="ai-settings-status" role="status">${settingsStatusHtml()}</p>
-        </form>
-      </section>`;
-  }
-
   /**
    * The order form: numbered cards on the left (world first, as in plan section 6), the navy summary with
    * "Send order to Claude" and the review steps on the right; below 900 px the summary drops under the cards.
@@ -1129,9 +1074,7 @@ export async function renderAdminAiPage(app) {
         </div>
         <p class="aai-summary-block" id="ai-submit-reason" hidden></p>
       </section>
-      ${isAdmin ? settingsCardHtml() : ''}
-      ${isAdmin ? vipSettingsCardHtml(settings, vipSettingsStatus) : ''}
-      ${isAdmin ? vipReportCardHtml(vipReport, vipReportError) : ''}`;
+`;
   }
 
   // ---------------------------------------------------------------- keeping the form, summary and limits in step
@@ -1370,6 +1313,7 @@ export async function renderAdminAiPage(app) {
     <div class="page aai-page">
       ${pageHead({
     title: tr('AI Case Creator', 'Tạo vụ án bằng AI'),
+    actionsHtml: isAdmin ? `<a class="btn" href="/admin/vip" data-vip-settings-link>${tr('VIP settings', 'Cài đặt VIP')}</a>` : '',
     sub: tr('Create a premise, approve its immutable causal truth, then project that truth into playable clues, dialogue, puzzles, and a five-claim accusation.', 'Tạo tiền đề, duyệt nguồn sự thật nhân quả bất biến, rồi chuyển truth thành manh mối, hội thoại, câu đố và cáo buộc năm luận điểm.'),
   })}
 
@@ -2046,10 +1990,6 @@ export async function renderAdminAiPage(app) {
       }
     });
 
-    qs('#ai-settings-form', app)?.addEventListener('submit', (event) => {
-      event.preventDefault();
-      void saveSettings();
-    });
     bindVip();
 
     qs('#quick-create-btn', app).addEventListener('click', () => void submitOrder());
@@ -2227,7 +2167,7 @@ export async function renderAdminAiPage(app) {
     }
   }
 
-  /** VUAN-7 controls: the VIP's speed and extra PixelLab pictures; ADMIN settings and payout actions. */
+  /** VUAN-7 controls: the VIP's speed and extra PixelLab pictures. The admin's VIP settings are on /admin/vip. */
   function bindVip() {
     app.querySelectorAll('input[name="vipSpeed"]').forEach((radio) => radio.addEventListener('change', () => {
       form.speed = radio.value === 'SAVER' ? 'SAVER' : 'FAST';
@@ -2239,88 +2179,6 @@ export async function renderAdminAiPage(app) {
       captureCreationForm();
       await loadQuotes();
       if (!disposed) draw(visibleDraft);
-    });
-    qs('#ai-vip-settings-form', app)?.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const button = qs('#ai-save-vip-settings', app);
-      if (!settings || button?.disabled) return;
-      button.disabled = true;
-      try {
-        settings = await aiCaseApi.saveVipSettings(readVipSettings(event.target, settings));
-        vipSettingsStatus = tr('Saved.', 'Đã lưu.');
-      } catch (error) {
-        vipSettingsStatus = aiErrorText(error);
-      }
-      if (disposed) return;
-      captureCreationForm();
-      draw(visibleDraft);
-    });
-    qs('#ai-author-payouts', app)?.addEventListener('click', async (event) => {
-      const button = event.target.closest('[data-payout-action]');
-      if (!button) return;
-      const id = button.closest('[data-payout]')?.dataset.payout;
-      const action = button.dataset.payoutAction;
-      let reason = '';
-      if (action !== 'release') {
-        reason = await askReason(action === 'revoke' ? tr('Revoke this payout', 'Thu hồi khoản thưởng') : tr('Hold this payout', 'Tạm giữ khoản thưởng'),
-          action === 'revoke', pageAbort.signal);
-        if (reason === null) return;
-      }
-      button.disabled = true;
-      try {
-        if (action === 'hold') await aiCaseApi.holdPayout(id, reason);
-        else if (action === 'release') await aiCaseApi.releasePayout(id);
-        else await aiCaseApi.revokePayout(id, reason);
-        toast(tr('Saved.', 'Đã lưu.'), 'success');
-      } catch (error) {
-        toast(aiErrorText(error), 'error');
-      }
-      await loadReport();
-      if (!disposed) { captureCreationForm(); draw(visibleDraft); }
-    });
-  }
-
-  /** ADMIN: the VIP weekly limit. Only the settings card is redrawn, so the order being written stays as it is. */
-  async function saveSettings() {
-    const input = qs('#ai-vip-weekly-limit', app);
-    if (!input || savingSettings) return;
-    const raw = input.value.trim();
-    const value = Number(raw);
-    const status = qs('#ai-settings-status', app);
-    if (raw === '' || !Number.isInteger(value) || value < 0 || value > 50) {
-      status.textContent = localizedPair(CREATION_ERROR_LABELS.AI_SETTINGS_INVALID);
-      status.classList.add('is-error');
-      input.setAttribute('aria-invalid', 'true');
-      input.focus();
-      return;
-    }
-    savingSettings = true;
-    settingsNotice = '';
-    redrawSettings();
-    try {
-      settings = await aiCaseApi.saveSettings(value);
-      settingsError = null;
-      settingsNotice = tr(`Saved: each VIP may send ${settings.vipWeeklyOrderLimit} orders a week.`, `Đã lưu: mỗi VIP được gửi ${settings.vipWeeklyOrderLimit} đơn mỗi tuần.`);
-    } catch (error) {
-      settingsError = error;
-      settingsNotice = '';
-    }
-    savingSettings = false;
-    if (disposed) return;
-    redrawSettings();
-    qs('#ai-vip-weekly-limit', app)?.focus();
-  }
-
-  function redrawSettings() {
-    const card = app.querySelector('.aai-settings');
-    if (!card) return;
-    const fresh = document.createElement('div');
-    fresh.innerHTML = settingsCardHtml();
-    const next = fresh.firstElementChild;
-    card.replaceWith(next);
-    next.querySelector('#ai-settings-form')?.addEventListener('submit', (event) => {
-      event.preventDefault();
-      void saveSettings();
     });
   }
 
