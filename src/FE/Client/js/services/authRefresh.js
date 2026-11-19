@@ -1,32 +1,38 @@
-import { session } from './session.js';
+import { sessionFor, sessionScope } from './session.js';
 import { navigate } from './navigation.js';
 
-const REFRESH_LOCK = 'sirlocked.auth-refresh';
 const pendingRefreshes = new Map();
 
-export function authSnapshot() {
-  return { token: session.token(), refreshToken: session.refreshToken(), userId: session.user()?.userId || '' };
+/**
+ * The session a request starts with, and the side it belongs to: a request started on an admin page refreshes and
+ * expires the admin session even if the page has changed since.
+ */
+export function authSnapshot(scope = sessionScope()) {
+  const side = sessionFor(scope);
+  return { scope: side.scope, token: side.token(), refreshToken: side.refreshToken(), userId: side.user()?.userId || '' };
 }
 
 function sameSession(left, right) {
-  return left.token === right.token && left.refreshToken === right.refreshToken && left.userId === right.userId;
+  return left.scope === right.scope && left.token === right.token && left.refreshToken === right.refreshToken && left.userId === right.userId;
 }
 
 export function canRetryForAccount(original) {
-  const current = authSnapshot();
+  const current = authSnapshot(original.scope);
   return Boolean(original.userId && current.token && current.userId === original.userId);
 }
 
 function hasNewerSession(original) {
-  const current = authSnapshot();
+  const current = authSnapshot(original.scope);
   return Boolean(original.userId && current.token && current.userId === original.userId && current.token !== original.token);
 }
 
 export function expireSessionIfCurrent(original) {
-  if (!original.token || !sameSession(original, authSnapshot())) return;
-  const signIn = session.loginAddress();
-  session.clear();
-  navigate(signIn);
+  if (!original.token || !sameSession(original, authSnapshot(original.scope))) return;
+  const side = sessionFor(original.scope);
+  const signIn = side.loginAddress();
+  side.clear();
+  // Only the side on screen goes to its sign-in page; a late answer for the other side just ends that session.
+  if (sessionScope() === original.scope) navigate(signIn);
 }
 
 export function isPublicAuthRequest(path) {
@@ -41,9 +47,9 @@ export function refreshAfterUnauthorized(original) {
   const pending = (async () => {
     try {
       // The lock spans tabs on this origin. Re-read storage after acquiring it:
-      // another tab may already have rotated the one-use refresh token.
+      // another tab may already have rotated the one-use refresh token. Each side has its own lock.
       if (navigator.locks?.request) {
-        return await navigator.locks.request(REFRESH_LOCK, () => refreshCurrentSession(original));
+        return await navigator.locks.request(refreshLock(original.scope), () => refreshCurrentSession(original));
       }
       // Older browsers still share one flight within this tab and preserve newer storage.
       return await refreshCurrentSession(original);
@@ -55,11 +61,16 @@ export function refreshAfterUnauthorized(original) {
   return pending;
 }
 
+function refreshLock(scope) {
+  return scope === 'admin' ? 'sirlocked.admin.auth-refresh' : 'sirlocked.auth-refresh';
+}
+
 async function refreshCurrentSession(original) {
   if (!canRetryForAccount(original)) return false;
   if (hasNewerSession(original)) return true;
-  const starting = authSnapshot();
-  if (!starting.refreshToken || !session.isRefreshTokenValid()) {
+  const side = sessionFor(original.scope);
+  const starting = authSnapshot(original.scope);
+  if (!starting.refreshToken || !side.isRefreshTokenValid()) {
     expireSessionIfCurrent(starting);
     return false;
   }
@@ -72,7 +83,7 @@ async function refreshCurrentSession(original) {
       body: JSON.stringify({ refreshToken: starting.refreshToken }),
     });
   } catch {
-    if (!sameSession(starting, authSnapshot())) return hasNewerSession(original);
+    if (!sameSession(starting, authSnapshot(original.scope))) return hasNewerSession(original);
     // A lost connection is not proof that the shared session was revoked.
     throw { status: 0, message: 'Cannot reach the server. Please try again.', errors: null };
   }
@@ -82,7 +93,7 @@ async function refreshCurrentSession(original) {
 
   // Logout, another login or a refresh fallback may change storage while HTTP is pending.
   // An old response must never restore a logged-out account or overwrite the new one.
-  if (!sameSession(starting, authSnapshot())) return hasNewerSession(original);
+  if (!sameSession(starting, authSnapshot(original.scope))) return hasNewerSession(original);
   if (response.status === 401 || response.status === 403) {
     expireSessionIfCurrent(starting);
     return false;
@@ -94,6 +105,6 @@ async function refreshCurrentSession(original) {
   if (!auth?.token || !auth.refreshToken || auth.user?.userId !== starting.userId) {
     throw { status: 502, message: 'The server returned an invalid session response. Please try again.', errors: null };
   }
-  session.save(auth);
+  side.save(auth);
   return true;
 }

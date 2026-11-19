@@ -1,5 +1,5 @@
 import { aiCaseApi } from '../api/aiCaseApi.js';
-import { session } from '../services/session.js';
+import { rememberAdminRoom, session } from '../services/session.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { navigate } from '../services/navigation.js';
@@ -2440,6 +2440,8 @@ export async function renderAdminAiPage(app) {
     try {
       const room = await aiCaseApi.playtest(draftId);
       if (disposed) return;
+      // This tab plays the room as the admin; a VIP author's room stays on their game account.
+      rememberAdminRoom(room.roomId);
       navigate(`/lobby/${encodeURIComponent(room.roomId)}`);
     } catch (error) {
       if (disposed) return;

@@ -213,7 +213,7 @@ export async function renderLoginPage(app) {
     ? tr('Google sign-in was cancelled. Try again below, or sign in with your email and password.', 'Đăng nhập Google đã bị hủy. Bạn có thể thử lại bên dưới hoặc đăng nhập bằng email và mật khẩu.')
     : tr('Google sign-in could not be completed. Choose Continue with Google below to start a new sign-in attempt.', 'Không thể hoàn tất đăng nhập Google. Bấm Đăng nhập với Google bên dưới để bắt đầu lại.');
   if (session.isLoggedIn() && !googleError) {
-    navigate(pendingRoomInvite() || (session.isAdmin() ? '/admin' : '/menu'));
+    navigate(pendingRoomInvite() || '/menu');
     return;
   }
   const invite = pendingRoomInvite();

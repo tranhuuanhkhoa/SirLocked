@@ -199,7 +199,7 @@ const ICON_LOGOUT = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"
 
 function brandMarkup() {
   return `
-    <a class="bpa-shell-brand" href="${session.isAdmin() ? '/admin' : '/menu'}"
+    <a class="bpa-shell-brand" href="${session.home()}"
        aria-label="${tr('Sir Locked, back to the home page', 'Sir Locked, về trang chủ')}">
       <span class="bpa-shell-mark" aria-hidden="true"><span></span><span></span><span></span></span>
       <span class="bpa-shell-word">SIR <span>LOCKED</span></span>
@@ -388,16 +388,15 @@ async function route({ transition = true } = {}) {
 
   if (!target) {
     // An address nobody knows goes to the game's home of whoever is here, not to the introduction page.
-    navigate(session.isLoggedIn()
-      ? (session.isAdmin() ? '/admin' : '/menu')
-      : '/login');
+    navigate(session.isLoggedIn() ? session.home() : session.loginAddress());
     return;
   }
 
   const { r, m } = target;
   if (!r.anonymous && !session.isLoggedIn()) {
     rememberRoomInvite(address);
-    navigate(r.admin ? '/admin/login' : '/login');
+    // The admin side signs in on /admin/login, the game side on /login (see services/session.js).
+    navigate(session.loginAddress());
     return;
   }
   if (r.admin && !session.isAdmin()) {
