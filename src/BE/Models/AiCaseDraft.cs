@@ -337,6 +337,9 @@ public class AiCaseDraft
     public string QuotaWeek { get; set; } = string.Empty;
     /// <summary>The creator's order. Null on drafts created before orders existed.</summary>
     public AiCaseOrder? Order { get; set; }
+    /// <summary>How many failed steps the autopilot has sent back for repair (AUTO orders only; bounded).</summary>
+    [BsonIgnoreIfDefault]
+    public int AutopilotRepairs { get; set; }
     public string OrderStatus { get; set; } = string.Empty;
     public List<AiOrderStatusChange> OrderStatusHistory { get; set; } = new();
     /// <summary>Questions the bot asked the creator (draft_ask), open and answered.</summary>

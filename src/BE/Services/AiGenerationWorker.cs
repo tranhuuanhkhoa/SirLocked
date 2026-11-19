@@ -127,6 +127,8 @@ public sealed class AiGenerationWorker : BackgroundService
                         : "AI_GENERATION_FAILED";
                 await workflow.CompleteQueuedAsync(draft, errorCode, stoppingToken);
                 await workflow.SyncOrderStatusAsync(draft.Id, stoppingToken);
+                // An autopilot order sends the failed step back for a bounded repair instead of waiting for a person.
+                await scope.ServiceProvider.GetRequiredService<IAiDraftAutopilot>().AdvanceAsync(draft.Id, stoppingToken);
                 _logger.LogError(failure,
                     "AI operation {Operation} for draft {DraftId} ended without retry.",
                     draft.QueuedOperation, draft.Id);

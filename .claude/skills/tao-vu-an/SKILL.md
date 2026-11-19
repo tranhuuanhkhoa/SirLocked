@@ -41,7 +41,7 @@ Trong skill này, **người đặt đơn** là người tạo đơn trên `/adm
 | 8 | Bot | **Âm thanh và thời tiết**: nhạc mỗi khu chọn trong thư viện nhạc, giọng bíp từng nhân vật (nghe thử, không ai trùng giọng), thời tiết cảnh ngoài trời theo đơn (trong nhà `indoor: true`), thời điểm; quay thử cảnh ngoài trời; tiếng giao diện chọn trong gói CC0 — ghi thẳng trong JSON | `music_search`, `blip_preview`, `weather_preview`, `sfx_search` |
 | 9 | Bot → người đặt đơn | **Chạy thử**: import (không đăng), Playwright tự chơi theo lời giải, viết `report.md`. Người đặt đơn chơi thử, admin bấm Xuất bản | `draft_import`, `playtest`, `draft_report` |
 
-Server báo lỗi ở bước nào thì sửa đúng phần đó và nộp lại (yêu cầu vẫn mở); không làm lại từ đầu. Draft dừng ở `CASE_TRUTH_INVALID` / `GENERATED_INVALID` thì ghi vào report để người duyệt dùng "sửa theo phạm vi" trên admin.
+Server báo lỗi ở bước nào thì sửa đúng phần đó và nộp lại (yêu cầu vẫn mở); không làm lại từ đầu. Draft dừng ở `CASE_TRUTH_INVALID` / `GENERATED_INVALID`: đơn AUTO thì server tự gửi lại yêu cầu sửa (tối đa 3 lần mỗi đơn), bạn làm yêu cầu sửa như mọi yêu cầu khác; hết 3 lần thì ghi vào report. Bản nháp cũ thì ghi vào report để người duyệt dùng "sửa theo phạm vi" trên admin.
 
 ### Vòng làm việc mỗi lượt chạy
 
