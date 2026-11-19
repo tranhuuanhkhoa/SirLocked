@@ -4,7 +4,7 @@ import { pixelIconUrl } from '../chest/chestSprites.js';
 
 /* Shared pieces of Chợ đồ: labels, number formatting, error texts, rarity-tinted item icons, sparklines. */
 
-export const CATEGORIES = ['MAGNIFIER', 'STAMP', 'PINS', 'FOLDER', 'BADGE', 'BOARD', 'WATCH', 'CHEST', 'KEY', 'CURIO', 'FRAME', 'TITLE', 'ENTRANCE'];
+export const CATEGORIES = ['MAGNIFIER', 'STAMP', 'PINS', 'FOLDER', 'BADGE', 'BOARD', 'WATCH', 'CHEST', 'KEY', 'CURIO', 'FRAME', 'TITLE', 'ENTRANCE', 'SKIN_SHERLOCK', 'SKIN_WATSON'];
 export const RARITIES = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYSTERY'];
 export const SLOT_CAP = 12;
 export const FEE_PERCENT = 5;
@@ -25,6 +25,8 @@ const CATEGORY_LABELS = {
   FRAME: ['Avatar frames', 'Viền avatar'],
   TITLE: ['Titles', 'Danh hiệu'],
   ENTRANCE: ['Lobby entrances', 'Hiệu ứng vào sảnh'],
+  SKIN_SHERLOCK: ['Sherlock outfits', 'Trang phục Sherlock'],
+  SKIN_WATSON: ['Watson outfits', 'Trang phục Watson'],
 };
 
 /** Same rule as the server: chests, keys and collectibles only sit in the bag. */
@@ -116,6 +118,7 @@ const ERRORS = {
   MARKET_TRADE_EMPTY: ['Add at least one item or some coins.', 'Hãy thêm ít nhất một vật phẩm hoặc một ít xu.'],
   MARKET_TRADE_TOO_MANY_ITEMS: ['At most 6 items per side.', 'Mỗi bên tối đa 6 vật phẩm.'],
   MARKET_TRADE_INVALID_COINS: ['Coins must be between 0 and 1,000,000.', 'Số xu phải từ 0 đến 1.000.000.'],
+  MARKET_TRADE_COINS_NOT_ALLOWED: ['Trades are items only: coins cannot be traded.', 'Trao đổi chỉ gồm vật phẩm, không kèm xu.'],
   MARKET_TRADE_DUPLICATE_ITEM: ['An item is listed twice.', 'Có vật phẩm bị chọn hai lần.'],
   MARKET_TRADE_MESSAGE_TOO_LONG: ['The message is too long (200 characters).', 'Lời nhắn quá dài (tối đa 200 ký tự).'],
   MARKET_TRADE_ITEM_UNAVAILABLE: ['An item in this offer is no longer available.', 'Một vật phẩm trong đề nghị không còn sẵn sàng.'],

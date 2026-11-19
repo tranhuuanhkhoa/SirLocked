@@ -1,0 +1,7 @@
+/* Khung admin cũ (thanh tab ngang) đã thay bằng sidebar trong css/60-admin-theme.css. Còn lại phần dùng chung. */
+
+#admin-nav-root { position: relative; z-index: var(--z-raised); }
+#admin-nav-root[hidden] { display: none; }
+
+/* A table wider than the phone scrolls by itself, not the whole page. */
+.admin-table-scroll { max-width: 100%; overflow-x: auto; }

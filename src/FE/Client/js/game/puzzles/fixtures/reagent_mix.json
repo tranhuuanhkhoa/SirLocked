@@ -1,0 +1,18 @@
+{
+  "title": "Lá thư trong ngăn quầy",
+  "prompt": "Nhỏ từng giọt từ ba lọ vào cốc để pha đúng màu mẫu. Khi kim đo báo khớp, quét thuốc lên lá thư. Bàn phím: 1 · 2 · 3 nhỏ giọt, Backspace đổ bỏ, Enter quét.",
+  "params": {
+    "find": {
+      "title": "Chai thuốc thử rỗng",
+      "text": "Chai rỗng nằm cạnh lá thư trắng trong ngăn quầy tiệm cầm đồ; nhãn còn ô màu mẫu và số giọt ghi tay.",
+      "tag": "VẬT CHỨNG · TIỆM CẦM ĐỒ"
+    },
+    "witness": "Ông Tô Khánh (hiệu ảnh)",
+    "witnessMono": "TK"
+  },
+  "reveal": {
+    "title": "Lá thư mực ẩn",
+    "text": "Thư của Đặng Bửu hẹn người mua ở Hải Phòng nhận trâm hồng ngọc vào thứ Hai — ba ngày sau ‘vụ mất trộm’.",
+    "letter": ["Thứ Hai, 9 giờ —", "bến tàu Hải Phòng —", "giao trâm hồng ngọc.", "Đ.B."]
+  }
+}

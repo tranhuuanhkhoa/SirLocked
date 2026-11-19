@@ -1,0 +1,27 @@
+{
+  "title": "Mảnh giấy trong sọt rác",
+  "prompt": "Kéo từng mảnh vào khung. Nhấp đúp (hoặc phím R) để xoay mảnh bị ngược. Mảnh đặt đúng sẽ tự khớp.",
+  "params": {
+    "find": {
+      "tag": "VẬT CHỨNG · TIỆM CẦM ĐỒ",
+      "title": "Sọt rác sau quầy",
+      "text": "Tờ giấy bị xé vụn, vo lại dưới đáy sọt rác sau quầy tiệm cầm đồ Đặng Bửu."
+    },
+    "doc": {
+      "head": "GHI NHỚ",
+      "sub": "TIỆM CẦM ĐỒ ĐẶNG BỬU",
+      "meta": "[[SỐ]] 17 · [[PHỐ]] HÀNG ĐƯỜNG",
+      "to": "[[VIỆC:]] TRÂM HỒNG NGỌC — BÀ LÂM",
+      "lines": ["THỨ SÁU · 23 GIỜ · TỰ MỞ KÉT", "BÁO MẤT · ĐỔ CHO L."],
+      "sign": "KÝ: Đ.B.",
+      "stamp": ["TIỆM CẦM ĐỒ", "Đ.B.", "HÀNG ĐƯỜNG"],
+      "circle": "TỰ MỞ KÉT",
+      "underline": "ĐỔ CHO L."
+    },
+    "note": { "text": "bảo hiểm", "mark": "Sao Mai" }
+  },
+  "reveal": {
+    "title": "Mảnh giấy ghi nhớ đã ghép",
+    "text": "“Thứ Sáu · 23 giờ · tự mở két · báo mất · đổ cho L.” — ký tắt Đ.B. Nét bút chì bên dưới: “bảo hiểm Sao Mai”. Vụ mất trâm đã được tính trước."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "title": "Hộp nhạc trên kệ tiệm cầm đồ",
+  "prompt": "Cắm chốt lên trục đồng theo tấm bưu thiếp, rồi quay tay quay để nghe thử. Đúng bài, ngăn bí mật dưới đáy hộp sẽ mở.",
+  "params": {
+    "postcard": {
+      "title": "Bưu thiếp dựng sau hộp nhạc",
+      "text": "Mở bằng bài này. — Đ.B."
+    },
+    "witness": {
+      "lead": "Trịnh Lực kể, ông Bửu hay huýt sáo bài này mỗi lần đóng két:"
+    },
+    "plaque": "Đ·B",
+    "keyMark": "K"
+  },
+  "reveal": {
+    "title": "Chìa khóa két dự phòng",
+    "text": "Ngăn đáy hộp nhạc giấu một chìa khóa đồng khắc chữ ‘K’ — chìa dự phòng của két sắt tiệm cầm đồ. Chỉ chủ tiệm Đặng Bửu biết bài nhạc mở ngăn này: két không bị phá, nó được mở bằng chìa."
+  }
+}

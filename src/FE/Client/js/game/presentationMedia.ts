@@ -1,4 +1,5 @@
 import { apiFetchBlob } from '../api/http.js';
+import type { PlayableCutscene } from './cutscene/motionComicModel.js';
 
 /** Only same-origin presentation endpoints receive the player's bearer token. */
 export function presentationUrl(value?: string): string {
@@ -91,5 +92,7 @@ export type Cutscene = {
   trigger: 'INTRO' | 'REVEAL' | 'ENDING';
   triggerId?: string;
   panels: { id?: string; imageUrl?: string; videoUrl?: string; caption?: string; speaker?: string; durationMs?: number }[];
+  /** Motion-comic intro (AI-written script + pixel art). When present it plays instead of `panels`. */
+  motionComic?: PlayableCutscene;
 };
 export type CasePresentation = { version?: string | number; cutscenes?: Cutscene[] };

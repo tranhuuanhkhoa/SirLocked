@@ -29,6 +29,8 @@ export async function renderOAuthCallbackPage(app) {
   const token = params.get('token');
   const refreshToken = params.get('refreshToken');
   const error = params.get('error');
+  // Remove credentials from the address bar and browser history before any network request.
+  window.history.replaceState(window.history.state, '', window.location.pathname);
 
   if (error || !token) {
     toast(tr('Google sign-in failed. Please try again.', 'Đăng nhập Google thất bại. Vui lòng thử lại.'), 'error');
