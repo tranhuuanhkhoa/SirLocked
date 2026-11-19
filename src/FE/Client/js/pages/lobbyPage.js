@@ -12,6 +12,10 @@ import { T, avatarFor, closeStage, frameKey, loadCosmeticCatalog, loadCosmeticsI
 import { createEntranceQueue } from '../cosmetics/entrances.js';
 import { createPainter } from '../cosmetics/painter.js';
 import { navigate } from '../services/navigation.js';
+import { marketApi } from '../api/marketApi.js';
+import { chestApi } from '../api/chestApi.js';
+import { createOutfitAnimator, lookFor, previewSheet } from '../game/outfitPreview.ts';
+import { figureLabel, outfitChoices, outfitStripHTML } from './lobbyOutfits.js';
 
 // The server owns the room lifecycle; the lobby only reacts to the status/code it is told.
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'ABANDONED']);
@@ -164,6 +168,43 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
   // How to draw what the players wear: a redraw follows if it changes what the seats already show.
   loadCosmeticCatalog().then((changed) => { if (changed && !disposed && room) draw(); });
   const painter = createPainter();
+  // The outfit strip and the seat figures: what the player owns and which chest each outfit comes from, asked for
+  // once the player has a role. Either answer may fail; the strip then shows what it can.
+  const reducedMotion = (() => {
+    try {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch {
+      return false;
+    }
+  })();
+  const figures = createOutfitAnimator({ reducedMotion });
+  let wardrobe = { inventory: null, chests: null };
+  let wardrobeRequested = false;
+  let wardrobePending = false;
+  let outfitBusy = false;
+  const loadWardrobe = () => {
+    if (wardrobeRequested) return;
+    wardrobeRequested = true;
+    wardrobePending = true;
+    Promise.allSettled([marketApi.inventory(), chestApi.list()]).then(([inventory, chests]) => {
+      wardrobePending = false;
+      if (disposed) return;
+      // A failed refresh keeps what the strip already knew.
+      wardrobe = {
+        inventory: inventory.status === 'fulfilled' ? inventory.value : wardrobe.inventory,
+        chests: chests.status === 'fulfilled' ? chests.value : wardrobe.chests,
+      };
+      draw();
+    });
+  };
+  // The strip's links open the chest vault and the market in another tab: an outfit won or bought there shows up
+  // when the player comes back to this one.
+  const onReturn = () => {
+    if (disposed || !wardrobeRequested || wardrobePending) return;
+    wardrobeRequested = false;
+    if (room?.players.find((p) => p.userId === me.userId)?.role) loadWardrobe();
+  };
+  window.addEventListener('focus', onReturn);
   // Only ever plays while this room is still waiting: the game starting ends it.
   const entrances = createEntranceQueue({
     canPlay: () => !disposed && room?.status === 'WAITING',
@@ -234,6 +275,8 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
     entrances.stop();
     closeStage(true);
     painter.dispose();
+    figures.dispose();
+    window.removeEventListener('focus', onReturn);
     return hub.stop();
   };
   signal?.addEventListener('abort', cleanup, { once: true });
@@ -427,6 +470,10 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
           </div>
         </div>
         <div class="bpa-lobby-idfoot">
+          ${role ? (() => {
+            const look = lookFor(p.role, p.skinDefIds);
+            return `<canvas class="bpa-lobby-fig" data-seat-figure="${escapeHtml(p.userId)}" data-look="${escapeHtml(look)}" role="img" aria-label="${escapeHtml(figureLabel(p.role, look, wardrobe))}"></canvas>`;
+          })() : ''}
           <div class="bpa-lobby-rolebox">
             <span class="bpa-lobby-mini">${tr('Role', 'Vai trò')}</span>
             ${role
@@ -557,6 +604,7 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
           <section class="bpa-lobby-o2" aria-labelledby="lobby-roles-h">
             <div class="bpa-lobby-sechead"><h2 id="lobby-roles-h" class="bpa-lobby-tapelabel">${tr('Pick your role', 'Chọn vai trò')}</h2></div>
             <div class="bpa-lobby-roles" role="group" aria-labelledby="lobby-roles-h">${roleCards}</div>
+            ${my?.role ? outfitStripHTML(outfitChoices(my.role, { ...wardrobe, skinDefIds: my.skinDefIds }), { busy: outfitBusy }) : ''}
           </section>
 
           <section class="bpa-panel bpa-lobby-bar bpa-lobby-o3" aria-labelledby="lobby-bar-k">
@@ -579,6 +627,18 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
 
     // Someone may wear what was made after this page loaded.
     loadCosmeticsIfUnknown(room.players.flatMap((player) => [player.frameDefId, player.titleDefId])).then((changed) => { if (changed && !disposed) draw(); });
+    if (my?.role) loadWardrobe();
+    // The redraw replaced the seats and the strip: every figure starts again on its new canvas.
+    figures.clear();
+    app.querySelectorAll('canvas[data-seat-figure]').forEach((canvas) => {
+      const player = room.players.find((p) => p.userId === canvas.dataset.seatFigure);
+      const sheet = previewSheet(player?.role, canvas.dataset.look);
+      if (sheet) figures.add(canvas, sheet);
+    });
+    app.querySelectorAll('canvas[data-outfit-preview]').forEach((canvas) => {
+      const sheet = previewSheet(my?.role, canvas.dataset.outfitPreview);
+      if (sheet) figures.add(canvas, sheet);
+    });
     // The redraw replaced the seats: each portrait follows that player's look in the latest room state.
     painter.clear();
     app.querySelectorAll('[data-seat-avatar]').forEach((canvas) => {
@@ -626,6 +686,24 @@ export async function renderLobbyPage(app, roomId, { signal } = {}) {
           draw();
         } catch (err) {
           handleActionError(err);
+        }
+      }));
+
+    app.querySelectorAll('[data-outfit]').forEach((card) =>
+      card.addEventListener('click', async () => {
+        if (outfitBusy || card.getAttribute('aria-disabled') === 'true' || card.getAttribute('aria-pressed') === 'true') return;
+        const choices = outfitChoices(my?.role, { ...wardrobe, skinDefIds: my?.skinDefIds });
+        const choice = choices?.cards.find((candidate) => candidate.look === card.dataset.outfit);
+        if (!choice || choice.state !== 'free') return;
+        outfitBusy = true;
+        draw();
+        try {
+          room = await roomApi.wearOutfit(roomId, choices.category, choice.itemId);
+        } catch (err) {
+          handleActionError(err);
+        } finally {
+          outfitBusy = false;
+          if (!disposed) draw();
         }
       }));
 
