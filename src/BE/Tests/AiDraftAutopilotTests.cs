@@ -155,6 +155,17 @@ public sealed class AiDraftAutopilotTests
     }
 
     [Fact]
+    public void ALogicRetry_IsTriedOnce_BecauseItRebuildsFromTheSameInputs()
+    {
+        var draft = Failed(AiDraftStatus.GeneratedInvalid, repairs: 1);
+        draft.AutopilotJsonRetries = AiDraftAutopilot.MaxJsonRetries;
+        Assert.Null(AiDraftAutopilot.NextStep(draft));
+        var truth = Failed(AiDraftStatus.CaseTruthInvalid, repairs: 1);
+        truth.AutopilotJsonRetries = AiDraftAutopilot.MaxJsonRetries;
+        Assert.Equal(AiDraftAutopilot.RepairTruth, AiDraftAutopilot.NextStep(truth)?.Name);
+    }
+
+    [Fact]
     public void RepairsCost_GatesAndAcceptsDoNot()
     {
         Assert.True(AiDraftAutopilot.NextStep(Failed(AiDraftStatus.CaseTruthInvalid))!.CostsRepair);

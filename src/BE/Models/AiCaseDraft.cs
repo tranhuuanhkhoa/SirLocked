@@ -340,6 +340,9 @@ public class AiCaseDraft
     /// <summary>How many failed steps the autopilot has sent back for repair (AUTO orders only; bounded).</summary>
     [BsonIgnoreIfDefault]
     public int AutopilotRepairs { get; set; }
+    /// <summary>How many of those repairs were logic retries (they rebuild from the same inputs, so only one is tried).</summary>
+    [BsonIgnoreIfDefault]
+    public int AutopilotJsonRetries { get; set; }
     public string OrderStatus { get; set; } = string.Empty;
     public List<AiOrderStatusChange> OrderStatusHistory { get; set; } = new();
     /// <summary>Questions the bot asked the creator (draft_ask), open and answered.</summary>

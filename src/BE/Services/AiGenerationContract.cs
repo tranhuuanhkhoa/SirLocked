@@ -294,6 +294,11 @@ public sealed record AiGenerationContract(
             result.Add("VisualSafety", path, $"Text-bearing visual term '{match.Value}' is prohibited; express the clue with shape, material, color, damage or position instead.", refId);
     }
 
+    /// <summary>The player-facing language rule for one string: short strings pass; longer ones need Vietnamese diacritics or words.</summary>
+    public static bool LooksVietnamese(string? value) =>
+        string.IsNullOrWhiteSpace(value) || value.Length < 20 || value.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length < 4
+        || VietnameseDiacritics.IsMatch(value) || VietnameseWords.IsMatch(value);
+
     private static void ValidateVietnamese(GameCase gameCase, CaseValidationResult result)
     {
         foreach (var (path, value) in PlayerFacingStrings(gameCase))

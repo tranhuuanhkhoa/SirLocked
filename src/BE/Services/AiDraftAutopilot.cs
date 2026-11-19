@@ -39,6 +39,8 @@ public sealed class AiDraftAutopilot(
 {
     public static readonly CurrentUser AutopilotUser = new("ai-autopilot", "AI autopilot", UserRole.Admin);
     public const int MaxRepairs = 3;
+    /// <summary>A logic retry recompiles from the same truth and content, so a second one fails the same way.</summary>
+    public const int MaxJsonRetries = 1;
     public const string RepairTruth = "REPAIR_TRUTH";
     public const string RepairTruthCandidate = "REPAIR_TRUTH_CANDIDATE";
     public const string AcceptTruthRepair = "ACCEPT_TRUTH_REPAIR";
@@ -85,7 +87,7 @@ public sealed class AiDraftAutopilot(
         {
             AiDraftStatus.CaseTruthInvalid => new AutopilotStep(
                 draft.TruthRepairStatus == AiRepairStatus.CandidateInvalid ? RepairTruthCandidate : RepairTruth, true),
-            AiDraftStatus.GeneratedInvalid => new AutopilotStep(RetryJson, true),
+            AiDraftStatus.GeneratedInvalid when draft.AutopilotJsonRetries < MaxJsonRetries => new AutopilotStep(RetryJson, true),
             _ => null
         };
     }
@@ -137,7 +139,9 @@ public sealed class AiDraftAutopilot(
                 : filter.Eq(item => item.AutopilotRepairs, draft.AutopilotRepairs);
             var claimed = await db.AiCaseDrafts.UpdateOneAsync(
                 filter.And(filter.Eq(item => item.Id, draftId), filter.Eq(item => item.Status, draft.Status), used),
-                Builders<AiCaseDraft>.Update.Inc(item => item.AutopilotRepairs, 1),
+                step.Name == RetryJson
+                    ? Builders<AiCaseDraft>.Update.Inc(item => item.AutopilotRepairs, 1).Inc(item => item.AutopilotJsonRetries, 1)
+                    : Builders<AiCaseDraft>.Update.Inc(item => item.AutopilotRepairs, 1),
                 cancellationToken: ct);
             if (claimed.ModifiedCount == 0) return;
         }

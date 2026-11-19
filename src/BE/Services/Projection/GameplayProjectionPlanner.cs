@@ -78,6 +78,13 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
             if (truth.TrueTimeline.Count < profile.TimelineEvents.Min)
                 result.Add("TruthTimelineForLevel", "trueTimeline",
                     $"{profile.Difficulty} needs at least {profile.TimelineEvents.Min} true timeline events; truth has {truth.TrueTimeline.Count}.");
+            // The method and motive become the accusation's answers word for word: write them in the case language
+            // here, or the logic step fails on them later and no logic retry can fix it.
+            if (draft.Settings.Language == CaseLanguages.Vietnamese)
+                foreach (var (path, text) in new[] { ("coreTruth.method", truth.CoreTruth.Method), ("coreTruth.motive", truth.CoreTruth.Motive) })
+                    if (!AiGenerationContract.LooksVietnamese(text))
+                        result.Add("TruthLanguageMismatch", path,
+                            "Players read this as an accusation answer: write it in natural Vietnamese with diacritics.");
         }
         else if (locations.Count < contract.MinScenes || locations.Count > contract.MaxScenes)
             result.Add("ProjectionLocationCount", "caseSeed.locationIds",

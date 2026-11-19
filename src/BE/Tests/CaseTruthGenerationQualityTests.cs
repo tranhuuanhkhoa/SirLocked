@@ -147,6 +147,17 @@ public sealed class CaseTruthGenerationQualityTests
         Assert.DoesNotContain(result.Errors, error => error.Code != "AmbiguousSuspect");
     }
 
+    [Theory]
+    [InlineData(CaseLanguages.Vietnamese, true)]
+    [InlineData(CaseLanguages.English, false)]
+    public void CoreTruth_AsksForTheAccusationAnswersInTheCaseLanguage(string language, bool asked)
+    {
+        var draft = ShortDraft();
+        draft.Settings.Language = language;
+        var prompt = AiCaseService.BuildTruthStagePrompt(draft, CaseTruthArtifacts.CoreTruth, MockTruth(), string.Empty);
+        Assert.Equal(asked, prompt.Contains("coreTruth.motive and coreTruth.method word for word", StringComparison.Ordinal));
+    }
+
     private static AiCaseDraft ShortDraft() => new()
     {
         StoryPreview = new AiStoryPreview { Title = "Proof contract", Summary = "A compact two-player case." },

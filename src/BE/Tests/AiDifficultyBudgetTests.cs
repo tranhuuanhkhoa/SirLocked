@@ -111,4 +111,27 @@ public sealed class AiDifficultyBudgetTests
         var error = Assert.Single(result.Errors, item => item.Code == "TruthLocationCountForLevel");
         Assert.Contains("hard needs 6-8 locations", error.Message);
     }
+
+    [Fact]
+    public void AnEnglishMethodInAVietnameseCase_IsRefusedAtTheTruthStep()
+    {
+        var (draft, truth) = HardTruth();
+        draft.Settings.Language = CaseLanguages.Vietnamese;
+        truth.CoreTruth.Method = "Before the box was sealed he swapped the finished chronometer for a jammed copy.";
+        truth.CoreTruth.Motive = "Ông muốn giữ căn nhà thừa kế không bị đem ra bảo lãnh cho hợp đồng.";
+        var result = new GameplayProjectionPlanner(new CaseTruthService()).ValidateProjectability(draft, truth);
+        var error = Assert.Single(result.Errors, item => item.Code == "TruthLanguageMismatch");
+        Assert.Equal("coreTruth.method", error.Path);
+    }
+
+    [Fact]
+    public void AVietnameseMethodAndMotive_PassTheLanguageCheck()
+    {
+        var (draft, truth) = HardTruth();
+        draft.Settings.Language = CaseLanguages.Vietnamese;
+        truth.CoreTruth.Method = "Trước khi hộp được niêm phong, hắn tráo chiếc đồng hồ thật bằng một bản sao đã bị chèn lá đồng.";
+        truth.CoreTruth.Motive = "Ông muốn giữ căn nhà thừa kế không bị đem ra bảo lãnh cho hợp đồng.";
+        var result = new GameplayProjectionPlanner(new CaseTruthService()).ValidateProjectability(draft, truth);
+        Assert.DoesNotContain(result.Errors, item => item.Code == "TruthLanguageMismatch");
+    }
 }
