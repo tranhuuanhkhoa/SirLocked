@@ -2750,7 +2750,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         };
     }
 
-    private static List<string> ValidateAcceptedV3CrackContent(
+    internal static List<string> ValidateAcceptedV3CrackContent(
         GameplayProjectionPlan plan,
         V3CrackContent content,
         GameCase? gameCase = null)
@@ -2831,8 +2831,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             if (node.NodeId != id)
                 errors.Add($"Reviewed conversation node '{id}' changed identity.");
             var compiled = gameCase?.ConversationNodes.FirstOrDefault(item => item.NodeId == id);
+            // A source-linked leaf quotes the approved ledger: the compiler replaces the model's prose with the ledger's
+            // line and its reviewed testimony fragments, so that quote, not the prose, is what review fixed for it.
+            var skeleton = plan.Skeleton.ConversationNodes.FirstOrDefault(item => item.NodeId == id);
+            var expectedLines = compiled is not null && !string.IsNullOrWhiteSpace(skeleton?.SourceDialogueId)
+                ? ProjectionConversationPresentation.SourceLines(skeleton, gameCase!.TestimonyFragments).Select(item => item.Text).ToList()
+                : node.Lines;
             if (compiled is not null
-                && (!compiled.Lines.Select(item => item.Text).SequenceEqual(node.Lines, StringComparer.Ordinal)
+                && (!compiled.Lines.Select(item => item.Text).SequenceEqual(expectedLines, StringComparer.Ordinal)
                     || compiled.Choices.Any(choice =>
                         !node.ChoiceLabels.TryGetValue(choice.ChoiceId, out var label)
                         || choice.Label != label)))
