@@ -64,32 +64,54 @@ public sealed class TruthStageRules(ICaseTruthService truthService, IGameplayPro
         var truth = JsonSerializer.Deserialize<CaseTruthPackage>(JsonSerializer.Serialize(draft.CaseTruth, Json), Json)!;
         AiCaseService.ClearInvalidatedTruthArtifacts(truth, index);
         var budget = AiCaseService.TruthBudgetForDraft(draft);
+        CaseValidationResult validation;
         try
         {
             switch (index)
             {
                 case 2:
                     truth.TrueTimeline = Parse<GeneratedTimelineArtifact>(json).TrueTimeline;
-                    return Timeline(truth, budget);
+                    validation = Timeline(truth, budget);
+                    break;
                 case 4:
                     var planned = CaseTruthReferenceContract.PlannedTraceIds(truth.TrueTimeline)
                         .Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.Ordinal).ToList();
                     truth.TraceLedger = Parse<GeneratedTraceArtifact>(json).TraceLedger;
-                    return Evidence(truth, planned);
+                    validation = Evidence(truth, planned);
+                    break;
                 case 5:
                     truth.StatementLedger = Parse<GeneratedStatementArtifact>(json).StatementLedger;
-                    return Statements(truth, draft.Settings);
+                    validation = Statements(truth, draft.Settings);
+                    break;
                 default:
                     var proof = Parse<GeneratedProofArtifact>(json);
                     truth.ProofGraph = proof.ProofGraph;
                     truth.RedHerringLedger = proof.RedHerringLedger;
-                    return ProofGraph(draft, truth, budget);
+                    validation = ProofGraph(draft, truth, budget);
+                    break;
             }
         }
         catch (JsonException)
         {
             return null; // the schema check already passed; the run reports anything stranger
         }
+        return ErrorsThisStageCanFix(validation, index);
+    }
+
+    /// <summary>
+    /// Keeps only the errors the submitted answer can fix: those whose repair starts at this stage or a later one
+    /// (<see cref="ICaseTruthService.PlanRepair"/>). An error of an earlier, locked step cannot be fixed by answering
+    /// this stage again. In run 8, an opportunity row's alibi that nobody else witnessed was found only by the whole-truth
+    /// check at the proof graph, and refusing it made the bot resubmit until it gave up. Such an error passes here; the
+    /// run then reports the truth invalid and the repair starts at that earlier step.
+    /// </summary>
+    private CaseValidationResult ErrorsThisStageCanFix(CaseValidationResult validation, int stage)
+    {
+        var own = new CaseValidationResult();
+        own.Errors.AddRange(validation.Errors.Where(error => Array.IndexOf(CaseTruthRepairPolicy.OrderedArtifacts,
+            truthService.PlanRepair([error]).RegenerateFromArtifact) >= stage));
+        own.Warnings.AddRange(validation.Warnings);
+        return own;
     }
 
     /// <summary>The errors as the draft's validation report writes them: <c>Code path [ref: id]: message</c>.</summary>

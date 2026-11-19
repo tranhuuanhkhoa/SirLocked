@@ -85,6 +85,44 @@ public sealed class MongoBridgeTruthStageCheckTests
         });
     }
 
+    /// <summary>
+    /// Run 8: the locked opportunity step holds a verified alibi that only the suspect's own unseen visit backs, an error
+    /// only the whole-truth check at the proof graph finds. The proof graph cannot fix it, so the bridge takes the answer
+    /// and leaves the error to the run and its repair instead of refusing it until the bot gives up.
+    /// </summary>
+    [Fact]
+    public async Task AnErrorOfALockedEarlierStep_DoesNotMakeTheBridgeRefuseTheProofGraph()
+    {
+        await WithDatabase(async db =>
+        {
+            var (draft, truth) = PausedAtStatements();
+            draft.TruthCheckpointArtifact = CaseTruthArtifacts.Statements;
+            var saved = draft.CaseTruth!;
+            var row = saved.OpportunityMatrix.First(item => item.CharacterId != saved.CoreTruth.CulpritId);
+            var visit = saved.TrueTimeline.First(item => item.ActorId == row.CharacterId
+                && item.WitnessIds.All(id => id == row.CharacterId)
+                && saved.TraceLedger.All(trace => trace.SourceActionId != item.EventId));
+            row.AlibiVerified = true;
+            row.AlibiEventIds = [visit.EventId];
+            await db.AiCaseDrafts.InsertOneAsync(draft);
+            var store = new AiBridgeRequestStore(db, TimeProvider.System);
+            var request = await store.InsertPendingAsync(new AiBridgeRequest
+            {
+                OwnerType = AiBridgeOwnerTypes.CaseDraft, OwnerId = draft.Id, RequestKey = ObjectId.GenerateNewId().ToString(),
+                GenerationRunId = Run, Step = "BuildProofGraph", SchemaVersion = AiGenerationSchemaVersions.ProofGraph,
+                Kind = AiBridgeKinds.Json, Prompt = "p", SchemaJson = """{"type":"object"}"""
+            });
+            var answer = JsonSerializer.SerializeToElement(
+                new { proofGraph = truth.ProofGraph, redHerringLedger = truth.RedHerringLedger }, Json);
+
+            var result = await Bridge(db, store).SubmitAsync(request.Id, answer, CancellationToken.None);
+
+            Assert.True(result.Accepted, string.Join("\n", result.Errors));
+            var stored = await store.GetAsync(request.Id);
+            Assert.False(string.IsNullOrEmpty(stored!.ResultJson));
+        });
+    }
+
     private static async Task WithDatabase(Func<MongoDbContext, Task> check)
     {
         if (!string.Equals(Environment.GetEnvironmentVariable("SIRLOCKED_RUN_MONGO_IT"), "true", StringComparison.OrdinalIgnoreCase)) return;
