@@ -165,6 +165,44 @@ public sealed class AdminChestDraftRequest
     public string? Reason { get; set; }
 }
 
+/// <summary>An opening scene ("kiểu hòm") as the form sends it. Pictures are addresses the upload page returned.</summary>
+public sealed class AdminChestStyleRequest
+{
+    public string? Name { get; set; }
+    public string? NameEn { get; set; }
+    public string? BackdropUrl { get; set; }
+    public string? Particles { get; set; }
+    public string? ParticleUrl { get; set; }
+    public string? Accent { get; set; }
+    public string? Accent2 { get; set; }
+    public string? StampText { get; set; }
+    public string? StampTextEn { get; set; }
+    public string? StampColor { get; set; }
+    public string? ChestImageUrl { get; set; }
+    public string? KeyImageUrl { get; set; }
+    /// <summary>The version the form was opened on (an edit only); a newer one stored by another admin refuses the save.</summary>
+    public int ExpectedVersion { get; set; }
+
+    [StringLength(500)]
+    public string? Reason { get; set; }
+}
+
+public sealed record AdminChestStyleUserDto(string Id, string Name);
+
+/// <summary>A style, and the chests that use it now (a style in use cannot be deleted).</summary>
+public sealed record AdminChestStyleDto(
+    string Id, string Name, string NameEn, string BackdropUrl, string Particles, string? ParticleUrl,
+    string Accent, string Accent2, string StampText, string StampTextEn, string StampColor, string ChestImageUrl, string KeyImageUrl,
+    int Version, DateTime UpdatedAt, IReadOnlyList<AdminChestStyleUserDto> UsedBy);
+
+public sealed record AdminChestStyleListDto(IReadOnlyList<AdminChestStyleDto> Styles);
+
+public sealed class AdminChestStyleDeleteRequest
+{
+    [StringLength(500)]
+    public string? Reason { get; set; }
+}
+
 public sealed record AdminChestCheckDto(
     IReadOnlyList<CatalogRuleViolation> Violations,
     decimal ExpectedValue,

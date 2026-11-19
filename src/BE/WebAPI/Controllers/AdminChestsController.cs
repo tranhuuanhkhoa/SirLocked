@@ -16,12 +16,14 @@ public class AdminChestsController : BaseApiController
     private readonly AdminChestsItemService _items;
     private readonly AdminChestsChestService _chests;
     private readonly AdminChestsStatsService _stats;
+    private readonly AdminChestStylesService _styles;
 
-    public AdminChestsController(AdminChestsItemService items, AdminChestsChestService chests, AdminChestsStatsService stats)
+    public AdminChestsController(AdminChestsItemService items, AdminChestsChestService chests, AdminChestsStatsService stats, AdminChestStylesService styles)
     {
         _items = items;
         _chests = chests;
         _stats = stats;
+        _styles = styles;
     }
 
     // ------------------------------------------------------------------ items
@@ -46,6 +48,27 @@ public class AdminChestsController : BaseApiController
     public async Task<ActionResult<ApiResponse<bool>>> DeleteItem(string id, [FromBody] AdminDeleteItemRequest request, CancellationToken ct)
     {
         await _items.DeleteAsync(Caller, id, request.Reason, ct);
+        return Ok(true);
+    }
+
+    // ------------------------------------------------------------------ chest styles (Kiểu hòm)
+
+    [HttpGet("chest-styles")]
+    public async Task<ActionResult<ApiResponse<AdminChestStyleListDto>>> ListStyles(CancellationToken ct) =>
+        Ok(await _styles.ListAsync(ct));
+
+    [HttpPost("chest-styles")]
+    public async Task<ActionResult<ApiResponse<AdminChestStyleDto>>> CreateStyle([FromBody] AdminChestStyleRequest request, CancellationToken ct) =>
+        Ok(await _styles.CreateAsync(Caller, request, ct));
+
+    [HttpPut("chest-styles/{id}")]
+    public async Task<ActionResult<ApiResponse<AdminChestStyleDto>>> UpdateStyle(string id, [FromBody] AdminChestStyleRequest request, CancellationToken ct) =>
+        Ok(await _styles.UpdateAsync(Caller, id, request, ct));
+
+    [HttpPost("chest-styles/{id}/delete")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteStyle(string id, [FromBody] AdminChestStyleDeleteRequest request, CancellationToken ct)
+    {
+        await _styles.DeleteAsync(Caller, id, request.Reason, ct);
         return Ok(true);
     }
 

@@ -6,7 +6,7 @@ import { createPainter } from '../../../cosmetics/painter.js';
 import { navigate } from '../../../services/navigation.js';
 import { escapeHtml, render } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
-import { chestIconUrl, chestPictureUrl, keyPictureUrl, pixelIconUrl } from '../../chest/chestSprites.js';
+import { chestIconUrl, chestPictureUrl, ownChestPictureUrl, ownKeyPictureUrl, pixelIconUrl } from '../../chest/chestSprites.js';
 import { renderChestPage } from '../../chestPage.js';
 import { draftOf, fromHex, toHex, weightOf } from './chestDraft.js';
 import { renderChestStats } from './chestStats.js';
@@ -88,8 +88,16 @@ export async function renderChestDetail(app, id, { signal } = {}) {
   const saveLabel = isNew ? 'Tạo hòm' : 'Lưu &amp; áp dụng';
   let chest;
   let catalog;
+  // The scenes admins made (tab Kiểu hòm): a chest may use one instead of a built-in drawing.
+  let styles = [];
   try {
-    [chest, catalog] = await Promise.all([isNew ? Promise.resolve(blankChest()) : adminChestsApi.chest(id), adminChestsApi.items()]);
+    let styleList;
+    [chest, catalog, styleList] = await Promise.all([
+      isNew ? Promise.resolve(blankChest()) : adminChestsApi.chest(id),
+      adminChestsApi.items(),
+      adminChestsApi.styles().catch(() => null),
+    ]);
+    styles = styleList?.styles ?? [];
   } catch (error) {
     if (!signal?.aborted) {
       render(app, `<div class="page ac-page">${backLink}${stateBox('error', 'Không mở được hòm này', errorMessages(error)[0])}</div>`);
@@ -198,9 +206,14 @@ export async function renderChestDetail(app, id, { signal } = {}) {
           <div class="ac-look-preview" data-ac-look-preview><img alt="Hình hòm" draggable="false"></div>
           <label class="ac-field"><span>Kiểu hòm</span>
             <select class="field-input" name="template" aria-describedby="ac-template-hint">
-              ${LOOKS.map((look) => `<option value="${look.id}"${look.id === draft.look.template ? ' selected' : ''}>${escapeHtml(look.label)}</option>`).join('')}
+              <optgroup label="Có sẵn">
+                ${LOOKS.map((look) => `<option value="${look.id}"${look.id === draft.look.template ? ' selected' : ''}>${escapeHtml(look.label)}</option>`).join('')}
+              </optgroup>
+              ${styles.length ? `<optgroup label="Kiểu tự tạo">
+                ${styles.map((style) => `<option value="${escapeHtml(style.id)}"${style.id === draft.look.template ? ' selected' : ''}>${escapeHtml(style.name)}</option>`).join('')}
+              </optgroup>` : ''}
             </select>
-            <span class="ac-field-hint" id="ac-template-hint">Kiểu hòm là cảnh mở hòm (phòng, con dấu, hạt bay), vẽ sẵn trong game. Muốn hòm có hình mới thì tải Ảnh riêng bên dưới.</span>
+            <span class="ac-field-hint" id="ac-template-hint">Kiểu hòm là cảnh mở hòm: phòng, hạt bay, màu và con dấu. Tạo kiểu mới hoàn toàn ở tab <a href="/admin/chests?tab=kieu-hom">Kiểu hòm</a>; Ảnh riêng bên dưới đè lên ảnh hòm và chìa của kiểu.</span>
           </label>
           <div class="ac-colours">
             ${colour('light', 'Ánh sáng', draft.look.light)}
@@ -221,7 +234,9 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     const preview = $('[data-ac-look-preview]');
     if (!preview) return;
     const { template, light, hi } = state.draft.look;
-    const picture = chestPictureUrl(state.draft);
+    const style = styles.find((entry) => entry.id === template);
+    // The chest's own picture wins; on a scene an admin made, that scene's chest picture stands in.
+    const picture = ownChestPictureUrl(state.draft) || (style?.chestImageUrl ?? '');
     const image = preview.querySelector('img');
     image.src = picture || pixelIconUrl(TEMPLATE_ICON[template] ?? state.chest.iconKey);
     image.classList.toggle('is-picture', Boolean(picture));
@@ -234,7 +249,8 @@ export async function renderChestDetail(app, id, { signal } = {}) {
     for (const picture of PICTURES) {
       const row = $(`[data-ac-picture-row="${picture.field}"]`);
       if (!row) continue;
-      const url = picture.field === 'imageUrl' ? chestPictureUrl(state.draft) : keyPictureUrl(state.draft);
+      // Only the chest's own pictures: a style's pictures are changed on the Kiểu hòm tab.
+      const url = picture.field === 'imageUrl' ? ownChestPictureUrl(state.draft) : ownKeyPictureUrl(state.draft);
       const busy = state.uploading.has(picture.field);
       const inputId = `ac-picture-${picture.field}`;
       render(row, `

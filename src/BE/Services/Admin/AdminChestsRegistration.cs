@@ -9,6 +9,7 @@ public static class AdminChestsRegistration
         services.AddHostedService<AdminChestsIndexWorker>();
         services.AddScoped<AdminChestsItemService>();
         services.AddScoped<AdminChestsChestService>();
+        services.AddScoped<AdminChestStylesService>();
         services.AddScoped<AdminChestsStatsService>();
         return services;
     }

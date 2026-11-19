@@ -983,3 +983,18 @@ body[data-area="admin"] > dialog .ac-subhead { margin: 0; font-family: var(--adm
   .adm-card.ac-grant > [data-ac-errors] { grid-column: 2; grid-row: 3; }
   .adm-card.ac-grant > div:last-child { grid-column: 2; grid-row: 4; }
 }
+
+/* ---------- Kiểu hòm: opening scenes made by admins ---------- */
+.ac-style-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; }
+.ac-style-card { display: flex; flex-direction: column; gap: 12px; padding: 14px; }
+.ac-style-info h3 { margin: 0; font-size: 17px; }
+.ac-style-meta { margin: 2px 0 0; color: var(--adm-muted); font-size: 13px; }
+.ac-style-preview { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #14100c center / cover no-repeat; box-shadow: inset 0 0 60px rgba(0, 0, 0, .55); }
+.ac-style-preview::before { content: ""; position: absolute; inset: 0; background: radial-gradient(closest-side, color-mix(in srgb, var(--ac-glow, #e9b75a) 35%, transparent), transparent 70%); }
+.ac-style-preview img { position: relative; width: 44%; max-height: 70%; object-fit: contain; }
+.ac-style-empty { position: relative; color: rgba(255, 255, 255, .7); font-size: 13px; }
+.ac-style-stamp { position: absolute; right: 8px; bottom: 8px; padding: 2px 8px; border: 2px solid; border-radius: 4px; background: rgba(255, 248, 236, .85); font-size: 11px; font-weight: 800; letter-spacing: .08em; transform: rotate(-6deg); }
+.ac-style-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.ac-style-fields { display: flex; flex-direction: column; gap: 14px; }
+.ac-style-side { position: sticky; top: 0; }
+@media (max-width: 760px) { .ac-style-layout { grid-template-columns: 1fr; } .ac-style-side { position: static; order: -1; } }

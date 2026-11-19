@@ -7,7 +7,7 @@ import { tr, uiLanguage } from '../services/i18n.js';
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { AU } from './chest/chestAudio.js';
-import { chestPictureUrl, defSprite, keyArtSprite, paintSprite } from './chest/chestSprites.js';
+import { chestPictureUrl, defSprite, keyArtSprite, paintSprite, scenePictureUrl } from './chest/chestSprites.js';
 import { createVaultParticles } from './chest/vaultParticles.js';
 import { createVaultStage } from './chest/vaultStage.js';
 import { isCosmeticDef } from '../cosmetics/icons.js';
@@ -56,8 +56,32 @@ const ICON_TEMPLATE = { chest_seal: 'seal', chest_bank: 'bank', chest_lacquer: '
 const RGB_TEXT = /^\d{1,3},\d{1,3},\d{1,3}$/;
 
 function themeOf(chest) {
+  if (chest.look?.scene) return sceneTheme(chest.look.scene);
   const key = THEMES[chest.look?.template] ? chest.look.template : ICON_TEMPLATE[chest.iconKey] ?? 'seal';
   return THEMES[key];
+}
+
+const SCENE_PARTICLES = new Set(['dust', 'coins', 'petals', 'embers', 'rise', 'fall', 'none']);
+
+/** A room an admin made (look.scene): its own picture behind the chest, its particles, its colours and its stamp. */
+function sceneTheme(scene) {
+  const colour = (value, fallback) => (RGB_TEXT.test(String(value ?? '').replace(/\s/g, '')) ? String(value).replace(/\s/g, '') : fallback);
+  const light = colour(scene.accent, '233,183,90');
+  return {
+    id: 'custom',
+    custom: true,
+    particles: SCENE_PARTICLES.has(scene.particles) ? scene.particles : 'dust',
+    particleUrl: scenePictureUrl(scene.particleUrl),
+    backdrop: scenePictureUrl(scene.backdropUrl),
+    image: scenePictureUrl(scene.chestImageUrl),
+    size: [336, 301],
+    stamp: [scene.stampTextEn || scene.stampText || '', scene.stampText || ''],
+    stampColor: `rgb(${colour(scene.stampColor, '158,63,42')})`,
+    c: `rgb(${light})`,
+    rgb: light.replace(/,/g, ', '),
+    light,
+    hi: colour(scene.accent2, light),
+  };
 }
 
 /** A light colour an admin chose wins over the design's accent; the seeded default of the template means "as designed". */
@@ -138,6 +162,7 @@ const BACKDROP = `
     <div class="qh-theme qh-theme-fog"><div class="qh-lamp"></div><div class="qh-fog qh-f1"></div><div class="qh-fog qh-f2"></div><div class="qh-fog qh-f3"></div></div>
     <div class="qh-theme qh-theme-ring"><div class="qh-ring"><svg viewBox="0 0 200 200" fill="none" stroke="rgba(111,194,176,.22)"><circle cx="100" cy="100" r="96" stroke-width="1.2"/><circle cx="100" cy="100" r="84" stroke-width="5" stroke="rgba(233,200,115,.10)"/><circle cx="100" cy="100" r="70" stroke-width="1"/><circle cx="100" cy="100" r="40" stroke-width="1" stroke-dasharray="2 4"/><g stroke-width="1.4"><path d="M100 30V60M100 140v30M30 100h30M140 100h30M50.5 50.5l21 21M128.5 128.5l21 21M149.5 50.5l-21 21M71.5 128.5l-21 21"/></g><g fill="rgba(233,200,115,.16)" stroke="none"><circle cx="100" cy="10" r="3"/><circle cx="100" cy="190" r="3"/><circle cx="10" cy="100" r="3"/><circle cx="190" cy="100" r="3"/><circle cx="36.4" cy="36.4" r="3"/><circle cx="163.6" cy="163.6" r="3"/><circle cx="163.6" cy="36.4" r="3"/><circle cx="36.4" cy="163.6" r="3"/></g></svg></div></div>
     <div class="qh-theme qh-theme-sun"><div class="qh-sun"><svg viewBox="0 0 200 200" fill="none" stroke="rgba(239,212,134,.5)" stroke-width="1"><path d="M30 120c10-12 26-12 34 0 6-10 22-10 28 0M110 70c10-12 26-12 34 0 6-10 22-10 28 0M40 60c8-10 20-10 26 0 5-8 16-8 21 0M120 140c8-10 20-10 26 0 5-8 16-8 21 0"/></svg></div><span class="qh-lantern" style="left:12%;animation-delay:-2s"></span><span class="qh-lantern" style="left:24%;animation-delay:-9s;scale:.7"></span><span class="qh-lantern" style="left:78%;animation-delay:-5s"></span><span class="qh-lantern" style="left:88%;animation-delay:-13s;scale:.8"></span><span class="qh-lantern" style="left:66%;animation-delay:-16s;scale:.6"></span></div>
+    <div class="qh-theme qh-theme-custom"><div class="qh-custom-scene" id="qh-scene"></div></div>
     <div class="qh-theme qh-theme-wc">
       <div class="qh-wc-moon"></div>
       <svg class="qh-wc-roofs" viewBox="0 0 1200 220" preserveAspectRatio="none"><path d="M0 220V138h46v-26h18v26h40V96l34-30 34 30v42h28v-58h14V62h12v18h22v58h36V108l44-36 44 36v30h30V82h16V64h14v18h20v56h40v-28h56v28h24V92l40-32 40 32v46h26v-52h12V70h14v16h26v52h44v-36h70v36h22V100l36-30 36 30v38h34V86h16V66h12v20h18v52h46v-30h60v30h34v82z"/></svg>
@@ -361,7 +386,8 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
       return {
         ...chest,
         theme,
-        accent: accentOf(chest, theme),
+        // A scene's colours are its own: they are what the admin chose when making the room.
+        accent: theme.custom ? { rgb: theme.light, hi: theme.hi } : accentOf(chest, theme),
         slip: slipLabels(tr(chest.subtitleEn || chest.subtitle, chest.subtitle), index),
         keySprite: keyArtSprite(chest),
         picture: chestPictureUrl(chest),
@@ -515,6 +541,8 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
   function renderCase() {
     const chest = cur();
     root.dataset.chest = chest.theme.id;
+    const scene = $('scene');
+    if (scene) scene.style.backgroundImage = chest.theme.backdrop ? `url("${chest.theme.backdrop.replace(/"/g, '%22')}")` : '';
     if (chest.accent) {
       root.style.setProperty('--accent-rgb', chest.accent.rgb);
       root.style.setProperty('--accent', `rgb(${chest.accent.rgb})`);
@@ -550,7 +578,7 @@ export async function renderChestPage(app, { signal, api = chestApi, preview = f
     [...$('dots').children].forEach((dot, index) => dot.setAttribute('aria-pressed', String(index === page.index)));
     renderOdds(chest);
     renderContents(chest);
-    particles?.theme(chest.theme.particles);
+    particles?.theme(chest.theme.particles, chest.theme.custom ? { image: chest.theme.particleUrl, rgb: chest.theme.light } : {});
   }
 
   function syncWallet() {

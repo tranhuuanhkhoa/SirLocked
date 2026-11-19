@@ -49,6 +49,8 @@ function state() {
     nextCurioId: 'CU-0007',
     /** More chests for the list, beside the one every test edits. */
     otherChests: [] as Json[],
+    /** Opening scenes admins made (Kiểu hòm). */
+    styles: [] as Json[],
     requests: [] as { method: string; path: string; body: Json | null }[],
     stockAvailable: true,
     versions: [
@@ -162,6 +164,12 @@ async function prepare(page: Page, s: State, role = 'ADMIN') {
     }
     if (path === '/api/admin/chests/players') return ok(route, [{ id: 'u9', fullName: 'Thám tử An', email: 'an@example.test' }]);
     if (path === '/api/admin/chests/grant') return ok(route, { balance: 0, held: 0, slotsUsed: 5, slotCap: 12, itemCount: 5, reservedSlots: 0, feePercent: 5 });
+    if (method === 'GET' && path === '/api/admin/chest-styles') return ok(route, { styles: s.styles });
+    if (method === 'POST' && path === '/api/admin/chest-styles') {
+      const created = { ...body, id: `style_00${s.styles.length + 1}`, version: 1, updatedAt: '2026-11-19T12:00:00Z', usedBy: [] };
+      s.styles.push(created);
+      return ok(route, created);
+    }
     if (method === 'POST' && path === '/api/admin/chests/check') return ok(route, newCheckOf(body));
     if (method === 'POST' && path === '/api/admin/chests') {
       return ok(route, { ...detail(s), id: 'chest_001', keyDefId: 'key_001', name: body.name, active: body.active, version: 1 });
@@ -601,6 +609,51 @@ test.describe('/admin/chests', () => {
     });
     expect(body.dropWeights).toMatchObject({ COMMON: 10000 });
     expect(sent(s, 'POST', '/api/admin/chests/check').length).toBeGreaterThan(0);
+  });
+
+  test('a brand-new opening scene is made on the Kiểu hòm tab from uploaded pictures, then chosen for a chest', async ({ page }) => {
+    const s = state();
+    await prepare(page, s);
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    await page.route('https://res.cloudinary.com/**', (route) => route.fulfill({ contentType: 'image/png', body: png }));
+    const at = (name: string) => `https://res.cloudinary.com/demo/image/upload/sirlocked/admin/${name}`;
+    const uploads = [at('ben-cang.png'), at('hom-gio-mua.png'), at('chia-gio-mua.png'), at('giot-mua.png')];
+    await page.route((url) => url.pathname === '/api/admin/assets', (route) => route.fulfill({ json: { success: true, data: { url: uploads.shift(), width: 256, height: 256 } } }));
+    await page.goto('/admin/chests?tab=kieu-hom');
+
+    await expect(page.locator('.ac-area-title [aria-current="page"], .ac-area-title .is-active').first()).toContainText('Kiểu hòm');
+    await expect(page.getByText('Chưa có kiểu tự tạo nào.')).toBeVisible();
+    await page.locator('[data-ac-style-new]').click();
+    const dialog = page.locator('dialog.ac-dialog[open]');
+    await expect(dialog).toContainText('Tạo kiểu hòm mới');
+    await dialog.locator('input[name="name"]').fill('Bến cảng gió mùa');
+    await dialog.locator('input[name="nameEn"]').fill('Monsoon Wharf');
+    await dialog.locator('input[name="stampText"]').fill('GIÓ MÙA');
+    await dialog.locator('select[name="particles"]').selectOption('fall');
+    await dialog.locator('[data-style-picture-input="backdropUrl"]').setInputFiles({ name: 'ben-cang.png', mimeType: 'image/png', buffer: png });
+    await expect(dialog.locator('[data-style-preview-art]')).toHaveAttribute('style', /ben-cang\.png/);
+    await dialog.locator('[data-style-picture-input="chestImageUrl"]').setInputFiles({ name: 'hom.png', mimeType: 'image/png', buffer: png });
+    await dialog.locator('[data-style-picture-input="keyImageUrl"]').setInputFiles({ name: 'chia.png', mimeType: 'image/png', buffer: png });
+    await dialog.locator('[data-style-picture-input="particleUrl"]').setInputFiles({ name: 'giot.png', mimeType: 'image/png', buffer: png });
+    await expect(dialog.locator('[data-style-preview-art] img')).toHaveAttribute('src', /hom-gio-mua\.png$/);
+    await expect(dialog.locator('[data-style-preview-art]')).toContainText('GIÓ MÙA');
+    await dialog.locator('[data-style-save]').click();
+
+    await expect(page.locator('dialog.ac-dialog[open]')).toHaveCount(0);
+    const card = page.locator('[data-style-id="style_001"]');
+    await expect(card).toContainText('Bến cảng gió mùa');
+    await expect(card).toContainText('Chưa hòm nào dùng');
+    expect(sent(s, 'POST', '/api/admin/chest-styles')[0].body).toMatchObject({
+      name: 'Bến cảng gió mùa', nameEn: 'Monsoon Wharf', stampText: 'GIÓ MÙA', particles: 'fall',
+      backdropUrl: at('ben-cang.png'), chestImageUrl: at('hom-gio-mua.png'), keyImageUrl: at('chia-gio-mua.png'), particleUrl: at('giot-mua.png'),
+    });
+
+    // The chest's Kiểu hòm field offers it; the preview shows its chest picture.
+    await page.goto('/admin/chests/chest_np');
+    await expect(page.locator('select[name="template"] optgroup[label="Kiểu tự tạo"] option')).toHaveText(['Bến cảng gió mùa']);
+    await page.locator('select[name="template"]').selectOption('style_001');
+    await expect(page.locator('[data-ac-look-preview] img')).toHaveAttribute('src', /hom-gio-mua\.png$/);
+    await expect.poll(() => sent(s, 'POST', '/api/admin/chests/chest_np/check').at(-1)?.body?.look?.template).toBe('style_001');
   });
 
   test('percentages become weights out of 10,000, and a wrong total blocks saving with the server\'s message', async ({ page }) => {

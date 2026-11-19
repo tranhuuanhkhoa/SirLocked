@@ -108,6 +108,37 @@ test('the nav link sits next to Chợ đồ and the page shows what the API send
   expect(errors).toEqual([]);
 });
 
+test('a chest on a scene an admin made opens in that room: its picture, its stamp and its colours', async ({ page }) => {
+  const counts = { chests: 1, keys: 1, balance: 500 };
+  const at = (name: string) => `https://res.cloudinary.com/demo/image/upload/sirlocked/admin/${name}`;
+  const scene = {
+    id: 'style_001', name: 'Bến cảng gió mùa', nameEn: 'Monsoon Wharf', backdropUrl: at('ben-cang.png'), particles: 'fall', particleUrl: null,
+    accent: '90,160,200', accent2: '220,240,255', stampText: 'GIÓ MÙA', stampTextEn: 'MONSOON', stampColor: '30,80,120',
+    chestImageUrl: at('hom-gio-mua.png'), keyImageUrl: at('chia-gio-mua.png'),
+  };
+  const chests = listBody(counts).chests.map((chest, index) => (index === 0
+    ? { ...chest, look: { template: 'style_001', light: '240,164,58', hi: '255,222,150', core: '255,236,190', scene } }
+    : chest));
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  await page.route('https://res.cloudinary.com/**', (route) => route.fulfill({ contentType: 'image/png', body: png }));
+  await prepare(page, counts, ODDS, { chests });
+  const errors = collectPageErrors(page);
+  await page.goto('/kho-ruong');
+
+  await expect(page.locator('#qh-caseName')).toHaveText('Hòm Niêm Phong');
+  await expect(appMode(page)).toHaveAttribute('data-chest', 'custom');
+  await expect(page.locator('#qh-scene')).toHaveAttribute('style', /ben-cang\.png/);
+  await expect(page.locator('#qh-stamp')).toHaveText('GIÓ MÙA');
+  await expect(page.locator('img.qh-custom').first()).toHaveAttribute('src', /hom-gio-mua\.png$/);
+  expect(await appMode(page).evaluate((node) => (node as HTMLElement).style.getPropertyValue('--accent-rgb'))).toBe('90,160,200');
+
+  // The next chest is back in its built-in room.
+  await page.locator('#qh-nextBtn').click();
+  await expect(appMode(page)).toHaveAttribute('data-chest', 'nha-bang');
+  await expect(page.locator('#qh-scene')).not.toHaveAttribute('style', /ben-cang/);
+  expect(errors).toEqual([]);
+});
+
 test('one click opens one chest: the reel keeps spinning until the server answers, then lands on its item', async ({ page }) => {
   const counts = { chests: 2, keys: 2, balance: 500 };
   await prepare(page, counts);

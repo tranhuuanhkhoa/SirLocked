@@ -59,6 +59,56 @@ public class CatalogChestLook
     public string? ImageUrl { get; set; }
     /// <summary>The key's own picture, as <see cref="ImageUrl"/>. Null: the template's key.</summary>
     public string? KeyImageUrl { get; set; }
+
+    /// <summary>
+    /// The opening scene an admin made, when <see cref="Template"/> names one (<see cref="CatalogChestStyle.Id"/>). Never
+    /// stored: the catalog attaches it when it loads, so every reader of a chest's look gets the scene with it.
+    /// </summary>
+    [BsonIgnore]
+    public CatalogChestStyle? Scene { get; set; }
+}
+
+/// <summary>
+/// An opening scene ("kiểu hòm") made on /admin/chests: the room behind the chest, what drifts in it, its colours, its
+/// stamp, and the chest and key pictures a chest of this style shows unless it has its own. Collection chestStyles.
+/// </summary>
+[BsonIgnoreExtraElements]
+public class CatalogChestStyle
+{
+    [BsonId] public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string NameEn { get; set; } = string.Empty;
+    /// <summary>The room behind the chest: an uploaded picture, drawn to fill the page.</summary>
+    public string BackdropUrl { get; set; } = string.Empty;
+    /// <summary>One of <see cref="ChestStyleParticles"/>.</summary>
+    public string Particles { get; set; } = ChestStyleParticles.Dust;
+    /// <summary>What rises or falls (<see cref="ChestStyleParticles.Rise"/>, <see cref="ChestStyleParticles.Fall"/>). Null: soft dots of the accent.</summary>
+    public string? ParticleUrl { get; set; }
+    /// <summary>"r,g,b", as the light colours of a chest.</summary>
+    public string Accent { get; set; } = string.Empty;
+    public string Accent2 { get; set; } = string.Empty;
+    public string StampText { get; set; } = string.Empty;
+    public string StampTextEn { get; set; } = string.Empty;
+    public string StampColor { get; set; } = string.Empty;
+    public string ChestImageUrl { get; set; } = string.Empty;
+    public string KeyImageUrl { get; set; } = string.Empty;
+    public int Version { get; set; } = 1;
+    public string? UpdatedBy { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+/// <summary>What drifts in an admin's scene: the four of the built-in rooms, a picture rising or falling, or nothing.</summary>
+public static class ChestStyleParticles
+{
+    public const string Dust = "dust";
+    public const string Coins = "coins";
+    public const string Petals = "petals";
+    public const string Embers = "embers";
+    public const string Rise = "rise";
+    public const string Fall = "fall";
+    public const string None = "none";
+    public static readonly IReadOnlyList<string> All = [Dust, Coins, Petals, Embers, Rise, Fall, None];
 }
 
 [BsonIgnoreExtraElements]

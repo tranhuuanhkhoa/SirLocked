@@ -446,11 +446,23 @@ export function defSprite(def) {
 const PICTURE_URL = /^(https:\/\/|\/assets\/)[^\s"'<>]+$/;
 const pictureOf = (url) => (typeof url === 'string' && PICTURE_URL.test(url) ? url : '');
 
-/** A chest's own picture, when an admin gave it one (look.imageUrl). '' means: draw its template. */
-export const chestPictureUrl = (chest) => pictureOf(chest?.look?.imageUrl);
+/** A chest's own picture, when an admin gave it one (look.imageUrl). '' means: no picture of its own. */
+export const ownChestPictureUrl = (chest) => pictureOf(chest?.look?.imageUrl);
 
 /** The key's own picture (look.keyImageUrl), or ''. */
-export const keyPictureUrl = (chest) => pictureOf(chest?.look?.keyImageUrl);
+export const ownKeyPictureUrl = (chest) => pictureOf(chest?.look?.keyImageUrl);
+
+/**
+ * What a chest looks like: its own picture, else the picture of the scene an admin made for it (look.scene), else ''
+ * (draw its template).
+ */
+export const chestPictureUrl = (chest) => ownChestPictureUrl(chest) || pictureOf(chest?.look?.scene?.chestImageUrl);
+
+/** The key's picture: its own, else its scene's, else ''. */
+export const keyPictureUrl = (chest) => ownKeyPictureUrl(chest) || pictureOf(chest?.look?.scene?.keyImageUrl);
+
+/** A scene's picture (room, particle), checked like every other picture. */
+export const scenePictureUrl = (url) => pictureOf(url);
 
 /** A chest for an <img>: its own picture, else its pixel drawing. `chest` needs iconKey and look. */
 export function chestIconUrl(chest) {

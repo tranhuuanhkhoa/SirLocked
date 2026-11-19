@@ -13,6 +13,19 @@ public sealed class CatalogStore
 
     public IMongoCollection<CatalogItem> Items => _db.Database.GetCollection<CatalogItem>("catalogItems");
     public IMongoCollection<CatalogChest> Chests => _db.Database.GetCollection<CatalogChest>("chests");
+    /// <summary>Opening scenes admins made (Kiểu hòm); a chest uses one by naming its id as its look's template.</summary>
+    public IMongoCollection<CatalogChestStyle> ChestStyles => _db.Database.GetCollection<CatalogChestStyle>("chestStyles");
+
+    /// <summary>Gives each chest whose look names a style that style as its scene (in memory only).</summary>
+    public static void AttachScenes(IEnumerable<CatalogChest> chests, IEnumerable<CatalogChestStyle> styles)
+    {
+        var byId = styles.ToDictionary(style => style.Id, StringComparer.Ordinal);
+        foreach (var chest in chests)
+        {
+            if (chest.Look is null) continue;
+            chest.Look.Scene = byId.GetValueOrDefault(chest.Look.Template ?? string.Empty);
+        }
+    }
     public IMongoCollection<CatalogLevelReward> LevelRewards => _db.Database.GetCollection<CatalogLevelReward>("levelRewards");
     public IMongoCollection<CatalogAchievement> Achievements => _db.Database.GetCollection<CatalogAchievement>("achievements");
     public IMongoCollection<ProgressSettingsDocument> ProgressSettings => _db.Database.GetCollection<ProgressSettingsDocument>("gameSettings");

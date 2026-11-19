@@ -18,6 +18,11 @@ export const adminChestsApi = {
   deleteItem: (id, reason) => post(`/api/admin/items/${enc(id)}/delete`, { reason }),
 
   chests: () => get('/api/admin/chests'),
+  /** Opening scenes admins made (Kiểu hòm). */
+  styles: () => get('/api/admin/chest-styles'),
+  createStyle: (body) => post('/api/admin/chest-styles', body),
+  updateStyle: (id, body) => put(`/api/admin/chest-styles/${enc(id)}`, body),
+  deleteStyle: (id, reason) => post(`/api/admin/chest-styles/${enc(id)}/delete`, { reason }),
   /** A chest from scratch (/admin/chests/moi): the whole form, checked like a save, with a reason. */
   create: (draft) => post('/api/admin/chests', draft),
   checkNew: (draft) => post('/api/admin/chests/check', draft),

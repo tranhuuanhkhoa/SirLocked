@@ -100,8 +100,12 @@ public static class AdminChestsRules
 
     // ------------------------------------------------------------------ validation
 
-    /// <summary>Everything that stops <paramref name="draft"/> from replacing <paramref name="before"/>. Empty means it can be saved.</summary>
-    public static IReadOnlyList<CatalogRuleViolation> Validate(CatalogChest before, CatalogChest draft, IReadOnlyDictionary<string, CatalogItem> items)
+    /// <summary>
+    /// Everything that stops <paramref name="draft"/> from replacing <paramref name="before"/>. Empty means it can be saved.
+    /// <paramref name="styleIds"/> are the opening scenes admins made: a chest may use one of them instead of a built-in drawing.
+    /// </summary>
+    public static IReadOnlyList<CatalogRuleViolation> Validate(
+        CatalogChest before, CatalogChest draft, IReadOnlyDictionary<string, CatalogItem> items, IReadOnlyCollection<string>? styleIds = null)
     {
         var violations = new List<CatalogRuleViolation>();
 
@@ -112,8 +116,8 @@ public static class AdminChestsRules
         Text(violations, "Phụ đề", draft.Subtitle, MaxNameLength, required: false);
         Text(violations, "Phụ đề (tiếng Anh)", draft.SubtitleEn, MaxNameLength, required: false);
 
-        if (!IsKnownDrawing(draft.Look.Template))
-            violations.Add(new CatalogRuleViolation(LookInvalid, $"Không có kiểu hòm \"{draft.Look.Template}\". Chọn seal, bank, lacquer hoặc whitechapel."));
+        if (!IsKnownDrawing(draft.Look.Template) && styleIds?.Contains(draft.Look.Template) != true)
+            violations.Add(new CatalogRuleViolation(LookInvalid, $"Không có kiểu hòm \"{draft.Look.Template}\". Chọn seal, bank, lacquer, whitechapel hoặc một kiểu đã tạo ở tab Kiểu hòm."));
         foreach (var (label, value) in new[] { ("ánh sáng", draft.Look.Light), ("ánh sáng phụ", draft.Look.Hi), ("lõi sáng", draft.Look.Core) })
         {
             if (!IsColour(value)) violations.Add(new CatalogRuleViolation(LookInvalid, $"Màu {label} \"{value}\" không hợp lệ."));
@@ -137,6 +141,55 @@ public static class AdminChestsRules
         violations.AddRange(CatalogRules.ValidateChest(draft, items));
         return violations;
     }
+
+    public const string StyleInvalid = "CHEST_STYLE_INVALID";
+    public const int MaxStampLength = 30;
+
+    /// <summary>What an opening scene needs: two names, three pictures (room, chest, key), what drifts, three colours and a stamp.</summary>
+    public static IReadOnlyList<CatalogRuleViolation> ValidateStyle(CatalogChestStyle style)
+    {
+        var violations = new List<CatalogRuleViolation>();
+        Text(violations, "Tên kiểu", style.Name, MaxNameLength);
+        Text(violations, "Tên kiểu (tiếng Anh)", style.NameEn, MaxNameLength);
+        Text(violations, "Chữ trên con dấu", style.StampText, MaxStampLength);
+        Text(violations, "Chữ trên con dấu (tiếng Anh)", style.StampTextEn, MaxStampLength, required: false);
+        foreach (var (label, url) in new[] { ("Ảnh nền cảnh", style.BackdropUrl), ("Ảnh hòm", style.ChestImageUrl), ("Ảnh chìa", style.KeyImageUrl) })
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                violations.Add(new CatalogRuleViolation(StyleInvalid, $"{label} chưa có: hãy tải ảnh lên."));
+            else if (!IsPicture(url))
+                violations.Add(new CatalogRuleViolation(StyleInvalid, $"{label} phải là địa chỉ https do trang tải ảnh trả về."));
+        }
+        if (!string.IsNullOrEmpty(style.ParticleUrl) && !IsPicture(style.ParticleUrl))
+            violations.Add(new CatalogRuleViolation(StyleInvalid, "Ảnh hạt bay phải là địa chỉ https do trang tải ảnh trả về."));
+        if (!ChestStyleParticles.All.Contains(style.Particles))
+            violations.Add(new CatalogRuleViolation(StyleInvalid, $"Không có kiểu hạt bay \"{style.Particles}\"."));
+        foreach (var (label, value) in new[] { ("màu nhấn", style.Accent), ("màu nhấn phụ", style.Accent2), ("màu con dấu", style.StampColor) })
+        {
+            if (!IsColour(value)) violations.Add(new CatalogRuleViolation(StyleInvalid, $"Màu {label} \"{value}\" không hợp lệ."));
+        }
+        return violations;
+    }
+
+    /// <summary>The first free style id: style_001, style_002…</summary>
+    public static string NextStyleId(IEnumerable<string> taken)
+    {
+        var ids = taken.ToHashSet(StringComparer.Ordinal);
+        for (var number = 1; ; number++)
+        {
+            var id = $"style_{number.ToString("D3", CultureInfo.InvariantCulture)}";
+            if (!ids.Contains(id)) return id;
+        }
+    }
+
+    /// <summary>What an item type of a chest shows: its own picture, else the picture of its style, else none (the drawing).</summary>
+    public static string? ChestPictureOf(CatalogChest chest, CatalogChestStyle? style) =>
+        string.IsNullOrEmpty(chest.Look.ImageUrl) ? NullIfEmpty(style?.ChestImageUrl) : chest.Look.ImageUrl;
+
+    public static string? KeyPictureOf(CatalogChest chest, CatalogChestStyle? style) =>
+        string.IsNullOrEmpty(chest.Look.KeyImageUrl) ? NullIfEmpty(style?.KeyImageUrl) : chest.Look.KeyImageUrl;
+
+    private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
 
     /// <summary>What a form can get wrong about an item type. Rules that depend on chests are checked with <see cref="Validate"/>.</summary>
     public static IReadOnlyList<CatalogRuleViolation> ValidateItem(CatalogItem item)

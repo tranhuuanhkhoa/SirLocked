@@ -919,6 +919,127 @@ public sealed class MongoAdminChestsTests
         Assert.Equal(0, await env.Catalog.Chests.CountDocumentsAsync(c => c.Id == "chest_001"));
     }
 
+    // ------------------------------------------------------------------ opening scenes made by admins (Kiểu hòm)
+
+    private const string Upload = "https://res.cloudinary.com/demo/image/upload/sirlocked/admin/";
+
+    private static AdminChestStyleRequest MonsoonStyle() => new()
+    {
+        Name = "Bến cảng gió mùa", NameEn = "Monsoon Wharf",
+        BackdropUrl = Upload + "ben-cang.webp", Particles = ChestStyleParticles.Fall, ParticleUrl = Upload + "giot-mua.png",
+        Accent = "90,160,200", Accent2 = "220,240,255", StampText = "GIÓ MÙA", StampTextEn = "MONSOON", StampColor = "30,80,120",
+        ChestImageUrl = Upload + "hom-gio-mua.png", KeyImageUrl = Upload + "chia-gio-mua.png", Reason = "Sự kiện",
+    };
+
+    private static async Task<AdminChestDetailDto> UseStyleAsync(AdminEnv env, string chestId, string styleId)
+    {
+        var draft = await env.DraftOfAsync(chestId);
+        draft.Look!.Template = styleId;
+        draft.Reason = "Đổi kiểu hòm";
+        return await env.Admin.UpdateAsync(Yen, chestId, draft);
+    }
+
+    [Fact]
+    public async Task AStyleMadeByAnAdmin_DressesTheChestsThatUseIt_ForPlayersToo()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var player = await env.AddUserAsync("Thám tử");
+
+        var style = await env.Styles.CreateAsync(Yen, MonsoonStyle());
+        Assert.Equal(("style_001", 1), (style.Id, style.Version));
+        Assert.Empty(style.UsedBy);
+
+        var chest = await UseStyleAsync(env, Seal, style.Id);
+        Assert.Equal(style.Id, chest.Look.Template);
+        Assert.Equal(Upload + "ben-cang.webp", chest.Look.Scene!.BackdropUrl);
+
+        // Players get the scene with the chest, and the chest and its key show the style's pictures everywhere.
+        var listed = (await env.Chests.ListAsync(player.Id)).Chests.Single(c => c.Id == Seal);
+        Assert.Equal(("Bến cảng gió mùa", ChestStyleParticles.Fall, "GIÓ MÙA"), (listed.Look!.Scene!.Name, listed.Look.Scene.Particles, listed.Look.Scene.StampText));
+        Assert.Equal(Upload + "giot-mua.png", listed.Look.Scene.ParticleUrl);
+        Assert.Equal(Upload + "hom-gio-mua.png", env.Provider.Current.Find(Seal)!.Visual?.ImageUrl);
+        Assert.Equal(Upload + "chia-gio-mua.png", env.Provider.Current.Find(SealKey)!.Visual?.ImageUrl);
+        Assert.Equal(new[] { Seal }, (await env.Styles.ListAsync()).Styles.Single().UsedBy.Select(user => user.Id));
+    }
+
+    [Fact]
+    public async Task ChangingAStylesPictures_ReachesTheChestsThatUseIt_ButNotAChestsOwnPicture()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var style = await env.Styles.CreateAsync(Yen, MonsoonStyle());
+        await UseStyleAsync(env, Seal, style.Id);
+        var bank = await env.DraftOfAsync(Bank);
+        bank.Look!.Template = style.Id;
+        bank.Look.ImageUrl = Upload + "ket-rieng.png";
+        bank.Reason = "Ảnh riêng";
+        await env.Admin.UpdateAsync(Yen, Bank, bank);
+
+        var request = MonsoonStyle();
+        request.ChestImageUrl = Upload + "hom-moi.png";
+        request.ExpectedVersion = 1;
+        var updated = await env.Styles.UpdateAsync(Yen, style.Id, request);
+
+        Assert.Equal(2, updated.Version);
+        Assert.Equal(Upload + "hom-moi.png", env.Provider.Current.Find(Seal)!.Visual?.ImageUrl);
+        Assert.Equal(Upload + "ket-rieng.png", env.Provider.Current.Find(Bank)!.Visual?.ImageUrl);
+        // Saved over by someone else since version 1: refused.
+        Assert.Equal(409, (await Throws(() => env.Styles.UpdateAsync(Yen, style.Id, request))).StatusCode);
+    }
+
+    [Fact]
+    public async Task AStyleNeedsItsThreePicturesItsColoursAndAStamp()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var request = MonsoonStyle();
+        request.BackdropUrl = "";
+        request.KeyImageUrl = "http://example.com/chia.png";
+        request.Accent = "300,0,0";
+        request.StampText = "";
+        request.Particles = "rain";
+
+        var error = await Throws(() => env.Styles.CreateAsync(Yen, request));
+
+        Assert.Equal(400, error.StatusCode);
+        Assert.Contains(AdminChestsRules.StyleInvalid, ViolationCodes(error));
+        Assert.Contains(AdminChestsRules.TextInvalid, ViolationCodes(error));
+        Assert.Equal(0, await env.Catalog.ChestStyles.CountDocumentsAsync(FilterDefinition<CatalogChestStyle>.Empty));
+    }
+
+    [Fact]
+    public async Task AStyleInUseCannotBeDeleted_AnUnusedOneCan()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+        var style = await env.Styles.CreateAsync(Yen, MonsoonStyle());
+        await UseStyleAsync(env, Seal, style.Id);
+
+        Assert.Equal(409, (await Throws(() => env.Styles.DeleteAsync(Yen, style.Id, "Dọn"))).StatusCode);
+
+        var back = await env.DraftOfAsync(Seal);
+        back.Look!.Template = "seal";
+        back.Reason = "Về kiểu cũ";
+        await env.Admin.UpdateAsync(Yen, Seal, back);
+        await env.Styles.DeleteAsync(Yen, style.Id, "Dọn");
+
+        Assert.Empty((await env.Styles.ListAsync()).Styles);
+        Assert.Equal(1, await env.Catalog.Audit.CountDocumentsAsync(a => a.Action == "chestStyle.delete"));
+    }
+
+    [Fact]
+    public async Task AChestCannotUseAStyleThatDoesNotExist()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminEnv.CreateAsync();
+
+        var error = await Throws(() => UseStyleAsync(env, Seal, "style_999"));
+
+        Assert.Equal(400, error.StatusCode);
+        Assert.Contains(AdminChestsRules.LookInvalid, ViolationCodes(error));
+    }
+
     [Fact]
     public async Task ClonesNeverShareAnId()
     {
@@ -1487,6 +1608,7 @@ public sealed class MongoAdminChestsTests
             AdminStore = new AdminChestsStore(Db);
             Items = new AdminChestsItemService(Catalog, Store, AdminStore, Provider, Audit);
             Admin = new AdminChestsChestService(Catalog, Store, AdminStore, Provider, Audit, Random);
+            Styles = new AdminChestStylesService(Catalog, Store, Provider, Audit);
             Stats = new AdminChestsStatsService(Db, Store, Provider, Chests, Audit, Market);
         }
 
@@ -1501,6 +1623,7 @@ public sealed class MongoAdminChestsTests
         public AdminChestsStore AdminStore { get; }
         public AdminChestsItemService Items { get; }
         public AdminChestsChestService Admin { get; }
+        public AdminChestStylesService Styles { get; }
         public AdminChestsStatsService Stats { get; }
 
         public static async Task<AdminEnv> CreateAsync()

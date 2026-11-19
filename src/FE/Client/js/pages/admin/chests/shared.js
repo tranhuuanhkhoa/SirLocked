@@ -55,6 +55,7 @@ export function setRouteParam(name, value) {
 
 const SUB_TABS = [
   { id: 'chests', href: '/admin/chests', label: 'Hòm' },
+  { id: 'styles', href: '/admin/chests?tab=kieu-hom', label: 'Kiểu hòm' },
   { id: 'items', href: '/admin/items', label: 'Vật phẩm' },
   { id: 'log', href: '/admin/chests?tab=nhat-ky', label: 'Nhật ký mở hòm' },
   { id: 'grant', href: '/admin/chests?tab=cap', label: 'Cấp hòm & chìa' },

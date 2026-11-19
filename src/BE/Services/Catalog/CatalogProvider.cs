@@ -136,6 +136,7 @@ public sealed class CatalogProvider : ICatalogProvider
         var problems = new List<string>();
         var items = await ReadAsync(_store.Items, new BsonDocument(), problems, ct);
         var chests = await ReadAsync(_store.Chests, new BsonDocument(), problems, ct);
+        CatalogStore.AttachScenes(chests, await ReadAsync(_store.ChestStyles, new BsonDocument(), problems, ct));
         var rewards = await ReadAsync(_store.LevelRewards, new BsonDocument(), problems, ct);
         var achievements = await ReadAsync(_store.Achievements, new BsonDocument(), problems, ct);
         var progress = await ReadAsync(_store.ProgressSettings, new BsonDocument("_id", ProgressSettingsDocument.DocumentId), problems, ct);

@@ -44,6 +44,7 @@ public sealed class AdminChestsChestService
     public async Task<AdminChestListDto> ListAsync(CancellationToken ct = default)
     {
         var chests = await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct);
+        CatalogStore.AttachScenes(chests, (await StylesAsync(ct)).Values);
         var items = await ItemsAsync(ct);
         var since = _market.Now.AddDays(-7);
         var opens = await _market.ChestOpenings.Aggregate()
@@ -73,8 +74,9 @@ public sealed class AdminChestsChestService
         var before = await RequireAsync(id, ct);
         var after = Apply(before, draft);
         var items = await ItemsAsync(ct);
+        var styles = await StylesAsync(ct);
         return new AdminChestCheckDto(
-            ViolationsOf(before, after, items),
+            ViolationsOf(before, after, items, styles.Keys),
             CatalogRules.ExpectedValue(after, items),
             after.Prices.Chest + after.Prices.Key,
             after.DropWeights.Values.Sum(weight => (long)weight),
@@ -89,7 +91,7 @@ public sealed class AdminChestsChestService
         var blank = new CatalogChest();
         var after = NewChestOf(blank, draft, await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct));
         return new AdminChestCheckDto(
-            AdminChestsRules.Validate(blank, after, items),
+            AdminChestsRules.Validate(blank, after, items, (await StylesAsync(ct)).Keys),
             CatalogRules.ExpectedValue(after, items),
             after.Prices.Chest + after.Prices.Key,
             after.DropWeights.Values.Sum(weight => (long)weight),
@@ -122,7 +124,7 @@ public sealed class AdminChestsChestService
         var after = Apply(before, draft);
         var items = await ItemsAsync(ct);
 
-        var violations = ViolationsOf(before, after, items);
+        var violations = ViolationsOf(before, after, items, (await StylesAsync(ct)).Keys);
         if (violations.Count > 0) throw AdminChestsErrors.Refused(violations);
         if (AdminChestsRules.Diff(before, after).IsEmpty)
             throw AdminChestsErrors.Error(400, AdminChestsErrors.NoChange, "Chưa có gì thay đổi để lưu.");
@@ -146,7 +148,7 @@ public sealed class AdminChestsChestService
 
         var items = await ItemsAsync(ct);
         // Measured against the version itself: an item retired since then may come back listed, it just cannot drop.
-        var violations = AdminChestsRules.Validate(stored.Snapshot, after, items);
+        var violations = AdminChestsRules.Validate(stored.Snapshot, after, items, (await StylesAsync(ct)).Keys);
         if (violations.Count > 0) throw AdminChestsErrors.Refused(violations);
         if (AdminChestsRules.Diff(before, after).IsEmpty)
             throw AdminChestsErrors.Error(400, AdminChestsErrors.NoChange, "Hòm đang giống hệt phiên bản này.");
@@ -169,7 +171,7 @@ public sealed class AdminChestsChestService
         var blank = new CatalogChest();
         var chest = NewChestOf(blank, draft, chests);
 
-        var violations = AdminChestsRules.Validate(blank, chest, items);
+        var violations = AdminChestsRules.Validate(blank, chest, items, (await StylesAsync(ct)).Keys);
         if (violations.Count > 0) throw AdminChestsErrors.Refused(violations);
         AdminChestsErrors.RequireReason(draft.Reason, "tạo hòm");
 
@@ -202,7 +204,7 @@ public sealed class AdminChestsChestService
         chest.ChallengeWeight = 0;
         chest.SortOrder = chests.Max(other => other.SortOrder) + 1;
 
-        var violations = AdminChestsRules.Validate(source, chest, items);
+        var violations = AdminChestsRules.Validate(source, chest, items, (await StylesAsync(ct)).Keys);
         if (violations.Count > 0) throw AdminChestsErrors.Refused(violations);
 
         var (chestDef, keyDef) = await InsertNewAsync(admin, chest, items, chests, ct);
@@ -224,6 +226,7 @@ public sealed class AdminChestsChestService
         chest.CreatedAt = now;
         chest.UpdatedAt = now;
 
+        var style = (await StylesAsync(ct)).GetValueOrDefault(chest.Look.Template);
         var taken = items.Keys.Concat(chests.Select(other => other.Id)).Concat(chests.Select(other => other.KeyDefId)).ToList();
         var sortOrder = items.Values.Max(item => item.SortOrder) + 1;
         CatalogItem chestDef, keyDef;
@@ -232,10 +235,10 @@ public sealed class AdminChestsChestService
             (chest.Id, chest.KeyDefId) = AdminChestsRules.NextChestIds(taken);
             chestDef = NewDef(admin, chest.Id, MarketCategories.Chest, chest.Name, chest.NameEn,
                 $"Hòm vật chứng. Cần {chest.KeyName} để mở.", $"An evidence chest. Opens with a {chest.KeyNameEn}.",
-                chest.Prices.Chest, chest.IconKey, chest.Look.ImageUrl, sortOrder, now, retired: !chest.Active);
+                chest.Prices.Chest, chest.IconKey, AdminChestsRules.ChestPictureOf(chest, style), sortOrder, now, retired: !chest.Active);
             keyDef = NewDef(admin, chest.KeyDefId, MarketCategories.Key, Capitalized(chest.KeyName), Capitalized(chest.KeyNameEn),
                 $"Chỉ mở được {chest.Name}.", $"Opens only the {chest.NameEn}.",
-                chest.Prices.Key, chest.KeyIconKey, chest.Look.KeyImageUrl, sortOrder + 1, now, retired: !chest.Active);
+                chest.Prices.Key, chest.KeyIconKey, AdminChestsRules.KeyPictureOf(chest, style), sortOrder + 1, now, retired: !chest.Active);
             try
             {
                 await _catalog.Items.InsertManyAsync(new[] { chestDef, keyDef }, cancellationToken: ct);
@@ -327,12 +330,13 @@ public sealed class AdminChestsChestService
     /// The rules a save must pass. Only switching a chest off is exempt: it is what a chest that has gone wrong needs
     /// first, and it adds nothing a player could buy.
     /// </summary>
-    private static IReadOnlyList<CatalogRuleViolation> ViolationsOf(CatalogChest before, CatalogChest after, IReadOnlyDictionary<string, CatalogItem> items)
+    private static IReadOnlyList<CatalogRuleViolation> ViolationsOf(
+        CatalogChest before, CatalogChest after, IReadOnlyDictionary<string, CatalogItem> items, IReadOnlyCollection<string> styleIds)
     {
         var diff = AdminChestsRules.Diff(before, after);
         var onlySwitchedOff = before.Active && !after.Active && diff.Added.Count == 0 && diff.Removed.Count == 0
             && diff.Weights.Count == 0 && !diff.Reordered && diff.Fields.Count == 1;
-        return onlySwitchedOff ? Array.Empty<CatalogRuleViolation>() : AdminChestsRules.Validate(before, after, items);
+        return onlySwitchedOff ? Array.Empty<CatalogRuleViolation>() : AdminChestsRules.Validate(before, after, items, styleIds);
     }
 
     /// <summary>The state before the first save was never recorded (it came from the seed), and it must stay restorable.</summary>
@@ -399,8 +403,9 @@ public sealed class AdminChestsChestService
         // Defs were written with a capital and chests with a lower-case key name. Keep what each one used unless it was renamed.
         var keyName = after.KeyName == before.KeyName && items.TryGetValue(after.KeyDefId, out var key) ? key.Name : Capitalized(after.KeyName);
         var keyNameEn = after.KeyNameEn == before.KeyNameEn && items.TryGetValue(after.KeyDefId, out var keyEn) ? keyEn.NameEn : Capitalized(after.KeyNameEn);
-        await Sync(after.Id, after.Name, after.NameEn, after.Prices.Chest, after.IconKey, after.Look.ImageUrl);
-        await Sync(after.KeyDefId, keyName, keyNameEn, after.Prices.Key, after.KeyIconKey, after.Look.KeyImageUrl);
+        var style = (await StylesAsync(ct)).GetValueOrDefault(after.Look.Template);
+        await Sync(after.Id, after.Name, after.NameEn, after.Prices.Chest, after.IconKey, AdminChestsRules.ChestPictureOf(after, style));
+        await Sync(after.KeyDefId, keyName, keyNameEn, after.Prices.Key, after.KeyIconKey, AdminChestsRules.KeyPictureOf(after, style));
     }
 
     // ------------------------------------------------------------------ trying a chest out
@@ -436,6 +441,11 @@ public sealed class AdminChestsChestService
         (await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct)).FirstOrDefault(chest => chest.Id == id)
         ?? throw AdminChestsErrors.Error(404, AdminChestsErrors.ChestNotFound, $"Không có hòm {id}.");
 
+    /// <summary>The opening scenes admins made, by id.</summary>
+    private async Task<Dictionary<string, CatalogChestStyle>> StylesAsync(CancellationToken ct) =>
+        (await _catalog.ChestStyles.Find(FilterDefinition<CatalogChestStyle>.Empty).ToListAsync(ct))
+            .ToDictionary(style => style.Id, StringComparer.Ordinal);
+
     private async Task<Dictionary<string, CatalogItem>> ItemsAsync(CancellationToken ct) =>
         (await AdminChestsStore.ReadAllAsync(_catalog.Items, ct)).ToDictionary(item => item.Id, StringComparer.Ordinal);
 
@@ -470,6 +480,9 @@ public sealed class AdminChestsChestService
         // The inventory and the market draw a chest and its key from these, so they follow the drawing.
         if (after.Look.Template != before.Look.Template && AdminChestsRules.IsKnownDrawing(after.Look.Template))
             (after.IconKey, after.KeyIconKey) = AdminChestsRules.IconsOf(after.Look.Template);
+        else if (string.IsNullOrEmpty(after.IconKey))
+            // A new chest on an admin's own style: the sealed case's sprites stand in wherever no picture is drawn.
+            (after.IconKey, after.KeyIconKey) = AdminChestsRules.IconsOf("seal");
         return after;
     }
 
@@ -481,6 +494,7 @@ public sealed class AdminChestsChestService
     /// <summary>The detail of a chest that is already stored. Its share of the weekly drops is read against every chest as stored.</summary>
     private async Task<AdminChestDetailDto> DetailAsync(CatalogChest chest, CancellationToken ct)
     {
+        CatalogStore.AttachScenes(new[] { chest }, (await StylesAsync(ct)).Values);
         var items = await ItemsAsync(ct);
         var chests = (await AdminChestsStore.ReadChestsAsync(_catalog.Chests, ct)).Where(other => other.Id != chest.Id).Append(chest);
         return ToDetail(chest, items, WeeklyDropRules.Percents(chests)[chest.Id]);
