@@ -91,9 +91,10 @@ test('regeneration approves only one clip and unknown submissions resume their e
     }
     return route.fulfill({ json: { success: true, data: { version: 8, generationEnabled: true, status: 'DRAFT', clips, estimate: { totalUsd: .3 } } } });
   });
-  await page.goto('/test-editor');
+  // Mounted on an admin address with the admin session, as on /admin/ai.
+  await page.goto('/admin/test-editor');
   await page.evaluate(async () => {
-    localStorage.setItem('sirlocked.user', JSON.stringify({ role: 'ADMIN' }));
+    localStorage.setItem('sirlocked.admin.user', JSON.stringify({ role: 'ADMIN' }));
     const { mountPresentationEditor } = await import('/Client/js/pages/adminPresentation.js');
     mountPresentationEditor(document.querySelector('#editor'), 'draft');
   });

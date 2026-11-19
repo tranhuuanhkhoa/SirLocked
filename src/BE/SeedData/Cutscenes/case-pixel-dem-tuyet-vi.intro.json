@@ -1,0 +1,244 @@
+{
+ "format": "motion-comic-v1",
+ "caseId": "case-pixel-dem-tuyet-vi",
+ "language": "vi",
+ "title": {
+  "eyebrow": "Hồ sơ mẫu · Khó",
+  "title": "Đêm tuyết ở khách sạn Ga",
+  "subtitle": "Hàng Đường, đêm thứ Sáu. Ai cũng tin ông chủ trượt chân. Đồng hồ thì không nói thế."
+ },
+ "mood": "candle-dark",
+ "pages": [
+  {
+   "layout": "wide-top-two-bottom",
+   "panels": [
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-dt-quang-truong-ga",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "night",
+     "enter": "top",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Hàng Đường, đêm thứ Sáu. Tuyết rơi trắng quảng trường ga.",
+       "style": ""
+      },
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Chuyến tàu đêm trễ hơn một tiếng.",
+       "style": ""
+      }
+     ],
+     "audio": [
+      "ticking"
+     ]
+    },
+    {
+     "art": {
+      "kind": "character",
+      "id": "char-dt-ferrand",
+      "focus": [
+       0.1,
+       0.05,
+       0.8,
+       0.85
+      ]
+     },
+     "weather": "streetlight",
+     "enter": "left",
+     "beats": [
+      {
+       "type": "speech",
+       "speakerId": "char-dt-ferrand",
+       "text": "Ông Đạt đánh điện mời tôi tới gấp. Ông ấy đâu rồi?",
+       "style": ""
+      }
+     ],
+     "audio": []
+    },
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-dt-ham-ruou",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "none",
+     "enter": "right",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Dưới hầm rượu khách sạn Ga, ông chủ nằm bất động.",
+       "style": ""
+      },
+      {
+       "type": "sfx",
+       "speakerId": "",
+       "text": "XOẢNG!",
+       "style": "glass"
+      }
+     ],
+     "audio": [
+      "shatter"
+     ]
+    }
+   ]
+  },
+  {
+   "layout": "three-strips",
+   "panels": [
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-dt-sanh",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "none",
+     "enter": "left",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Trong sảnh, đồng hồ quả lắc vẫn gõ từng tiếng đều đặn.",
+       "style": ""
+      },
+      {
+       "type": "sfx",
+       "speakerId": "",
+       "text": "BOONG!",
+       "style": "soft"
+      }
+     ],
+     "audio": [
+      "ticking"
+     ]
+    },
+    {
+     "art": {
+      "kind": "character",
+      "id": "char-dt-ba-nhan",
+      "focus": [
+       0.1,
+       0.05,
+       0.8,
+       0.85
+      ]
+     },
+     "weather": "none",
+     "enter": "right",
+     "beats": [
+      {
+       "type": "speech",
+       "speakerId": "char-dt-ba-nhan",
+       "text": "Ai cũng bảo ông chủ say rượu rồi trượt chân…",
+       "style": ""
+      }
+     ],
+     "audio": []
+    },
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-dt-thu-phong",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "none",
+     "enter": "bottom",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Trên lầu, sổ sách của ông Đạt vẫn mở trên bàn làm việc.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    }
+   ]
+  },
+  {
+   "layout": "splash-inset",
+   "panels": [
+    {
+     "art": {
+      "kind": "cover",
+      "id": "cover",
+      "focus": [
+       0,
+       0,
+       1,
+       1
+      ]
+     },
+     "weather": "night",
+     "enter": "none",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Một khách sạn, năm con người và một đêm tuyết dài.",
+       "style": ""
+      },
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Hai thám tử. Đừng tin chiếc đồng hồ đầu tiên bạn thấy.",
+       "style": ""
+      }
+     ],
+     "audio": [
+      "thunder"
+     ]
+    },
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-dt-pho-cho",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "streetlight",
+     "enter": "right",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Bên kia phố chợ, quán Ngựa Sắt và rạp Hồng Liên vẫn sáng đèn.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    }
+   ]
+  }
+ ]
+}

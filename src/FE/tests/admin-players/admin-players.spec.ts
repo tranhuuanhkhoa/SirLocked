@@ -777,7 +777,8 @@ test('người chơi thường không vào được các trang này', async ({ p
   await fakeApi(page, {}, 'PLAYER');
   for (const hash of ['/admin/players', `/admin/players/${USER_ID}`, '/admin/economy', '/admin/audit']) {
     await page.goto(hash);
-    await expect(page).not.toHaveURL(/\/admin/);
+    // The admin pages have their own session: a player's is not enough, they get the admin sign-in.
+    await expect(page).toHaveURL(/\/admin\/login$/);
   }
 });
 

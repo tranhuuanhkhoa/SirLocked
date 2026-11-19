@@ -307,10 +307,17 @@ test('a save refused as stale stops autosave and offers to load the newer versio
 
 test('"Chơi thử cảnh này" opens the playtest room starting in the open scene', async ({ page }) => {
   const fake = await openEditor(page);
+  const roomReads: string[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/rooms/room-playtest-1') roomReads.push(request.headers().authorization ?? '');
+  });
   await page.locator('.cse-scene', { hasText: 'Ngõ' }).click();
   await page.locator('#cse-playtest').click();
   await expect(page).toHaveURL(/\/lobby\/room-playtest-1$/);
   expect(fake.playtests).toEqual([{ sceneId: 'scene-tt-ngo' }]);
+  // The lobby is a game page, but this tab plays the room with the admin session it was opened from.
+  await expect.poll(() => roomReads.length).toBeGreaterThan(0);
+  expect(new Set(roomReads)).toEqual(new Set(['Bearer admin-test-token']));
 });
 
 test('clicking a validation error opens the scene and selects the object it is about', async ({ page }) => {

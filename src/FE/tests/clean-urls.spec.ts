@@ -134,7 +134,8 @@ test.describe('old links with #', () => {
     ['/?fbclid=abc#/market', '/market'],
   ]) {
     test(`${old} moves to ${clean}`, async ({ page }) => {
-      await signInAs(page, 'ADMIN');
+      // The admin pages and the game pages are signed in separately.
+      await signInAs(page, clean.startsWith('/admin') ? 'ADMIN' : 'PLAYER');
       await page.goto(old);
       await expectAddress(page, clean);
     });

@@ -1,0 +1,236 @@
+{
+ "format": "motion-comic-v1",
+ "caseId": "case-pixel-chen-tra-vi",
+ "language": "vi",
+ "title": {
+  "eyebrow": "Hồ sơ mẫu · Trung bình",
+  "title": "Chén trà trước giờ diễn",
+  "subtitle": "Tokyo, năm Taishō thứ 12. Một chén trà quen, một đêm diễn không thể hoãn."
+ },
+ "mood": "warm-dusk",
+ "pages": [
+  {
+   "layout": "wide-top-two-bottom",
+   "panels": [
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-ct-pho-den-long",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "rain",
+     "enter": "top",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Tokyo, năm Taishō thứ 12. Mưa chiều trên phố đèn lồng bên kênh.",
+       "style": ""
+      },
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Rạp Kagetsu-za sắp kéo màn đêm diễn lớn nhất mùa.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    },
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-ct-hau-truong",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "none",
+     "enter": "left",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Sáu giờ bốn mươi. Trong hậu trường, danh kép Ōtori ngã gục.",
+       "style": ""
+      },
+      {
+       "type": "sfx",
+       "speakerId": "",
+       "text": "CHOANG!",
+       "style": "glass"
+      }
+     ],
+     "audio": []
+    },
+    {
+     "art": {
+      "kind": "character",
+      "id": "char-ct-whitmore",
+      "focus": [
+       0.1,
+       0.05,
+       0.8,
+       0.85
+      ]
+     },
+     "weather": "none",
+     "enter": "right",
+     "beats": [
+      {
+       "type": "speech",
+       "speakerId": "char-ct-whitmore",
+       "text": "Tôi vượt nửa vòng trái đất để xem đêm nay. Ai sẽ đứng trên sân khấu?",
+       "style": ""
+      }
+     ],
+     "audio": []
+    }
+   ]
+  },
+  {
+   "layout": "three-strips",
+   "panels": [
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-ct-nha-tra",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "none",
+     "enter": "left",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Ở nhà trà Kikuya, ấm trà của ông vẫn được pha như mọi tối.",
+       "style": ""
+      },
+      {
+       "type": "speech",
+       "speakerId": "char-ct-sawa",
+       "text": "Ba mươi năm nay, chưa tối nào tôi pha sai một ấm.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    },
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-ct-tiem-thuoc",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "none",
+     "enter": "right",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Tiệm thuốc Mori, nơi từng gói thuốc độc bảng A đều phải ghi sổ.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    },
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-ct-nha-tro",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "rain",
+     "enter": "bottom",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Nhà trọ Matsu, nơi người của rạp thuê phòng theo tháng.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    }
+   ]
+  },
+  {
+   "layout": "splash-inset",
+   "panels": [
+    {
+     "art": {
+      "kind": "cover",
+      "id": "cover",
+      "focus": [
+       0,
+       0,
+       1,
+       1
+      ]
+     },
+     "weather": "rain",
+     "enter": "none",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Màn vẫn kéo lên. Người đóng thay bước ra dưới ánh đèn.",
+       "style": ""
+      },
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Hai thám tử. Hãy lần theo ấm trà, từ lúc pha tới lúc rót.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    },
+    {
+     "art": {
+      "kind": "character",
+      "id": "char-ct-ueno",
+      "focus": [
+       0.1,
+       0.05,
+       0.8,
+       0.85
+      ]
+     },
+     "weather": "none",
+     "enter": "right",
+     "beats": [
+      {
+       "type": "speech",
+       "speakerId": "char-ct-ueno",
+       "text": "Thầy ngã bệnh rồi… đêm nay tôi phải diễn cho trọn.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    }
+   ]
+  }
+ ]
+}

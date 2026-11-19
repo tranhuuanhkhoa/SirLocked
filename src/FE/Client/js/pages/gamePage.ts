@@ -4178,7 +4178,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       app.querySelector<HTMLElement>('#game-leave-btn')?.focus();
       return;
     }
-    navigate(session.isAdmin() ? '/admin' : '/menu');
+    navigate(session.home());
   }
 
   function renderTray(model: ReturnType<typeof buildGameUiModel>) {

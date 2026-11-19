@@ -1,4 +1,4 @@
-import { session } from '../services/session.js';
+import { session, sessionScope } from '../services/session.js';
 import { authSnapshot, canRetryForAccount, expireSessionIfCurrent, isPublicAuthRequest, refreshAfterUnauthorized } from '../services/authRefresh.js';
 
 /**
@@ -22,9 +22,14 @@ function deviceId() {
  * Shared API client. All backend responses use the { success, message, data, errors }
  * envelope; this unwraps data and throws { status, message, errors } on failure.
  */
-export async function apiFetch(method, path, body, _retry = true, extraHeaders = {}) {
+export function apiFetch(method, path, body, _retry = true, extraHeaders = {}) {
+  // The side (game or admin) is fixed when the request starts, so a retry after a refresh stays on it.
+  return sendJson(method, path, body, _retry, extraHeaders, sessionScope());
+}
+
+async function sendJson(method, path, body, _retry, extraHeaders, scope) {
   const headers = { 'Content-Type': 'application/json', ...extraHeaders };
-  const requestSession = authSnapshot();
+  const requestSession = authSnapshot(scope);
   const token = requestSession.token;
   if (token) headers.Authorization = `Bearer ${token}`;
   const device = token ? deviceId() : '';
@@ -53,7 +58,7 @@ export async function apiFetch(method, path, body, _retry = true, extraHeaders =
       if (_retry) {
         const refreshed = await refreshAfterUnauthorized(requestSession);
         if (refreshed && canRetryForAccount(requestSession)) {
-          return apiFetch(method, path, body, false, extraHeaders);
+          return sendJson(method, path, body, false, extraHeaders, scope);
         }
       } else {
         expireSessionIfCurrent(requestSession);
@@ -69,9 +74,13 @@ export async function apiFetch(method, path, body, _retry = true, extraHeaders =
   return payload?.data;
 }
 
-export async function apiFetchForm(path, formData, _retry = true) {
+export function apiFetchForm(path, formData, _retry = true) {
+  return sendForm(path, formData, _retry, sessionScope());
+}
+
+async function sendForm(path, formData, _retry, scope) {
   const headers = {};
-  const requestSession = authSnapshot();
+  const requestSession = authSnapshot(scope);
   const token = requestSession.token;
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -92,7 +101,7 @@ export async function apiFetchForm(path, formData, _retry = true) {
     if (response.status === 401 && token) {
       if (_retry) {
         const refreshed = await refreshAfterUnauthorized(requestSession);
-        if (refreshed && canRetryForAccount(requestSession)) return apiFetchForm(path, formData, false);
+        if (refreshed && canRetryForAccount(requestSession)) return sendForm(path, formData, false, scope);
       } else {
         expireSessionIfCurrent(requestSession);
       }

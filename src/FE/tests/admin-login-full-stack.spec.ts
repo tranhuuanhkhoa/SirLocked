@@ -68,7 +68,8 @@ test('players and admins each use their own sign-in page', async ({ browser }) =
 
   await test.step('the same player is refused on the admin page, with the right password', async () => {
     await page.goto('/admin/login');
-    await expect(page.locator('.adm-login-note')).toContainText('Thám tử TEST');
+    // The admin side is a session of its own: nothing here replaces the player's, so nothing warns about it.
+    await expect(page.locator('.adm-login-note')).toHaveCount(0);
     await fill(page, '#form-admin-login', playerEmail, PLAYER_PASSWORD);
     await expect(page.getByRole('alert')).toContainText('không có quyền admin');
     await picture(page, '02-nguoi-choi-bi-tu-choi');
@@ -92,11 +93,15 @@ test('players and admins each use their own sign-in page', async ({ browser }) =
     }, auth);
   });
 
-  await test.step('the admin signs in over that session and reaches the dashboard', async () => {
+  let gameToken = '';
+  await test.step('the admin signs in beside that session and reaches the dashboard', async () => {
+    gameToken = await stored(page, 'sirlocked.token') ?? '';
     await fill(page, '#form-admin-login', adminEmail, adminPassword);
     await expectAddress(page, '/admin');
     await expect(page.locator('.admin-nav-tab.is-active')).toHaveText('Tổng quan');
-    expect(JSON.parse(await stored(page, 'sirlocked.user') ?? '{}').role).toBe('ADMIN');
+    expect(JSON.parse(await stored(page, 'sirlocked.admin.user') ?? '{}').role).toBe('ADMIN');
+    expect(await stored(page, 'sirlocked.token')).toBe(gameToken);
+    expect(JSON.parse(await stored(page, 'sirlocked.user') ?? '{}').role).toBe('PLAYER');
     await picture(page, '03-admin-vao-tong-quan');
   });
 
@@ -106,18 +111,24 @@ test('players and admins each use their own sign-in page', async ({ browser }) =
     await expect(page.getByText(playerEmail)).toBeVisible();
   });
 
-  await test.step('signing out returns to the admin page', async () => {
+  await test.step('signing out returns to the admin page and leaves the player signed in on the game', async () => {
     await page.locator('#nav-logout').click();
     await expectAddress(page, '/admin/login');
-    expect(await stored(page, 'sirlocked.token')).toBeNull();
+    expect(await stored(page, 'sirlocked.admin.token')).toBeNull();
+    expect(await stored(page, 'sirlocked.token')).toBe(gameToken);
+    await page.goto('/menu');
+    await expectAddress(page, '/menu');
+    const me = await api.get('/api/auth/me', { headers: { Authorization: `Bearer ${gameToken}` } });
+    expect(me.ok(), await me.text()).toBe(true);
   });
 
-  await test.step('an admin on the player page lands on the menu and can still open the admin pages', async () => {
-    await page.goto('/login');
+  await test.step('an admin account on the player page lands on the menu, and the admin pages still ask for the admin sign-in', async () => {
+    await page.locator('#title-menu-logout').click();
+    await expectAddress(page, '/login');
     await fill(page, '#form-login', adminEmail, adminPassword);
     await expectAddress(page, '/menu');
     await page.goto('/admin');
-    await expect(page.locator('.admin-nav-tab.is-active')).toHaveText('Tổng quan');
+    await expectAddress(page, '/admin/login');
   });
 
   await context.close();

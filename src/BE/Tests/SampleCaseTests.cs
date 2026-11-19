@@ -5,6 +5,7 @@ using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.DTOs.Submission;
 using SirLocked.Api.Models;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Cutscene;
 using SirLocked.Api.Services.PuzzleKinds;
 using Xunit;
 
@@ -165,6 +166,39 @@ public sealed class SampleCaseTests
         var wrong = Accuse(link => link.EvidenceId);
         wrong.CulpritId = gameCase.Characters.First(character => character.CharacterId != gameCase.FinalLogic.CulpritId).CharacterId;
         Assert.False(GameplayV2Rules.IsAccusationCorrect(gameCase, wrong), level);
+    }
+
+    [Theory]
+    [MemberData(nameof(Levels))]
+    public void SampleCase_ShipsAValidIntroCutscene(string file, string level)
+    {
+        var gameCase = Load(file);
+        var path = CutsceneService.SeedFilePath(gameCase.CaseId);
+        Assert.True(File.Exists(path), $"{level}: no SeedData/Cutscenes/{gameCase.CaseId}.intro.json");
+        var script = JsonSerializer.Deserialize<MotionComicScript>(File.ReadAllText(path));
+        var issues = CutsceneScriptValidator.Validate(script, gameCase);
+        Assert.True(issues.Count == 0, $"{level}: " + string.Join("; ", issues.Select(issue => $"{issue.Path}: {issue.Message}")));
+        Assert.InRange(MotionComicRules.EstimateSeconds(script!), MotionComicRules.MinSeconds, MotionComicRules.MaxSeconds);
+        // The opening uses the case's own pictures: its cover, its places and its people.
+        var art = script!.Pages.SelectMany(page => page.Panels).Select(panel => panel.Art).ToList();
+        Assert.Contains(art, picture => picture.Kind == "cover");
+        Assert.Contains(art, picture => picture.Kind == "scene");
+        Assert.Contains(art, picture => picture.Kind == "character");
+    }
+
+    /// <summary>Every case the game ships (the pixel demos and the tutorial) opens with an approved intro cutscene.</summary>
+    [Fact]
+    public void EveryBundledPixelCase_ShipsAnIntroCutscene()
+    {
+        var files = ((string[])typeof(CaseService).GetField("PixelDemoFiles", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!)
+            .Append(TutorialRules.CaseFile);
+        foreach (var file in files)
+        {
+            var gameCase = Load(file);
+            var path = CutsceneService.SeedFilePath(gameCase.CaseId);
+            Assert.True(File.Exists(path), $"{gameCase.CaseId} has no intro cutscene seed.");
+            Assert.Empty(CutsceneScriptValidator.Validate(JsonSerializer.Deserialize<MotionComicScript>(File.ReadAllText(path)), gameCase));
+        }
     }
 
     [Fact]
