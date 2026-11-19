@@ -6,21 +6,23 @@ import { assetProcess, assetVariant, PROCESS_OPS } from './tools/assets.js';
 import { bridgeAsk, bridgeCheck, bridgeList, bridgeRelease, bridgeSubmit, bridgeTake } from './tools/bridge.js';
 import type { ToolContext } from './tools/context.js';
 import {
-  assetDownload, assetPlan, assetsComplete, assetsNeeded, assetUpload, draftApproveGate, draftGet, draftImport, draftReport, playerView,
+  assetDownload, assetPlan, assetsComplete, assetsNeeded, assetUpload, foregroundUpload, draftApproveGate, draftGet, draftImport, draftReport, playerView,
 } from './tools/draft.js';
 import { librarySearch, librarySync } from './tools/library.js';
 import { pixellabCharacterZip } from './tools/pixellab.js';
 import { playtest } from './tools/playtest.js';
 import { blipPreview, sfxSearch, TIMES_OF_DAY, weatherPreview, WEATHER_TYPES } from './tools/atmosphere.js';
 import { musicSearch } from './tools/music.js';
+import { pixelLabImageDownload, pixelLabImageUpload, readWorkspace, writeWorkspace } from './tools/workspace.js';
 import { VARIANT_TYPES } from './image/variant.js';
 
 export const TOOL_NAMES = [
   'bridge_list', 'bridge_take', 'bridge_check', 'bridge_submit', 'bridge_release',
   'draft_get', 'draft_ask', 'draft_approve_gate', 'draft_import', 'draft_report', 'player_view',
-  'assets_needed', 'asset_plan', 'asset_upload', 'asset_download', 'pixellab_character_zip', 'assets_complete',
+  'assets_needed', 'asset_plan', 'asset_upload', 'asset_download', 'foreground_upload', 'pixellab_character_zip', 'assets_complete',
   'library_search', 'library_sync', 'asset_process', 'asset_variant', 'playtest',
   'weather_preview', 'blip_preview', 'sfx_search', 'music_search',
+  'studio_read', 'studio_write', 'pixellab_image_download', 'pixellab_image_upload',
 ] as const;
 
 type Handler = (args: any) => Promise<unknown> | unknown;
@@ -56,6 +58,22 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
   const server = new McpServer({ name: 'sirlocked-studio', version });
   const tool = (name: (typeof TOOL_NAMES)[number], description: string, inputSchema: Record<string, z.ZodTypeAny>, handler: Handler) =>
     server.registerTool(name, { description, inputSchema }, wrap(handler));
+
+  server.registerTool('studio_read', {
+    description: 'Đọc tài liệu cho phép hoặc file làm việc; ảnh PNG/WebP/JPEG trả trực tiếp để xem. File chữ dài trả nextOffset.',
+    inputSchema: { file: z.string().min(1), offset: z.number().int().min(0).optional() },
+  }, async (args) => {
+    try { return await readWorkspace(ctx, args); }
+    catch (error) { return toolError(error); }
+  });
+  tool('studio_write', 'Ghi nội dung UTF-8 của answer.json hoặc report.md trong tmp/. Chia file lớn bằng append, các đoạn được nối nguyên văn.',
+    { file: z.string().min(1), text: z.string().max(128_000), append: z.boolean().optional() }, (args) => writeWorkspace(ctx, args));
+  tool('pixellab_image_download', 'Lưu ảnh của job PixelLab thành PNG trong tmp/pixellab/<draftId>/, miễn phí.',
+    { draftId: id, jobId: z.string().uuid(), index: z.number().int().min(0).max(99).optional() }, (args) => pixelLabImageDownload(ctx, args));
+  tool('pixellab_image_upload', 'Đưa ảnh trong tmp/ lên URL được PixelLab get_upload_url cấp, trả ref upload:<id>, miễn phí.',
+    { file: z.string().min(1), url: z.string().url() }, (args) => pixelLabImageUpload(ctx, args));
+  tool('foreground_upload', 'Đưa lớp che có alpha trong tmp/ lên kho ảnh của vụ, trả URL để điền vào foreground[].url.',
+    { draftId: id, layerId: id, file: z.string().min(1) }, (args) => foregroundUpload(ctx, args));
 
   // ---------------------------------------------------------------- bridge
   tool('bridge_list', 'Danh sách yêu cầu của server đang chờ Claude (mặc định PENDING), gồm cả đơn của VIP.',
