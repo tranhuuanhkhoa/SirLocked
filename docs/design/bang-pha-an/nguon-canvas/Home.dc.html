@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sir Locked — Trang chủ</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Source+Code+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#120d09}
+.s-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+a{color:#07111f}a:hover{color:#9e3f2a}
+.s-brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:#fbf6ed;text-decoration:none}
+.s-brand:hover{color:#fbf6ed}
+.s-nav{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.s-nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 14px;color:#b3a794;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.18em;text-decoration:none;transition:color .15s}
+.s-nav a:hover{color:#efd486}
+.s-nav a[aria-current="page"]{color:#efd486}
+.s-nav a[aria-current="page"]::after{content:"";position:absolute;left:14px;right:14px;bottom:6px;height:2px;background:#bf3b2c;box-shadow:0 2px 2px rgba(0,0,0,.6)}
+.s-nav a[aria-current="page"]::before{content:"";position:absolute;right:8px;bottom:3px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291,#c0392b 45%,#6e1a12);box-shadow:0 2px 3px rgba(0,0,0,.6)}
+.s-nav a:focus-visible,.s-brand:focus-visible,.s-topbtn:focus-visible{outline:2px solid #efd486;outline-offset:-3px}
+.s-topbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:0 12px;box-sizing:border-box;border:1px solid rgba(239,212,134,.28);border-radius:2px;background:rgba(255,255,255,.02);color:#eee4d2;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:border-color .15s,color .15s}
+.s-topbtn:hover{border-color:#efd486;color:#efd486}
+.s-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 20px;box-sizing:border-box;border:0;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;letter-spacing:.18em;text-decoration:none;cursor:pointer;transition:background-color .12s,color .12s,transform .12s,box-shadow .12s}
+.s-btn:active{transform:translateY(2px)}
+.s-btn:focus-visible{outline:2px solid #efd486;outline-offset:3px}
+.s-btn-red{background:#9e3f2a;color:#fbf6ed;box-shadow:0 3px 0 #6b2a1c,0 10px 20px rgba(158,63,42,.3)}
+.s-btn-red:hover{background:#b2472f;color:#fbf6ed}
+.s-link-gold{display:inline-flex;align-items:center;gap:8px;min-height:44px;color:#efd486;font-family:'Crimson Text',Georgia,serif;font-size:17px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(239,212,134,.4);text-underline-offset:4px}
+.s-link-gold:hover{color:#fbf6ed;text-decoration-color:#fbf6ed}
+.s-link-gold:focus-visible{outline:2px solid #efd486;outline-offset:2px}
+.h-cardlink{display:block;height:100%;text-decoration:none;color:#07111f;border-radius:2px}
+.h-cardlink:hover{color:#07111f}
+.h-cardlink:focus-visible{outline:3px solid #efd486;outline-offset:6px}
+.h-paper{position:relative;box-sizing:border-box;height:100%;box-shadow:0 1px 0 rgba(0,0,0,.2),0 22px 44px rgba(0,0,0,.55);transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.h-cardlink:hover .h-paper{transform:translateY(-5px);box-shadow:0 1px 0 rgba(0,0,0,.2),0 32px 56px rgba(0,0,0,.6)}
+.h-go{display:inline-flex;align-items:center;gap:10px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.18em;color:#9e3f2a}
+.h-cardlink:hover .h-go{color:#07111f}
+.h-pin{position:absolute;z-index:3;width:18px;height:18px;border-radius:50%;box-shadow:0 4px 5px rgba(0,0,0,.55)}
+.h-pin.red{background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%)}
+.h-pin.gold{background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%)}
+.h-grid{position:relative;display:grid;grid-template-columns:380px minmax(0,1fr) 380px;grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:40px 64px;height:775px}
+.h-room{grid-column:1;grid-row:1}
+.h-work{grid-column:1;grid-row:2}
+.h-center{grid-column:2;grid-row:1 / span 2;display:flex;flex-direction:column;gap:24px;min-width:0}
+.h-market{grid-column:3;grid-row:1}
+.h-week{grid-column:3;grid-row:2}
+@keyframes sLens{0%{clip-path:circle(0px at 50% 46%)}16%{clip-path:circle(66px at 50% 46%)}34%{clip-path:circle(66px at 50% 46%)}100%{clip-path:circle(150% at 50% 46%)}}
+@keyframes sZoom{0%,34%{transform:scale(1.14)}100%{transform:none}}
+@keyframes sRim{0%{width:0;height:0;opacity:0}16%{width:132px;height:132px;opacity:1}34%{width:132px;height:132px;opacity:1}100%{width:3200px;height:3200px;opacity:0}}
+@keyframes sFlicker{0%,100%{opacity:1}8%{opacity:.82}10%{opacity:.97}44%{opacity:.9}47%{opacity:1}71%{opacity:.93}}
+.s-enter{animation:sLens 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-enter-zoom{transform-origin:50% 46%;animation:sZoom 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim{position:absolute;left:50%;top:46%;z-index:6;width:0;height:0;opacity:0;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);border:8px solid #c7a24b;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.14),rgba(255,255,255,0) 42%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 14px 30px rgba(0,0,0,.6);pointer-events:none;animation:sRim 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim::after{content:"";position:absolute;left:85%;top:85%;width:18px;height:90px;margin-left:-9px;border-radius:6px;background:linear-gradient(90deg,#2a1b10,#5a3b22 45%,#2a1b10);box-shadow:0 0 0 2px #5e4a1c;transform-origin:50% 0;transform:rotate(-45deg)}
+.s-lamp{animation:sFlicker 7s linear infinite}
+@media (max-width:1180px){
+  .h-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;height:auto;gap:40px}
+  .h-center{grid-column:1 / -1;grid-row:auto;order:-1}
+  .h-room,.h-work,.h-market,.h-week{grid-column:auto;grid-row:auto;min-height:300px}
+  .h-threads,.h-edgepin{display:none !important}
+}
+@media (max-width:720px){
+  .h-grid{grid-template-columns:minmax(0,1fr)}
+  .h-who{flex-direction:column;align-items:flex-start !important}
+  .s-nav{order:3;width:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  .s-enter,.s-enter-zoom,.s-rim,.s-lamp{animation:none !important}
+  .h-paper{transition:none}
+}
+</style>
+</helmet>
+<main style="position: relative; isolation: isolate; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: #120d09; color: #eee4d2; font-family: 'Crimson Text', Georgia, serif">
+
+  <svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0; z-index: -1">
+    <defs>
+      <filter id="k-light" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .42  0 0 0 0 .31  0 0 0 0 .2  0 0 0 4 -2.35"></feColorMatrix></filter>
+      <filter id="k-dark" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="21"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .05  0 0 0 0 .035  0 0 0 0 .02  0 0 0 -4 1.75"></feColorMatrix></filter>
+      <filter id="k-blotch" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .01" numOctaves="3" seed="3"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 -.6"></feColorMatrix></filter>
+      <radialGradient id="k-lamp" cx=".5" cy=".42" r=".62"><stop offset="0" style="stop-color: #ffd98a; stop-opacity: .2"></stop><stop offset=".5" style="stop-color: #efd486; stop-opacity: .05"></stop><stop offset="1" style="stop-color: #efd486; stop-opacity: 0"></stop></radialGradient>
+      <radialGradient id="k-vig" cx=".5" cy=".5" r=".75"><stop offset=".45" style="stop-color: #050a12; stop-opacity: 0"></stop><stop offset="1" style="stop-color: #050a12; stop-opacity: .85"></stop></radialGradient>
+    </defs>
+    <rect width="100%" height="100%" style="fill: #2a1f17"></rect>
+    <rect width="100%" height="100%" filter="url(#k-blotch)" style="opacity: .5"></rect>
+    <rect width="100%" height="100%" filter="url(#k-light)"></rect>
+    <rect width="100%" height="100%" filter="url(#k-dark)"></rect>
+    <rect class="s-lamp" width="100%" height="100%" fill="url(#k-lamp)"></rect>
+    <rect width="100%" height="100%" fill="url(#k-vig)"></rect>
+  </svg>
+
+  <header style="position: relative; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; box-sizing: border-box; padding: 8px clamp(16px, 3vw, 40px); background: linear-gradient(180deg, #101317, #0a0c0f); border-bottom: 1px solid rgba(239,212,134,.16); box-shadow: 0 10px 28px rgba(0,0,0,.55)">
+    <a class="s-brand" href="Home.dc.html" aria-label="Sir Locked, về trang chủ">
+      <span aria-hidden="true" style="position: relative; display: grid; place-items: center; width: 30px; height: 30px; box-sizing: border-box; border: 1px solid #c7a24b; border-radius: 999px">
+        <span style="position: absolute; width: 1px; height: 58%; background: #efd486"></span>
+        <span style="position: absolute; width: 58%; height: 1px; background: #efd486"></span>
+        <span style="position: absolute; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid #efd486; border-radius: 999px; background: #0a0c0f"></span>
+      </span>
+      <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: .08em">SIR <span style="color: #efd486">LOCKED</span></span>
+    </a>
+    <nav class="s-nav" aria-label="Điều hướng chính">
+      <a href="Home.dc.html" aria-current="page">TRANG CHỦ</a>
+      <a href="FindGame.dc.html">TÌM TRẬN</a>
+      <a href="Rooms.dc.html">PHÒNG</a>
+      <a href="Cases.dc.html">VỤ ÁN</a>
+      <a href="Market.dc.html">CHỢ ĐỒ</a>
+      <a href="Workshop.dc.html">WORKSHOP</a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto">
+      <a class="s-topbtn" href="Market.dc.html" aria-label="Ví: 1.250 xu">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill: #c7a24b; stroke: #5e4a1c; stroke-width: 1.2"></circle><circle cx="12" cy="12" r="7" style="fill: none; stroke: #8a6e2e; stroke-width: 1"></circle><path d="M12 7.8a1.9 1.9 0 0 1 1.1 3.5l.7 3.9h-3.6l.7-3.9A1.9 1.9 0 0 1 12 7.8z" style="fill: #5e4a1c"></path></svg>
+        <span>1.250</span><span style="color: #b3a794; font-weight: 500">xu</span>
+      </a>
+      <button type="button" class="s-topbtn" aria-label="Thông báo, 2 mới" style="position: relative; padding: 0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>
+        <span aria-hidden="true" style="position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 999px; background: #bf3b2c; box-shadow: 0 0 0 2px #0a0c0f"></span>
+      </button>
+      <a class="s-topbtn" href="Profile.dc.html" aria-label="Hồ sơ thám tử: Thám tử Minh" style="gap: 10px; padding: 0 12px 0 4px">
+        <span aria-hidden="true" style="display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: #1a2c42; box-shadow: inset 0 0 0 1px #c7a24b; color: #efd486; font-family: 'Playfair Display', Georgia, serif; font-size: 14px; font-weight: 700; letter-spacing: .04em">TM</span>
+        <span style="display: flex; flex-direction: column; gap: 2px; text-align: left; line-height: 1.1">
+          <span style="font-family: 'Crimson Text', Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0; color: #fbf6ed">Thám tử Minh</span>
+          <span style="font-size: 10px; font-weight: 500; letter-spacing: .14em; color: #b3a794">THANH TRA · CẤP 12</span>
+        </span>
+      </a>
+    </div>
+  </header>
+
+  <div style="position: relative; flex: 1 0 auto; display: flex; flex-direction: column">
+    <div class="s-enter" style="flex: 1 0 auto; display: flex; flex-direction: column">
+      <div class="s-enter-zoom" style="flex: 1 0 auto; box-sizing: border-box; width: 100%; max-width: 1352px; margin: 0 auto; padding: 28px 16px 36px">
+        <h1 class="s-sr">Trang chủ Sir Locked</h1>
+        <div class="h-grid">
+
+          <svg class="h-threads" aria-hidden="true" viewBox="0 0 1320 775" preserveAspectRatio="none" width="100%" height="100%" style="position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none">
+            <g style="fill: none; stroke-linecap: round">
+              <g transform="translate(2 5)" style="stroke: rgba(0,0,0,.45); stroke-width: 2.8">
+                <path d="M660 387L380 183"></path><path d="M660 387L380 591"></path><path d="M660 387L940 183"></path><path d="M660 387L940 591"></path>
+              </g>
+              <g style="stroke: #bf3b2c; stroke-width: 2.1">
+                <path d="M660 387L380 183"></path><path d="M660 387L380 591"></path><path d="M660 387L940 183"></path><path d="M660 387L940 591"></path>
+              </g>
+            </g>
+          </svg>
+
+          <div class="h-room" style="position: relative; z-index: 1">
+            <a class="h-cardlink" href="Rooms.dc.html" style="transform: rotate(-1.2deg)">
+              <div class="h-paper" style="display: flex; flex-direction: column; gap: 10px; padding: 24px 26px 22px; background: #e9dcc0">
+                <span class="h-pin gold" aria-hidden="true" style="top: -8px; left: 50%; margin-left: -9px"></span>
+                <span class="h-pin red h-edgepin" aria-hidden="true" style="top: 50%; right: -9px; margin-top: -9px"></span>
+                <div style="display: flex; justify-content: space-between; gap: 12px; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .18em; color: #5b5248"><span>HỒ SƠ 01 · PHÒNG</span><span>12 PHÒNG MỞ</span></div>
+                <h2 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 28px; font-weight: 700; line-height: 1.1">Phòng điều tra</h2>
+                <p style="margin: 0; font-size: 17px; line-height: 1.35; color: #3b3328">Chơi với bạn bè trong phòng riêng, hoặc vào một phòng công khai đang chờ người.</p>
+                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 4px">
+                  <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; background: rgba(255,255,255,.45); border: 1px solid rgba(91,82,72,.25)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2f6363" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <strong style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; letter-spacing: .16em; color: #2f6363">CÔNG KHAI</strong>
+                    <span style="font-size: 15px; line-height: 1.25; color: #3b3328">Ai cũng thấy và vào được</span>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; background: rgba(255,255,255,.45); border: 1px solid rgba(91,82,72,.25)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="1.5"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"></path><path d="M12 14.5v2.5"></path></svg>
+                    <strong style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; letter-spacing: .16em; color: #7a3f27">RIÊNG TƯ</strong>
+                    <span style="font-size: 15px; line-height: 1.25; color: #3b3328">Chỉ vào bằng mã mời</span>
+                  </div>
+                </div>
+                <div style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px dashed rgba(91,82,72,.4)">
+                  <span class="h-go">TẠO HOẶC VÀO PHÒNG <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></span>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div class="h-work" style="position: relative; z-index: 1">
+            <a class="h-cardlink" href="Workshop.dc.html" style="transform: rotate(1deg)">
+              <div class="h-paper" style="display: flex; flex-direction: column; gap: 10px; padding: 24px 26px 22px; background: #d9c49a">
+                <span class="h-pin gold" aria-hidden="true" style="top: -8px; left: 50%; margin-left: -9px"></span>
+                <span class="h-pin red h-edgepin" aria-hidden="true" style="top: 50%; right: -9px; margin-top: -9px"></span>
+                <div style="display: flex; justify-content: space-between; gap: 12px; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .18em; color: #4f4536"><span>HỒ SƠ 02 · CỘNG ĐỒNG</span><span>WORKSHOP</span></div>
+                <h2 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 28px; font-weight: 700; line-height: 1.1">Vụ án cộng đồng</h2>
+                <div style="display: flex; gap: 14px; align-items: stretch; margin-top: 4px; padding: 12px; background: rgba(251,246,237,.62); border: 1px solid rgba(79,69,54,.25)">
+                  <svg width="84" height="104" viewBox="0 0 84 104" aria-hidden="true" style="flex: none; background: #0d1014">
+                    <rect x="14" y="20" width="44" height="58" style="fill: #6b2a1c"></rect>
+                    <rect x="18" y="24" width="36" height="50" style="fill: none; stroke: #c7a24b; stroke-width: 1"></rect>
+                    <path d="M58 22h8v54h-8" style="fill: #e9dcc0"></path>
+                    <circle cx="36" cy="44" r="6" style="fill: #c7a24b"></circle>
+                    <path d="M34 48h4l1.5 12h-7z" style="fill: #c7a24b"></path>
+                    <path d="M30 88h40" style="stroke: #bf3b2c; stroke-width: 2"></path>
+                  </svg>
+                  <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+                    <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 700; letter-spacing: .18em; color: #9e3f2a">VỤ ÁN CỦA TUẦN</span>
+                    <strong style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; line-height: 1.15">Đêm khóa sổ</strong>
+                    <span style="font-size: 15px; color: #3b3328">35 phút · 1.204 lượt chơi</span>
+                    <span style="font-size: 15px; font-style: italic; color: #7a3f27">41% đội buộc tội nhầm</span>
+                  </div>
+                </div>
+                <div style="margin-top: auto; padding-top: 10px; border-top: 1px dashed rgba(79,69,54,.45)">
+                  <span class="h-go">KHÁM PHÁ WORKSHOP <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></span>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div class="h-center" style="position: relative; z-index: 1">
+            <section aria-labelledby="h-who" style="position: relative; box-sizing: border-box; padding: 20px 24px 20px 40px; background: #fbf6ed; color: #07111f; box-shadow: 0 1px 0 rgba(0,0,0,.2), 0 22px 44px rgba(0,0,0,.55)">
+              <span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 24px; width: 1.5px; background: rgba(182,64,48,.5)"></span>
+              <span class="h-pin gold" aria-hidden="true" style="top: -8px; left: 50%; margin-left: -9px"></span>
+              <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1.5px solid rgba(182,64,48,.55); font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 500; letter-spacing: .2em; color: #5b5248"><span>THẺ THÁM TỬ</span><span>Nº 0412</span></div>
+              <div class="h-who" style="display: flex; align-items: center; gap: 18px; margin-top: 14px">
+                <span aria-hidden="true" style="display: grid; place-items: center; flex: none; width: 76px; height: 76px; border-radius: 999px; background: #1a2c42; box-shadow: inset 0 0 0 2px #c7a24b, 0 0 0 4px #fbf6ed, 0 0 0 5px rgba(91,82,72,.35); color: #efd486; font-family: 'Playfair Display', Georgia, serif; font-size: 28px; font-weight: 700">TM</span>
+                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1">
+                  <h2 id="h-who" style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 700; line-height: 1.1">Thám tử Minh</h2>
+                  <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: #5b5248">THANH TRA · CẤP 12</span>
+                  <div aria-hidden="true" style="position: relative; height: 14px; margin-top: 4px">
+                    <span style="position: absolute; left: 0; right: 0; top: 6px; border-top: 1px dashed rgba(91,82,72,.45)"></span>
+                    <span style="position: absolute; left: 0; top: 6px; width: 69%; height: 2px; background: #bf3b2c"></span>
+                    <span style="position: absolute; left: 69%; top: 1px; width: 12px; height: 12px; margin-left: -6px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #f3a291 0%, #c0392b 45%, #6e1a12 100%)"></span>
+                  </div>
+                  <span style="font-size: 14px; color: #5b5248">1.240 / 1.800 điểm kinh nghiệm tới Cấp 13</span>
+                </div>
+              </div>
+              <dl style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid rgba(79,154,154,.4)">
+                <div style="margin: 0"><dt style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .14em; color: #5b5248">VỤ ĐÃ PHÁ</dt><dd style="margin: 2px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 24px; font-weight: 700">24</dd></div>
+                <div style="margin: 0"><dt style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .14em; color: #5b5248">BUỘC TỘI ĐÚNG</dt><dd style="margin: 2px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 24px; font-weight: 700">78%</dd></div>
+                <div style="margin: 0"><dt style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .14em; color: #5b5248">CHUỖI THẮNG</dt><dd style="margin: 2px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 24px; font-weight: 700">3</dd></div>
+              </dl>
+            </section>
+
+            <section aria-labelledby="h-find" style="position: relative; flex: 1; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; min-height: 0; padding: 16px 18px 20px; background: #0d1014; box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 24px 48px rgba(0,0,0,.6)">
+              <span class="h-pin red" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px; width: 20px; height: 20px; margin-left: -10px"></span>
+              <div style="position: relative; flex: 1; min-height: 150px; overflow: hidden; background: #1a1d22; box-shadow: inset 0 0 0 1px rgba(239,212,134,.25)">
+                <img src="/_blob/4743a5129437e72a0f91c4c4820372c3" alt="Hiện trường: phố London về đêm, đèn khí và mặt đường ướt" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 42% 55%; filter: saturate(.85) contrast(1.05)">
+                <span aria-hidden="true" style="position: absolute; top: 10px; left: -14px; width: 70px; height: 20px; background: rgba(233,220,192,.72); transform: rotate(-32deg)"></span>
+                <span aria-hidden="true" style="position: absolute; bottom: 12px; right: -14px; width: 70px; height: 20px; background: rgba(233,220,192,.72); transform: rotate(-32deg)"></span>
+                <span style="position: absolute; left: 10px; bottom: 10px; padding: 4px 8px; background: rgba(13,16,20,.82); font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .16em; color: #efd486">HIỆN TRƯỜNG MỚI · 23:47</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .24em; color: #efd486">VỤ ÁN MỚI · GHÉP ĐÔI NHANH</span>
+                <h2 id="h-find" style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 30px; font-weight: 700; line-height: 1.1; color: #fbf6ed">Sẵn sàng phá án?</h2>
+                <p style="margin: 0; font-size: 17px; line-height: 1.4; color: #cfc4b1">Ghép đôi với một thám tử khác: một người khám nghiệm hiện trường, một người hỏi nhân chứng.</p>
+              </div>
+              <a class="s-btn s-btn-red" href="FindGame.dc.html" style="min-height: 56px; font-size: 15px; letter-spacing: .26em">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5.5 5.5"></path></svg>
+                TÌM TRẬN
+              </a>
+              <a class="s-link-gold" href="Rooms.dc.html" style="align-self: center">Chơi với bạn bè? Tạo phòng riêng</a>
+            </section>
+          </div>
+
+          <div class="h-market" style="position: relative; z-index: 1">
+            <a class="h-cardlink" href="Market.dc.html" style="transform: rotate(1.2deg)">
+              <div class="h-paper" style="display: flex; flex-direction: column; gap: 10px; padding: 24px 26px 22px; background: #f4efe3">
+                <span class="h-pin gold" aria-hidden="true" style="top: -8px; left: 50%; margin-left: -9px"></span>
+                <span class="h-pin red h-edgepin" aria-hidden="true" style="top: 50%; left: -9px; margin-top: -9px"></span>
+                <div style="display: flex; justify-content: space-between; gap: 12px; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: .18em; color: #5b5248"><span>SỔ GIAO DỊCH</span><span>MUA · BÁN · ĐỔI</span></div>
+                <h2 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 28px; font-weight: 700; line-height: 1.1">Chợ đồ</h2>
+                <ul style="display: flex; flex-direction: column; margin: 2px 0 0; padding: 0; list-style: none; border-top: 1px solid rgba(182,64,48,.5)">
+                  <li style="display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(79,154,154,.4)">
+                    <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true" style="background: #0d1014"><circle cx="27" cy="27" r="13" style="fill: rgba(190,225,235,.25); stroke: #c7a24b; stroke-width: 4"></circle><path d="M21 22l12 10M27 16l5 21" style="stroke: rgba(255,255,255,.5); stroke-width: 1"></path><path d="M37 37l13 13" style="stroke: #8a6e2e; stroke-width: 7; stroke-linecap: round"></path></svg>
+                    <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Kính lúp Pha lê</span><span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .12em; color: #8a6420">HUYỀN THOẠI</span></span>
+                    <span style="text-align: right; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 13px; font-weight: 700">4.850<span style="display: block; font-size: 11px; font-weight: 600; color: #2f6363">▲ 6%</span></span>
+                  </li>
+                  <li style="display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(79,154,154,.4)">
+                    <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true" style="background: #0d1014"><path d="M12 18h18l4 5h18v27H12z" style="fill: #6b3a22; stroke: #c7a24b; stroke-width: 2"></path><path d="M12 28h40" style="stroke: #3d2112; stroke-width: 2"></path><rect x="40" y="34" width="7" height="12" style="fill: #c7a24b"></rect></svg>
+                    <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Bìa hồ sơ da bò</span><span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .12em; color: #4b3a7a">QUÝ</span></span>
+                    <span style="text-align: right; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 13px; font-weight: 700">1.180<span style="display: block; font-size: 11px; font-weight: 600; color: #9e3f2a">▼ 2%</span></span>
+                  </li>
+                  <li style="display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(79,154,154,.4)">
+                    <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true" style="background: #0d1014"><rect x="18" y="38" width="28" height="10" style="fill: #8a6e2e"></rect><path d="M26 38V27h12v11" style="fill: #5a3b22"></path><circle cx="32" cy="20" r="8" style="fill: #5a3b22"></circle><path d="M14 54h36" style="stroke: #bf3b2c; stroke-width: 3"></path></svg>
+                    <span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Con dấu "Đã phá án"</span><span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .12em; color: #4b3a7a">QUÝ</span></span>
+                    <span style="text-align: right; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 13px; font-weight: 700">960<span style="display: block; font-size: 11px; font-weight: 600; color: #2f6363">▲ 3%</span></span>
+                  </li>
+                </ul>
+                <div style="margin-top: auto; padding-top: 10px; border-top: 1px dashed rgba(91,82,72,.4)">
+                  <span class="h-go">VÀO CHỢ <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></span>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div class="h-week" style="position: relative; z-index: 1">
+            <a class="h-cardlink" href="Challenge.dc.html" style="transform: rotate(-1deg)">
+              <div class="h-paper" style="display: flex; flex-direction: column; gap: 10px; padding: 22px 26px 22px; background: #e3dbc9">
+                <span class="h-pin gold" aria-hidden="true" style="top: -8px; left: 50%; margin-left: -9px"></span>
+                <span class="h-pin red h-edgepin" aria-hidden="true" style="top: 50%; left: -9px; margin-top: -9px"></span>
+                <div style="display: flex; justify-content: space-between; gap: 12px; padding-bottom: 6px; border-bottom: 3px double rgba(58,52,43,.6); font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .2em; color: #3a342b"><span>BÁO 221B · SỐ ĐẶC BIỆT</span><span>TUẦN 42</span></div>
+                <span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: .2em; color: #9e3f2a">THỬ THÁCH TUẦN</span>
+                <h2 style="margin: -4px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 28px; font-weight: 700; line-height: 1.1; color: #15120e">Con Dấu Bị Phá</h2>
+                <p style="margin: 0; font-size: 16px; line-height: 1.35; color: #3a342b">Phá án nhanh nhất để có tên trên bảng vàng của tuần.</p>
+                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+                  <div style="padding: 10px 12px; background: rgba(13,16,20,.9); color: #efd486"><span style="display: block; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .16em; color: #b3a794">CÒN LẠI</span><span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 18px; font-weight: 700">3N 14G</span></div>
+                  <div style="padding: 10px 12px; background: rgba(13,16,20,.9); color: #efd486"><span style="display: block; font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: .16em; color: #b3a794">HẠNG CỦA BẠN</span><span style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 18px; font-weight: 700">#128</span></div>
+                </div>
+                <div style="margin-top: auto; padding-top: 10px; border-top: 1px dashed rgba(58,52,43,.45)">
+                  <span class="h-go">THAM GIA THỬ THÁCH <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></span>
+                </div>
+              </div>
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div class="s-rim" aria-hidden="true"></div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

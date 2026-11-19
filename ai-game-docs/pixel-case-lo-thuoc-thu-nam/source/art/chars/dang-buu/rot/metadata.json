@@ -1,0 +1,36 @@
+{
+  "group_id": "5ab2946f-544e-4c69-a10f-43725a7aa337",
+  "states": [
+    {
+      "character": {
+        "id": "e18fac38-bc69-465c-ac58-d189de0f94ea",
+        "name": "Idle",
+        "prompt": "stout bald Victorian pawnbroker, round glasses, grey mustache, burgundy waistcoat with gold watch chain, white shirt, dark trousers",
+        "size": {
+          "width": 96,
+          "height": 96
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-25T04:39:41.114912+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {}
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-25T04:50:26.366775"
+}

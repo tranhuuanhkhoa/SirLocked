@@ -1,0 +1,45 @@
+{
+ "note": "Vật điều tra vẽ vào cảnh bằng inpaint của PixelLab, không dán ảnh vật lên cảnh. Mask tô RỘNG theo cả mặt vật nằm lên (mặt quầy, ghế xe kéo), không ôm sát một vật; description kể mọi vật phải có trên mặt đó. Mỗi mục: cắt khung từ cảnh thư viện native 512, gửi PixelLab cùng mask, rồi chỉ chép lại đúng pixel trong mask vào cảnh (scene_patches.py). items và clueZones: ô bấm của từng vật đo trên ảnh sau khi vẽ (pixel native, gồm cả hai đầu); build_case.py nhân 4 thành ô bấm runtime.",
+ "patches": [
+  {
+   "id": "tra-lau-quay",
+   "scene": "scenes/tra-lau.png",
+   "output": "tra-lau-quay.png",
+   "maskFile": "tra-lau-quay-mask.png",
+   "crop": {"x": 55, "y": 201, "size": 256},
+   "polygon": [[113, 314], [157, 305], [203, 296], [243, 305], [252, 316], [250, 322], [157, 361], [114, 340]],
+   "tool": "inpaint_image",
+   "params": {"no_background": false, "crop_to_mask": true, "seed": 707},
+   "description": "Wooden tea house counter top. On it, from left to right: a few torn scraps of a white paper letter, a large open guest ledger book with cream pages and a red cover, and a wooden tea tray with two small white tea cups. Same pixel art style, isometric view, lighting, outlines and palette as the room. No text, no letters.",
+   "jobId": "1fad310e-0a76-4e41-a1bd-078602953d95",
+   "generations": 10,
+   "date": "2026-11-17",
+   "items": {
+    "item-tt-thu-xe": [112, 316, 140, 340],
+    "item-tt-so-khach": [141, 306, 213, 350]
+   },
+   "clueZones": {
+    "clue-tt-vong-nuoc": [201, 294, 244, 326]
+   },
+   "cleanup": [
+    {"why": "Đỉnh cái cân cũ nằm ngoài mask còn sót lại: kéo dài hoa văn kệ phía sau xuống (chép hàng 296), chỉ trên pixel ngoài mask.", "rect": [162, 298, 171, 305], "copyRow": 296}
+   ]
+  },
+  {
+   "id": "ngo-hom-go",
+   "scene": "scenes/ngo.png",
+   "output": "ngo-hom-go.png",
+   "crop": {"x": 268, "y": 154, "size": 128},
+   "mask": {"x": 54, "y": 56, "width": 20, "height": 16},
+   "tool": "inpaint_image_pro_flash",
+   "params": {"context_image": "crop 384x384 của ngo.png tại (128, 0)", "bounding_box": {"x": 140, "y": 154, "width": 128, "height": 128}},
+   "jobId": "560b88ca-fbad-4224-be29-9948e67ffde2",
+   "generations": 6,
+   "date": "2026-11-17",
+   "subject": "Hòm gỗ sẫm màu đai sắt trên ghế xe kéo. Mask phủ cả mặt ghế (ghế nhỏ trong bản đồ nhìn từ trên).",
+   "items": {
+    "item-tt-hom-go": [320, 207, 343, 227]
+   }
+  }
+ ]
+}

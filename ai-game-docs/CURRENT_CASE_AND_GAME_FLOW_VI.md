@@ -112,7 +112,7 @@ stateDiagram-v2
 
 Frontend:
 
-- Route: `#/admin/ai`
+- Route: `/admin/ai`
 - Goi `POST /api/admin/ai-cases`.
 
 Input:
@@ -294,9 +294,9 @@ sequenceDiagram
 
 Player chon case tu:
 
-- `#/cases`
-- `#/cases/{caseId}`
-- `#/create-room`
+- `/cases`
+- `/cases/{caseId}`
+- `/create-room`
 
 Frontend goi `POST /api/rooms`.
 
@@ -305,7 +305,7 @@ lam host.
 
 ### Join room
 
-Player B nhap room code tai `#/join`.
+Player B nhap room code tai `/join`.
 
 Backend tu choi neu:
 
@@ -540,7 +540,7 @@ Ca dung va sai deu ket thuc room:
 - Room: `COMPLETED`.
 - Tao `GameResult`.
 - Broadcast `GameCompleted`.
-- Frontend chuyen sang `#/result/{roomId}`.
+- Frontend chuyen sang `/result/{roomId}`.
 
 Trang result hien accusation cua player va su that cua case, gom culprit, motive
 va method.

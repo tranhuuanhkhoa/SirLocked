@@ -1,0 +1,156 @@
+{
+ "format": "motion-comic-v1",
+ "caseId": "case-pixel-tan-thu-vi",
+ "language": "vi",
+ "title": {
+  "eyebrow": "Hồ sơ nhập môn",
+  "title": "Ấm men lam",
+  "subtitle": "Thượng Hải, 1930. Vụ án đầu tiên của bạn."
+ },
+ "mood": "fog-morning",
+ "pages": [
+  {
+   "layout": "wide-top-two-bottom",
+   "panels": [
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-tt-ngo",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "rain",
+     "enter": "top",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Thượng Hải, 1930. Ngõ Thạch Khố Môn, chiều mưa phùn.",
+       "style": ""
+      },
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Hai thám tử mới vào nghề nhận vụ án đầu tiên.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    },
+    {
+     "art": {
+      "kind": "scene",
+      "id": "scene-tt-tra-lau",
+      "focus": [
+       0.05,
+       0.08,
+       0.9,
+       0.84
+      ]
+     },
+     "weather": "none",
+     "enter": "left",
+     "beats": [
+      {
+       "type": "speech",
+       "speakerId": "char-tt-ong-luu",
+       "text": "Ấm men lam đời Minh của tôi mất rồi!",
+       "style": ""
+      },
+      {
+       "type": "sfx",
+       "speakerId": "",
+       "text": "CHOANG!",
+       "style": "impact"
+      }
+     ],
+     "audio": []
+    },
+    {
+     "art": {
+      "kind": "character",
+      "id": "char-tt-hamilton",
+      "focus": [
+       0.1,
+       0.05,
+       0.8,
+       0.85
+      ]
+     },
+     "weather": "none",
+     "enter": "right",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Ngoài ngõ, một quý ông người Anh đang chờ xe kéo.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    }
+   ]
+  },
+  {
+   "layout": "splash-inset",
+   "panels": [
+    {
+     "art": {
+      "kind": "cover",
+      "id": "cover",
+      "focus": [
+       0,
+       0,
+       1,
+       1
+      ]
+     },
+     "weather": "rain",
+     "enter": "none",
+     "beats": [
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Hỏi chuyện, tìm chứng cứ, vạch lời nói dối và gọi tên thủ phạm.",
+       "style": ""
+      },
+      {
+       "type": "caption",
+       "speakerId": "",
+       "text": "Đừng lo: mũi tên vàng sẽ chỉ từng bước.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    },
+    {
+     "art": {
+      "kind": "character",
+      "id": "char-tt-co-lan",
+      "focus": [
+       0.1,
+       0.05,
+       0.8,
+       0.85
+      ]
+     },
+     "weather": "none",
+     "enter": "right",
+     "beats": [
+      {
+       "type": "speech",
+       "speakerId": "char-tt-co-lan",
+       "text": "Hai vị thám tử tới rồi! Mời vào trà lâu.",
+       "style": ""
+      }
+     ],
+     "audio": []
+    }
+   ]
+  }
+ ]
+}

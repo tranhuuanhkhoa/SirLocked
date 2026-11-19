@@ -1,0 +1,53 @@
+{
+  "character": {
+    "id": "a312e82f-946b-43d0-997f-e2f4bee4c670",
+    "name": "Idle",
+    "prompt": "elderly Victorian housekeeper woman, grey hair bun, round glasses, black dress, white apron, hands folded",
+    "size": {
+      "width": 96,
+      "height": 96
+    },
+    "directions": 8,
+    "view": "low top-down"
+  },
+  "spritesheet": {
+    "path": "Ly_Hanh-Idle.png",
+    "cell_size": {
+      "width": 104,
+      "height": 104
+    },
+    "sheet_size": {
+      "width": 936,
+      "height": 208
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "npc_idle_south",
+        "animation_group_id": "c8559ebe-6c0c-4ce6-b342-b5080057855f",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-25T04:54:46.749542+00:00"
+}

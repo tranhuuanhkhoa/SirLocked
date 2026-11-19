@@ -1,0 +1,452 @@
+{
+  "templatesVersion": 1,
+  "description": "Template PixelLab cho quy trình pixel 8 bước của SirLocked. Câu chữ lấy từ các request đã chạy tốt ở case \"Lọ thuốc thứ Năm\" (ai-game-docs/pixel-case-lo-thuoc-thu-nam/pixellab-requests.json). scripts/build_pixellab_requests.mjs đọc tệp này để dựng prompt; sửa câu chữ ở đây thì builder đổi theo.",
+  "syntax": {
+    "placeholder": "{{name}} được thay bằng giá trị; không có giá trị thì dùng placeholders.<name>.default; không có default thì giữ nguyên {{name}} và builder báo thiếu.",
+    "promptParts": "Các phần nối bằng một dấu cách. Phần có \"when\" chỉ được dùng khi giá trị cùng tên là true. Phần rỗng sau khi điền bị bỏ.",
+    "promptParam": "Tên tham số tool nhận văn bản prompt.",
+    "usageSent": "true: chuỗi usage được gửi kèm ảnh tham chiếu; false: chỉ là ghi chú cho người chạy (tool không có trường usage)."
+  },
+  "shared": {
+    "era": "Victorian",
+    "seed": 707,
+    "styleReference": {
+      "description": "Sprite Sherlock V3 96 hướng south có sẵn trong PixelLab.",
+      "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+      "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity"
+    },
+    "policy": {
+      "firstCreation": "Lần tạo đầu tiên theo yêu cầu thì chạy luôn.",
+      "reroll": "Tạo lại / reroll bằng AI phải hỏi chủ dự án trước.",
+      "keep": "Giữ PNG gốc, prompt, request và job ID của mọi bước."
+    }
+  },
+  "glossaries": {
+    "description": "Từ khóa tiếng Việt -> bản nháp tiếng Anh. So khớp trên chữ thường CÓ dấu, theo thứ tự danh sách, tiêu đề trước mô tả. Request dùng bản nháp này được đánh dấu needsReview. Builder JS và server (PixelLabPlanBuilder) cùng đọc mục này.",
+    "place": [
+      ["hiệu thuốc", "a narrow apothecary shop with a shopfront and display windows full of glass bottles", "apothecary shop"],
+      ["nhà thuốc", "a narrow apothecary shop with a shopfront and display windows full of glass bottles", "apothecary shop"],
+      ["hiệu ảnh", "a photographer's studio with a glass skylight roof section, large front windows and a striped awning", "photographer's studio"],
+      ["tiệm ảnh", "a photographer's studio with a glass skylight roof section, large front windows and a striped awning", "photographer's studio"],
+      ["cầm đồ", "a pawnbroker's shop with a dark timber shopfront, barred windows and a hanging sign of three brass balls", "pawnbroker's shop"],
+      ["nhà xe", "a small wooden carriage house with wide open doors", "wooden carriage house"],
+      ["chuồng ngựa", "a wooden stable with a hay loft door", "wooden stable"],
+      ["phòng trưng bày", "a large two-storey red-brick townhouse with a slate roof and white window frames", "collector's townhouse room, a combined gallery and study"],
+      ["thư viện", "a stone library with tall arched windows", "library reading room"],
+      ["nhà hát", "a small theatre with a columned entrance and a canopy", "theatre backstage room"],
+      ["khách sạn", "a three-storey hotel with a canopy over the entrance", "hotel room"],
+      ["quán rượu", "a corner tavern with a wooden shopfront and hanging lanterns", "tavern"],
+      ["quán cà phê", "a small cafe with a striped awning", "cafe"],
+      ["tiệm bánh", "a bakery with a bay window", "bakery"],
+      ["tiệm may", "a tailor's shop with a display window", "tailor's shop"],
+      ["bưu điện", "a post office with a clock above the door", "post office"],
+      ["ngân hàng", "a stone bank with columns", "bank hall"],
+      ["đồn cảnh sát", "a police station with a lamp over the door", "police station office"],
+      ["văn phòng", "an office building with a brass plate by the door", "office"],
+      ["nhà kho", "a brick warehouse with wide loading doors", "warehouse"],
+      ["xưởng", "a workshop with wide wooden doors", "workshop"],
+      ["biệt thự", "a large villa with a small garden", "villa drawing room"],
+      ["nhà số", "a two-storey red-brick townhouse with a slate roof", "townhouse room"]
+    ],
+    "area": [
+      ["bến tàu", "harbour quay"], ["bến cảng", "harbour quay"], ["bến đò", "riverside ferry quay"], ["cảng", "harbour quay"],
+      ["quảng trường", "town square"], ["chợ", "market street"], ["công viên", "park"], ["làng", "village"],
+      ["nhà ga", "railway station forecourt"], ["ga tàu", "railway station forecourt"],
+      ["phố", "street block"], ["ngõ", "narrow lane"], ["đường", "street block"], ["khu", "town quarter"]
+    ],
+    "time": [
+      ["bình minh", "at dawn"], ["sáng", "on a clear morning"], ["trưa", "at noon"], ["chiều", "in the late afternoon"],
+      ["hoàng hôn", "at sunset"], ["khuya", "late at night"], ["đêm", "at night"], ["tối", "in the evening"]
+    ],
+    "role": [
+      ["học việc hiệu thuốc", "apothecary apprentice"], ["học việc hiệu ảnh", "photographer's apprentice"], ["học việc", "apprentice"],
+      ["giúp việc", "household servant"], ["quản gia", "butler"], ["tài xế", "coachman"], ["xà ích", "coachman"],
+      ["thợ ảnh", "photographer"], ["cầm đồ", "pawnbroker"], ["dược sĩ", "apothecary"], ["bác sĩ", "doctor"], ["y tá", "nurse"],
+      ["thanh tra", "police inspector"], ["cảnh sát", "police constable"], ["luật sư", "lawyer"], ["công chứng", "notary"],
+      ["thư ký", "secretary"], ["kế toán", "bookkeeper"], ["đầu bếp", "cook"], ["làm vườn", "gardener"], ["nhà báo", "journalist"],
+      ["giáo sư", "professor"], ["diễn viên", "actor"], ["ca sĩ", "singer"], ["thợ may", "tailor"], ["thợ khóa", "locksmith"],
+      ["lái đò", "ferryman"], ["thủy thủ", "sailor"], ["chủ tiệm", "shopkeeper"], ["chủ quán", "innkeeper"],
+      ["cháu", "young relative of the household"]
+    ]
+  },
+  "templates": [
+    {
+      "id": "outdoor-map",
+      "step": 1,
+      "title": "Bản đồ ngoài trời 512x512",
+      "tool": "create_image_pro",
+      "fixedParams": { "width": 512, "height": 512, "no_background": false, "seed": 707 },
+      "promptParam": "description",
+      "promptParts": [
+        "Top-down, front-facing pixel art map, not isometric.",
+        "A compact {{era}} {{areaDescription}}, one complete scene filling the whole square canvas.",
+        "{{layoutDetails}}",
+        { "when": "multipleBuildings", "text": "{{buildingCountWord}} separate buildings, each fully visible with roof, front wall, windows and ONE clearly visible front door opening onto the street or square, spaced apart with walkable pavement between them: {{buildingList}}" },
+        { "when": "singleBuilding", "text": "One building, fully visible with roof, front wall, windows and ONE clearly visible front door opening onto the street or square, with walkable pavement around it: {{buildingList}}" },
+        "Cobblestone streets connect every door, and {{mapExit}}.",
+        "Small details: {{smallDetails}}.",
+        "No people, no animals, no readable text or letters on any sign. Clear walkable paths; buildings never overlap each other."
+      ],
+      "placeholders": {
+        "era": { "default": "Victorian", "description": "Thời kỳ/phong cách chung của dự án." },
+        "areaDescription": { "description": "Cụm danh từ ngắn cho cả khu, kèm thời điểm trong ngày. Ví dụ: riverside street block on a clear morning." },
+        "layoutDetails": { "default": "", "description": "Tùy chọn. Bố cục theo mép/hướng: sông, bến, quảng trường, vật mốc. Viết thành câu hoàn chỉnh." },
+        "buildingCountWord": { "description": "Số tòa nhà viết bằng chữ, viết hoa chữ đầu (Two, Three, Four...). Builder tự điền." },
+        "buildingList": { "description": "Danh sách đánh số \"1) West: <ngoại thất>. 2) East: ...\". Mỗi tòa nhà là một cảnh nội thất; một tòa có thể gắn kèm tòa phụ (attached to its south side ...)." },
+        "multipleBuildings": { "description": "true khi có từ 2 tòa nhà trở lên. Builder tự điền." },
+        "singleBuilding": { "description": "true khi chỉ có 1 tòa nhà. Builder tự điền." },
+        "mapExit": { "default": "a street leaves the map at the bottom centre", "description": "Lối ra khỏi bản đồ." },
+        "smallDetails": { "default": "barrels, crates, a hand cart, street trees, window flower boxes, a few puddles", "description": "Đồ lặt vặt rải trên phố (không phải vật phẩm điều tra)." }
+      },
+      "references": [],
+      "costGenerations": 25,
+      "outputs": ["map-512.png (bản gốc, giữ nguyên)", "/assets/pixel/<case-slug>/scenes/<sceneKey>.png"],
+      "notes": [
+        "Một ảnh duy nhất cho cả khu; không khóa bảng màu (không truyền palette).",
+        "Câu camera giữ ngắn đúng như trên: \"Top-down, front-facing pixel art map, not isometric.\"",
+        "Không người, không động vật, không chữ trên biển hiệu. Mỗi tòa nhà có đúng MỘT cửa trước nhìn rõ để làm cửa vào cảnh nội thất.",
+        "Vật phẩm điều tra ngoài trời (ví dụ cột đồng hồ) phải nằm trong layoutDetails vì pixel mode vẽ thẳng vật vào nền rồi đặt hotspot lên.",
+        "Ở case mẫu nhà xe gắn vào nhà số 7 nên 5 cảnh nội thất chỉ cần 4 tòa nhà; builder mặc định mỗi cảnh một tòa, gộp tay nếu cần."
+      ],
+      "example": {
+        "requestId": "map-v1",
+        "values": {
+          "era": "Victorian",
+          "areaDescription": "riverside street block on a clear morning",
+          "layoutDetails": "North edge: a calm river with a small wooden ferry pier and a moored rowing ferry boat, an iron railing along the stone quay. Below it a cobblestone riverside street runs from left to right. Centre: a small paved square with a cast-iron clock post, two wooden benches, gas lamps and a few flower planters.",
+          "buildingCountWord": "Four",
+          "multipleBuildings": true,
+          "buildingList": "1) West: a large two-storey red-brick townhouse with a slate roof, white window frames and a tiny front garden behind a low iron fence; attached to its south side a small wooden carriage house with wide open doors and a black two-wheeled carriage parked in front. 2) East: a narrow apothecary shop with a dark green shopfront, two display windows full of glass bottles and a hanging lantern. 3) South-east: a photographer's studio with a glass skylight roof section, large front windows and a striped awning. 4) South-west: a pawnbroker's shop with a dark timber shopfront, barred windows and a hanging sign of three brass balls."
+        }
+      }
+    },
+    {
+      "id": "character-front",
+      "step": 2,
+      "title": "Sprite mặt trước 96x96 cho nhân vật MỚI",
+      "tool": "create_image_pro",
+      "fixedParams": { "width": 96, "height": 96, "no_background": true, "seed": 707 },
+      "expectedCandidates": 4,
+      "promptParam": "description",
+      "promptParts": [
+        "{{characterAppearance}}",
+        "Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge."
+      ],
+      "placeholders": {
+        "characterAppearance": { "description": "Một đến hai câu tiếng Anh ASCII: vai trò, tuổi, vóc dáng, tóc/mặt, quần áo, một vật cầm tay. Không ghi tên nhân vật (tên tiếng Việt có dấu làm prompt không còn ASCII)." }
+      },
+      "references": [
+        { "param": "reference_images", "url": "{{styleReferenceUrl}}", "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity", "usageSent": true }
+      ],
+      "costGenerations": 10,
+      "outputs": ["front-0.png ... front-3.png (4 ứng viên, giữ cả 4)"],
+      "notes": [
+        "Chỉ dùng cho nhân vật mới. Sherlock và Watson V3 96 đã có, không tạo lại.",
+        "Chọn ứng viên nhìn thẳng (straight-on) hướng south; ứng viên xoay nghiêng làm bản xoay 8 hướng bị lệch.",
+        "Ảnh tham chiếu Sherlock chỉ để khớp mật độ pixel, viền, đổ bóng và tỉ lệ cơ thể trên canvas.",
+        "Phong cách chuẩn: tỉ lệ người thật như Sherlock, Watson, NPC vụ Lò thuốc; cao thấp tùy nhân vật, không khóa pixel; không chibi đầu to. asset_process của studio từ chối sprite không phải 96x96 (NPC_FORMAT) và nhân vật có prompt chibi (NPC_STYLE)."
+      ],
+      "example": {
+        "requestId": "hoc-viec-front",
+        "values": {
+          "characterAppearance": "a young Vietnamese apothecary apprentice around eighteen with a slender build and neat parted black hair. He wears a white shop coat over a grey waistcoat, dark trousers and black shoes, holding a small amber glass medicine bottle."
+        }
+      }
+    },
+    {
+      "id": "character-rotate",
+      "step": 2,
+      "title": "Xoay 8 hướng từ ứng viên mặt trước (V3)",
+      "tool": "create_character",
+      "fixedParams": { "mode": "v3", "n_directions": 8 },
+      "expectedResult": { "size": { "width": 96, "height": 96 }, "directions": 8, "view": "low top-down", "background": "transparent" },
+      "promptParam": "description",
+      "promptParts": ["{{characterShortDescription}}"],
+      "placeholders": {
+        "characterShortDescription": { "description": "Mô tả ngắn dạng liệt kê bằng dấu phẩy, tiếng Anh ASCII, không tên riêng. Ví dụ: stout bald Victorian pawnbroker, round glasses, grey mustache, burgundy waistcoat with gold watch chain, white shirt, dark trousers." }
+      },
+      "references": [
+        { "param": "reference_image_url", "url": "{{frontCandidateUrl}}", "usage": "ứng viên mặt trước nhìn thẳng đã chọn: https://api.pixellab.ai/mcp/images/<front_job_id>/download?index=<n>", "usageSent": false }
+      ],
+      "costGenerations": 2,
+      "outputs": ["character.zip (8 ảnh rotations + metadata.json)", "character_id"],
+      "notes": [
+        "Ghi lại character_id: mọi animation ở bước 3 dùng ID này.",
+        "Kiểm tra 8 hướng: cùng chiều cao, vật cầm tay giữ đúng tay, không đổi trang phục."
+      ],
+      "example": {
+        "requestId": "dang-buu-rotate",
+        "values": {
+          "characterShortDescription": "stout bald Victorian pawnbroker, round glasses, grey mustache, burgundy waistcoat with gold watch chain, white shirt, dark trousers"
+        }
+      }
+    },
+    {
+      "id": "character-walk",
+      "step": 3,
+      "title": "Animation đi bộ (người chơi)",
+      "tool": "animate_character",
+      "fixedParams": { "mode": "v3", "frame_count": 8, "keep_first_frame": false },
+      "perRequestParams": { "character_id": "{{characterId}}", "direction": "south | east | north | west (mỗi hướng một request)" },
+      "directions": ["south", "east", "north", "west"],
+      "promptParam": "action",
+      "promptParts": ["walking"],
+      "placeholders": {},
+      "references": [],
+      "costGenerations": 8,
+      "costPerDirection": 2,
+      "outputs": ["Sprite sheet export (hàng 0 = 8 rotations, sau đó mỗi hướng một hàng)"],
+      "notes": [
+        "Chỉ cần cho nhân vật người chơi. NPC đứng yên nên không cần đi bộ.",
+        "Kiểm tra từng khung hướng west/east: vật cầm tay có thể biến mất vài khung (Watson mất túi bác sĩ ở vài khung đi về west)."
+      ],
+      "example": { "requestId": "watson-walking", "values": {} }
+    },
+    {
+      "id": "character-idle",
+      "step": 3,
+      "title": "Animation thở (idle)",
+      "tool": "animate_character",
+      "fixedParams": { "mode": "v3", "frame_count": 8, "keep_first_frame": true },
+      "perRequestParams": { "character_id": "{{characterId}}", "direction": "hướng nhân vật đứng (NPC: south)" },
+      "promptParam": "action",
+      "promptParts": ["Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture."],
+      "placeholders": {},
+      "references": [],
+      "costGenerations": 2,
+      "costPerDirection": 2,
+      "outputs": ["Sprite sheet export (hàng animation 9 khung: khung đầu + 8 khung mới)"],
+      "notes": [
+        "Câu action giống hệt animation idle của Sherlock V3 96.",
+        "NPC chỉ cần idle theo hướng đang đứng (case mẫu: south). Người chơi cần 4 hướng (8 generations)."
+      ],
+      "example": { "requestId": "ly-hanh-idle", "values": {} }
+    },
+    {
+      "id": "ambient-animation",
+      "step": 4,
+      "title": "Chuyển động môi trường (tùy chọn)",
+      "tool": "animate_image",
+      "verified": false,
+      "inputs": {
+        "image": "{{nativeCrop}}: vùng cắt từ bản đồ NATIVE 512 (không phóng to), ví dụ mặt nước, đài phun, cờ",
+        "firstFrame": "chính ảnh crop",
+        "lastFrame": "chính ảnh crop"
+      },
+      "promptParam": "description",
+      "promptParts": [
+        "Gentle looping ambient motion of {{ambientSubject}} only: {{ambientMotion}}.",
+        "Everything else stays perfectly still and identical to the input image, same framing, same palette, same pixel grid.",
+        "The first and last frames are identical to the input still so the loop is seamless."
+      ],
+      "placeholders": {
+        "ambientSubject": { "description": "Vật chuyển động, ví dụ the river water." },
+        "ambientMotion": { "description": "Kiểu chuyển động nhẹ, ví dụ small slow ripples drifting left to right." }
+      },
+      "references": [],
+      "costGenerations": null,
+      "outputs": ["Các khung animation; ghép lại vào bản đồ đúng toạ độ crop (x0, y0) trên ảnh native"],
+      "notes": [
+        "Case Lọ thuốc thứ Năm chưa dùng bước này: câu chữ là bản nháp, chưa có lần chạy đối chứng, chi phí chưa đo.",
+        "Tên tham số chính xác của animate_image xem schema tool lúc gọi; inputs ở trên mô tả ý nghĩa, không phải tên tham số."
+      ]
+    },
+    {
+      "id": "object-mask",
+      "step": 5,
+      "title": "Mask vật thể đen/trắng trên bản đồ 512",
+      "tool": "edit_image",
+      "toolNote": "Edit Image Pro",
+      "fixedParams": { "width": 512, "height": 512, "no_background": false },
+      "promptParam": "description",
+      "promptParts": [
+        "Convert this exact map into a flat black-and-white object mask with the same framing and coordinates.",
+        "Paint WHITE every visible solid object: {{objectList}}.",
+        "Paint BLACK all open ground: {{groundList}}.",
+        "Gaps where the ground shows between objects stay black. Pure white and pure black only, no grey, no outlines, no texture, no shading."
+      ],
+      "placeholders": {
+        "objectList": { "default": "buildings with roofs and walls, chimneys, shop fronts, window boxes, iron fences and railings, gates, lamp posts, trees and bushes, benches, flower planters, barrels, crates, signs on brackets, carts and carriages with their wheels, boats and wooden piers", "description": "Liệt kê mọi loại vật thể rắn thật sự có trên bản đồ." },
+        "groundList": { "default": "cobblestones, paving, the square floor, puddles and any water", "description": "Liệt kê mọi loại nền trống. Nước để ĐEN ở mask; bước 6 mới chặn nước." }
+      },
+      "references": [
+        { "param": "image_urls", "url": "{{mapImageUrl}}", "usage": "bản đồ NATIVE 512x512 nguyên vẹn: https://api.pixellab.ai/mcp/images/<map_job_id>/download?index=0, không phóng to, không nhân vật", "usageSent": false }
+      ],
+      "costGenerations": 25,
+      "outputs": ["mask-raw.png (bản nháp nhận dạng, có vài mức xám, ngưỡng 128 khi xử lý)"],
+      "notes": [
+        "Mask là bản nháp để kiểm tra và sửa ngoại lệ ở bước 6, không dùng thẳng làm lưới đi.",
+        "Chạy trên bản đồ native 512, không phải bản phóng to."
+      ],
+      "example": {
+        "requestId": "mask-v1",
+        "values": {
+          "objectList": "buildings with roofs and walls, chimneys, shop fronts, window boxes, iron fences and railings, gates, lamp posts, the clock post, trees and bushes, benches, flower planters, barrels, crates, signs on brackets, the hand cart, the carriage and its wheels, the boat and the wooden pier",
+          "groundList": "cobblestones, paving, the square floor, puddles and the river water"
+        }
+      }
+    },
+    {
+      "id": "local-layers",
+      "step": 6,
+      "title": "Xử lý cục bộ: lưới đi, cut-out, baseY (không AI)",
+      "tool": null,
+      "promptParts": [],
+      "costGenerations": 0,
+      "outputs": [
+        "runtime.render.walkGrid (128x128 ô cho ảnh 512, mỗi ô 4 px native = 16 đơn vị runtime)",
+        "/assets/pixel/<case-slug>/fg/<sceneKey>-<id>.png (cut-out: RGB từ bản đồ + alpha từ mask)",
+        "runtime.render.foreground[].baseY (đường chạm đất, đơn vị runtime)"
+      ],
+      "notes": [
+        "Ngoài trời: walkable = mask đen; chặn thêm vùng nước/bờ sông; khoét thêm bậc cửa, cầu tàu, vỉa hè dưới tán cây; cây/cột đèn chỉ chặn ở gốc.",
+        "Ô đi được khi >= 12/16 px đi được (ngoài trời) hoặc 16/16 (trong nhà); co lưới (erode) 2x1 ô ngoài trời, 1x1 trong nhà; chỉ giữ thành phần liên thông chứa spawn default.",
+        "Trong nhà: chưa có mask PixelLab; sàn là đa giác thoi 4 điểm, đồ đạc là các khối rect/poly đặt tay theo ảnh.",
+        "Điểm tiếp cận = ô đi được gần nhất với trung điểm cạnh dưới hotspot (giống gridApproachPoint ở FE).",
+        "Mẫu cài đặt: build_assets.py + scenes_spec.py của case Lọ thuốc thứ Năm."
+      ]
+    },
+    {
+      "id": "interior",
+      "step": 7,
+      "title": "Nội thất isometric 2:1 từ ngoại thất",
+      "tool": "create_image_pro",
+      "fixedParams": { "width": 512, "height": 512, "no_background": false, "seed": 707 },
+      "promptParam": "description",
+      "promptParts": [
+        "Interior of a {{era}} {{roomSubject}}.",
+        "{{roomContents}}",
+        "Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room.",
+        "{{lighting}}",
+        "No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style."
+      ],
+      "placeholders": {
+        "era": { "default": "Victorian", "description": "Thời kỳ/phong cách chung của dự án." },
+        "roomSubject": { "description": "Loại phòng, ví dụ apothecary shop; photographer's studio; wooden carriage house with a coachman's sleeping corner." },
+        "roomContents": { "description": "Vài câu tả đồ đạc theo tường trái/phải/góc sau, kèm MỌI vật phẩm điều tra của cảnh (pixel mode vẽ vật vào nền rồi đặt hotspot lên)." },
+        "lighting": { "default": "Warm morning light from the windows.", "description": "Ánh sáng, khớp thời điểm của bản đồ." }
+      },
+      "references": [
+        { "param": "reference_images", "url": "{{exteriorCropRef}}", "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera", "usageSent": true }
+      ],
+      "costGenerations": 25,
+      "outputs": ["<sceneKey>-512.png (bản gốc)", "/assets/pixel/<case-slug>/scenes/<sceneKey>.png (bản cắt nền ngoài phòng thành trong suốt)"],
+      "notes": [
+        "Ảnh tham chiếu: cắt đúng tòa nhà từ bản đồ NATIVE 512 (không phóng to), upload rồi truyền ref upload:<id>.",
+        "Một sàn + hai tường sau, mặt trước mở, ngưỡng cửa trống, không NPC (NPC là sprite riêng).",
+        "Lưới đi trong nhà vẽ tay theo ảnh: sàn thoi + khối đồ đạc."
+      ],
+      "example": {
+        "requestId": "interior-hieu-thuoc",
+        "values": {
+          "era": "Victorian",
+          "roomSubject": "apothecary shop",
+          "roomContents": "A long wooden counter with a brass weighing scale, an open ledger book and a small wooden tray holding a row of seven little medicine vials. Tall wall shelves full of small glass bottles, jars and drawers with brass handles. A back workbench with a mortar and pestle, flasks and a small burner. Dark green painted wood panelling, a hanging lamp and a window on the back wall."
+        }
+      }
+    },
+    {
+      "id": "item-inpaint",
+      "step": 7,
+      "title": "Vẽ thêm vật điều tra vào cảnh có sẵn (inpaint cho chuẩn: mask rộng theo cả mặt vật nằm lên)",
+      "tool": "inpaint_image",
+      "fixedParams": {
+        "no_background": false,
+        "crop_to_mask": true,
+        "seed": 707
+      },
+      "inputs": {
+        "image": "{{inpaintSourceRef}}: khung 128 hoặc 256 (512 khi mặt quá rộng) cắt từ cảnh NATIVE 512 (asset_process inpaint_prep)",
+        "mask_image": "{{inpaintMaskRef}}: mask tự do cùng cỡ khung, trắng = vẽ lại, đen = giữ. Tô RỘNG theo cả mặt vật nằm lên (cả mặt bàn, ghế, kệ), không ôm sát vật"
+      },
+      "promptParam": "description",
+      "promptParts": [
+        "{{surface}}, with {{objectList}} on it.",
+        "Same pixel art style, perspective, lighting, outlines and palette as the surrounding picture, at the scale of the furniture around it.",
+        "No text, no letters."
+      ],
+      "placeholders": {
+        "surface": {
+          "description": "Tiếng Anh: cả mặt vật nằm lên mà mask phủ, như trong ảnh cảnh, ví dụ Wooden tea house counter top. Kể luôn vật cũ trên mặt đó cần giữ."
+        },
+        "objectList": {
+          "description": "Server dựng từ items[].visualDescription của các vật cần vẽ, nối bằng dấu phẩy và \"and\"."
+        }
+      },
+      "references": [],
+      "costGenerations": 10,
+      "fallback": {
+        "tool": "inpaint_image",
+        "canvas": 512,
+        "costGenerations": 25,
+        "when": "Mặt vật nằm lên rộng hơn khoảng 208 px: lấy cả cảnh 512 làm khung (PixelLab cần gói Tier 2 cho ảnh trên 256). Là lần gọi khác: hỏi chủ dự án trước."
+      },
+      "outputs": [
+        "<sceneKey>.png (ảnh PixelLab trả về, bản gốc) và mask.png",
+        "/assets/pixel/<case-slug>/scenes/<sceneKey>.png (cảnh đã có vật: asset_process inpaint_merge chỉ chép pixel trong mask)"
+      ],
+      "notes": [
+        "Vật nên tạo trước: cảnh mới vẽ bằng PixelLab thì ghi mọi vật điều tra vào visualDescription của cảnh để PixelLab vẽ luôn (template outdoor-map, interior). Chỉ cảnh lấy từ thư viện hoặc biến thể chưa có vật mới cần bước này.",
+        "Không bao giờ dán ảnh vật lên cảnh (asset_variant compose không còn add): lệch phối cảnh, ánh sáng, nhìn rất xấu.",
+        "Muốn thêm vật đè lên một vùng thì inpaint cho chuẩn: mask tự do (polygon) tô RỘNG theo cả mặt vật nằm lên, không ôm sát vật. Ô nhỏ 26x17 quanh một cuốn sổ chỉ ra cuốn sổ bé xíu (màn tân thủ, sáng 17/11); mask phủ cả mặt quầy ra mặt quầy mới đủ thư xé, sổ khách, khay trà.",
+        "Một request cho cả cảnh: mọi vật cần vẽ của cảnh đi chung một lần gọi. Vật ở nhiều mặt khác nhau thì inpaint_prep nhận nhiều polygon (vẫn một mask) nếu lọt một khung; không lọt thì gọi riêng từng mặt.",
+        "description kể mọi vật phải có trên mặt đó, kể cả vật cũ muốn giữ: trong mask PixelLab vẽ lại hết. Vật cũ trong mask có thể đổi chỗ hay mất: đo lại ô bấm và clueZones; mẩu vật cũ sót ngoài mask thì xóa (asset_variant compose remove).",
+        "Sau khi ghép: runtime.itemPlacements[] của vật để asset rỗng, ô bấm phủ đúng vật (inpaint_merge với boxes trả placements). items[].imageUrl chỉ là icon 64x64 cho túi đồ.",
+        "Đối chứng: màn tân thủ, ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json (mặt quầy trà lâu: inpaint_image khung 256, mask đa giác phủ cả mặt quầy, 10 lượt)."
+      ],
+      "record": "ai-game-docs/pixel-case-tan-thu/inpaint/recipe.json"
+    },
+    {
+      "id": "icon-sheet",
+      "step": 7,
+      "title": "Tấm icon túi đồ 256x256, lưới 4x4",
+      "tool": "create_image_pro",
+      "fixedParams": { "width": 256, "height": 256, "no_background": true, "seed": 707 },
+      "grid": { "columns": 4, "rows": 4, "cell": 64, "maxItems": 16, "order": "trái sang phải, trên xuống dưới (ô 0 = hàng 1 cột 1)" },
+      "promptParam": "description",
+      "promptParts": [
+        "Inventory icon sheet for a {{era}} detective game: {{itemCountWord}} separate small objects arranged in a neat 4 by 4 grid, each object centred in its own 64 by 64 cell with empty space around it, all drawn at the same scale, front three-quarter view, dark outline, warm muted {{era}} palette.",
+        "{{gridRows}}",
+        "{{emptyCellsNote}}",
+        "No text, no letters, no numbers, no grid lines, no background."
+      ],
+      "placeholders": {
+        "era": { "default": "Victorian", "description": "Thời kỳ/phong cách chung của dự án." },
+        "itemCountWord": { "description": "Số vật bằng chữ thường (sixteen, thirteen...). Builder tự điền." },
+        "gridRows": { "description": "\"Row 1: a; b; c; d. Row 2: ...\" theo đúng thứ tự ô." },
+        "emptyCellsNote": { "default": "", "description": "Khi ít hơn 16 vật: câu dặn để trống các ô còn lại (builder tự điền, chưa có lần chạy đối chứng)." }
+      },
+      "references": [
+        { "param": "style_image_url", "url": "{{interiorImageUrl}}", "usage": "một nội thất đã xong của cùng case (https://api.pixellab.ai/mcp/images/<interior_job_id>/download?index=0) để icon cùng bảng màu, viền và đổ bóng với các phòng", "usageSent": false }
+      ],
+      "costGenerations": 10,
+      "outputs": ["sheet-256.png (bản gốc)", "/assets/pixel/<case-slug>/items/<iconKey>.png (cắt từng ô 64x64)"],
+      "notes": [
+        "Tối đa 16 vật mỗi tấm; nhiều hơn thì chia thành nhiều tấm.",
+        "Ghi lại thứ tự ô -> tên icon ngay khi gửi request; khi cắt, đối chiếu từng ô với mô tả."
+      ],
+      "example": {
+        "requestId": "items-sheet",
+        "values": {
+          "era": "Victorian",
+          "itemCountWord": "sixteen",
+          "gridRows": "Row 1: brass magnifying glass with dark wooden handle; tiny glass medicine vial with cork and a torn paper seal strip over the cork; small paper receipt slip with a scribbled signature; small brown leather coachman logbook. Row 2: thick pawnbroker ledger bound in dark green cloth; pawn ticket card tied with red string; folded blank white letter; brown glass chemical bottle with dropper cap. Row 3: folded letter covered in faint brown handwriting scribbles; small round glue pot with a brush; open small wooden jewelry box with red velvet lining, empty; small black leather notebook with a ribbon bookmark. Row 4: gold ring with a green jade stone; folded legal document with a red wax seal; small wooden tray holding seven tiny medicine vials in a row; old brass key."
+        }
+      }
+    },
+    {
+      "id": "integrate",
+      "step": 8,
+      "title": "Đưa vào game (Phaser, nearest-neighbour)",
+      "tool": null,
+      "promptParts": [],
+      "costGenerations": 0,
+      "outputs": ["scene.runtime.render", "scene.runtime.transitions (cửa)", "scene.runtime.spawnPoints[\"from:<sceneId>\"]"],
+      "notes": [
+        "Mỗi cảnh pixel có runtime.render (xem SCENE_RUNTIME_SCHEMA.md, mục Pixel render mode); runtime.width/height = native x pixelScale.",
+        "Cửa: transition trên bản đồ dẫn vào nội thất và transition ở ngưỡng cửa nội thất dẫn ra; spawnPoints[\"from:<sceneId>\"] đặt người chơi tại cửa vừa đi qua.",
+        "Validate bằng backend trước khi seed/publish."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "caseId": "case-reference-dem-khoa-so-vi",
+  "sourceSha256": "1150a9ffec89ca76377d0bd6ce2cb1520ccd72efe73a14c6efb2ddfbc80e5a87",
+  "validator": "CaseValidationService",
+  "isValid": true,
+  "errors": [],
+  "scope": "Authoritative schema, reference, runtime and reachability validation; no database or provider calls. Asset files and browser gameplay require separate checks."
+}

@@ -1,0 +1,53 @@
+{
+  "character": {
+    "id": "628a9ad5-fbd3-492d-afa8-1165185dd083",
+    "name": "Idle",
+    "prompt": "Victorian coachman, black top hat, long navy blue coat with brass buttons, brown leather gloves, black boots",
+    "size": {
+      "width": 96,
+      "height": 96
+    },
+    "directions": 8,
+    "view": "low top-down"
+  },
+  "spritesheet": {
+    "path": "Trinh_Luc-Idle.png",
+    "cell_size": {
+      "width": 116,
+      "height": 116
+    },
+    "sheet_size": {
+      "width": 1044,
+      "height": 232
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "npc_idle_south",
+        "animation_group_id": "f82e943f-82dc-411e-80e1-d746b9719cbc",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-25T04:54:48.185896+00:00"
+}

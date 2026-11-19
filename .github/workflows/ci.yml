@@ -10,7 +10,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -40,6 +40,12 @@ jobs:
       - name: Test contextual role guide progress
         working-directory: src/FE
         run: npm run test:guide
+      - name: Test speech blips, music, weather and the CC0 sound pack
+        working-directory: src/FE
+        run: npm run test:atmosphere
+      - name: Test the music library index (files, sha256, licences, areas, sizes)
+        working-directory: src/FE
+        run: npm run test:music
       - name: Install browser for UI tests
         working-directory: src/FE
         run: npx playwright install --with-deps chromium

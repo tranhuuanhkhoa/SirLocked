@@ -1,0 +1,14 @@
+{
+ "tool": "create_image_pro",
+ "width": 96,
+ "height": 96,
+ "no_background": true,
+ "seed": 707,
+ "description": "a young Vietnamese apothecary apprentice around eighteen with a slender build and neat parted black hair. He wears a white shop coat over a grey waistcoat, dark trousers and black shoes, holding a small amber glass medicine bottle. Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+ "reference_images": [
+  {
+   "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+   "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity"
+  }
+ ]
+}

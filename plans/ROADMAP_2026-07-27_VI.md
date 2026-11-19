@@ -303,7 +303,7 @@ Case đang chơi có thể bị admin republish giữa chừng → room đọc c
 
 - **Immutable revision**: mỗi lần publish tạo `caseRevision` (số tăng dần) và snapshot bất biến; `gameRooms` lưu `caseId + caseRevision`; runtime luôn đọc theo revision đã ghim.
 - **Resume**: room `IN_PROGRESS` quá `Room__IdleMinutes` không bị abandon ngay mà chuyển `PAUSED`; cả hai người quay lại → tiếp tục từ state đã lưu (state đã bền vững sẵn nhờ plan 008).
-- Trang "Trận đang dở" trong `#/detective` liệt kê room có thể tiếp tục.
+- Trang "Trận đang dở" trong `/detective` liệt kê room có thể tiếp tục.
 
 ### Test
 
@@ -322,7 +322,7 @@ Case đang chơi có thể bị admin republish giữa chừng → room đọc c
 
 ### Thiết kế
 
-- Route mới `#/join/:roomCode` tự điền mã và join khi đã đăng nhập; nếu chưa đăng nhập thì lưu ý định (`pendingJoin`) và tiếp tục sau khi login.
+- Route mới `/join/:roomCode` tự điền mã và join khi đã đăng nhập; nếu chưa đăng nhập thì lưu ý định (`pendingJoin`) và tiếp tục sau khi login.
 - Lobby có nút **Sao chép link**, **QR** (sinh client-side, không thêm dependency nặng — dùng canvas tự vẽ hoặc thư viện QR nhỏ), và nút chia sẻ Web Share API khi có.
 - Backend: không đổi. Chỉ cần route FE + validate mã như hiện tại.
 

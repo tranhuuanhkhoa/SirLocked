@@ -10,32 +10,32 @@ Routes are defined in `src/FE/Client/js/main.js`.
 
 | Hash route | Page module | Access |
 | --- | --- | --- |
-| `#/login` | `loginPage.js` | Anonymous |
-| `#/cases` | `casesPage.js` | Logged-in user |
-| `#/cases/{caseId}` | `caseDetailPage.js` | Logged-in user |
-| `#/create-room` | `createRoomPage.js` | Logged-in user |
-| `#/join` | `joinRoomPage.js` | Logged-in user |
-| `#/lobby/{roomId}` | `lobbyPage.js` | Room member |
-| `#/game/{roomId}` | `gamePage.ts` | Room member |
-| `#/result/{roomId}` | `resultPage.js` | Room member |
-| `#/admin` | `adminDashboardPage.js` | `ADMIN` |
-| `#/admin/cases` | `adminCasesPage.js` | `ADMIN` |
-| `#/admin/cases/{caseId}` | `adminCaseDetailPage.js` | `ADMIN` |
-| `#/admin/import` | `adminImportPage.js` | `ADMIN` |
-| `#/admin/ai` | `adminAiPage.js` | `ADMIN` or `VIP` |
+| `/login` | `loginPage.js` | Anonymous |
+| `/cases` | `casesPage.js` | Logged-in user |
+| `/cases/{caseId}` | `caseDetailPage.js` | Logged-in user |
+| `/create-room` | `createRoomPage.js` | Logged-in user |
+| `/join` | `joinRoomPage.js` | Logged-in user |
+| `/lobby/{roomId}` | `lobbyPage.js` | Room member |
+| `/game/{roomId}` | `gamePage.ts` | Room member |
+| `/result/{roomId}` | `resultPage.js` | Room member |
+| `/admin` | `adminDashboardPage.js` | `ADMIN` |
+| `/admin/cases` | `adminCasesPage.js` | `ADMIN` |
+| `/admin/cases/{caseId}` | `adminCaseDetailPage.js` | `ADMIN` |
+| `/admin/import` | `adminImportPage.js` | `ADMIN` |
+| `/admin/ai` | `adminAiPage.js` | `ADMIN` or `VIP` |
 
 Default redirect:
 
-- Anonymous user: `#/login`
-- `ADMIN`: `#/admin`
-- `VIP`: `#/admin/ai`
-- `PLAYER`: `#/cases`
+- Anonymous user: `/login`
+- `ADMIN`: `/admin`
+- `VIP`: `/admin/ai`
+- `PLAYER`: `/cases`
 
 ## Navigation
 
 Logged-in users see:
 
-- brand link to `#/cases`,
+- brand link to `/cases`,
 - Cases,
 - Create Room,
 - Join Room,
@@ -52,7 +52,7 @@ Logged-in users see:
 - adds `Content-Type: application/json`,
 - adds JWT bearer token when present,
 - unwraps backend `{ success, message, data, errors }`,
-- redirects to `#/login` on `401` if a session exists,
+- redirects to `/login` on `401` if a session exists,
 - throws `{ status, message, errors }` on failure.
 
 API wrappers:
@@ -92,7 +92,7 @@ API wrappers:
 
 - Select a published case.
 - Call `POST /api/rooms`.
-- Navigate to `#/lobby/{roomId}`.
+- Navigate to `/lobby/{roomId}`.
 
 ### Join Room
 

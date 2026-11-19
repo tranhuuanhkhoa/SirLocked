@@ -62,6 +62,8 @@ await db.PingAsync();
 await db.EnsureIndexesAsync();
 await SeedUserAsync(db, "it_investigator", "it_investigator@tests.invalid", password);
 await SeedUserAsync(db, "it_interrogator", "it_interrogator@tests.invalid", password);
+// A brand-new account that has not picked Kỳ cựu / Nhập môn yet (tests/tutorial-full-stack.spec.ts).
+await SeedUserAsync(db, "it_newcomer", "it_newcomer@tests.invalid", password, experiencePath: null);
 
 var fixturePath = args.ElementAtOrDefault(5);
 var isSuppliedCase = !string.IsNullOrWhiteSpace(fixturePath);
@@ -134,7 +136,8 @@ await db.Cases.ReplaceOneAsync(
     new ReplaceOptions { IsUpsert = true });
 Console.WriteLine($"Seeded Crack full-stack data into temporary database {databaseName}.");
 
-static async Task SeedUserAsync(MongoDbContext db, string name, string email, string password)
+static async Task SeedUserAsync(MongoDbContext db, string name, string email, string password,
+    string? experiencePath = TutorialRules.PathVeteran)
 {
     var user = new User
     {
@@ -145,6 +148,8 @@ static async Task SeedUserAsync(MongoDbContext db, string name, string email, st
         Role = UserRole.Player,
         Status = UserStatus.Active,
         IsEmailVerified = true,
+        // Test detectives are veterans: no Kỳ cựu / Nhập môn prompt and no tutorial gate in the flows under test.
+        ExperiencePath = experiencePath,
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
     };

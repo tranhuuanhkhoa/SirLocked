@@ -1,0 +1,32 @@
+{
+  "name": "sirlocked-studio-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server (stdio) cho xuong vu an Sir Locked: bridge, thu vien hinh, xu ly anh, bien the, chay thu.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "sirlocked-studio-mcp": "dist/src/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "test": "tsc -p tsconfig.json && node --test --test-concurrency=1 \"dist/test/**/*.test.js\"",
+    "e2e:local": "node scripts/e2e-local.mjs",
+    "import:library": "node scripts/import-library.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "ajv": "8.20.0",
+    "fflate": "0.8.3",
+    "sharp": "0.35.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
+}

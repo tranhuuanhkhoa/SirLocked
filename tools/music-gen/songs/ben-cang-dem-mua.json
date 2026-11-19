@@ -1,0 +1,17 @@
+{
+ "title": "Bến cảng đêm mưa",
+ "description": "Bến cảng Hàng Đường đêm mưa: La thứ, chậm, bass tam giác, rải hợp âm xung vuông, giai điệu xung hẹp, vang dội nhẹ.",
+ "bpm": 76,
+ "beatsPerBar": 4,
+ "bars": 16,
+ "chords": ["Am", "F", "C", "G", "Am", "F", "Dm", "E"],
+ "parts": [
+  {"name": "bass", "wave": "tri", "gain": 0.55, "pattern": "root-half", "octave": 2, "accent": [0.9, 0.7], "durBeats": 1.9, "env": [0.01, 0.2, 0.7, 0.2]},
+  {"name": "arp", "wave": "pulse", "duty": 0.5, "gain": 0.12, "pattern": "arp", "octave": 3, "arp": [0, 1, 2, "1+12"], "stepBeats": 0.5, "durBeats": 0.45, "accent": [0.45, 0.35], "pan": -0.3, "env": [0.003, 0.08, 0.3, 0.05]},
+  {"name": "pad", "wave": "tri", "gain": 0.1, "pattern": "pad", "octave": 4, "velocity": 0.18, "durBeats": 4, "pan": 0.3, "env": [0.6, 0.5, 0.7, 0.8]},
+  {"name": "lead", "wave": "pulse", "duty": 0.125, "gain": 0.2, "pattern": "melody", "stepBeats": 2, "durRatio": 0.8, "velocity": 0.55, "vibrato": 0.004, "pan": 0.15, "env": [0.02, 0.2, 0.6, 0.3],
+   "melody": "E5 . C5 D5 | E5 . G5 E5 | D5 . C5 A4 | B4 . . . | A4 . C5 E5 | F5 E5 D5 C5 | B4 . G4 B4 | E5 . . ."}
+ ],
+ "delay": {"leftBeats": 0.75, "rightBeats": 0.5, "feedback": 0.35, "mix": 0.5},
+ "lowpassHz": 4200
+}

@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sir Locked — Kết quả vụ án</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Crimson+Text:ital,wght@0,400;0,600;1,400&amp;family=Source+Code+Pro:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#120d09}
+.s-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+a{color:#07111f}a:hover{color:#9e3f2a}
+.s-brand{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:#fbf6ed;text-decoration:none}
+.s-brand:hover{color:#fbf6ed}
+.s-nav{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
+.s-nav a{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 14px;color:#b3a794;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.18em;text-decoration:none;transition:color .15s}
+.s-nav a:hover{color:#efd486}
+.s-nav a[aria-current="page"]{color:#efd486}
+.s-nav a[aria-current="page"]::after{content:"";position:absolute;left:14px;right:14px;bottom:6px;height:2px;background:#bf3b2c;box-shadow:0 2px 2px rgba(0,0,0,.6)}
+.s-nav a[aria-current="page"]::before{content:"";position:absolute;right:8px;bottom:3px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291,#c0392b 45%,#6e1a12);box-shadow:0 2px 3px rgba(0,0,0,.6)}
+.s-nav a:focus-visible,.s-brand:focus-visible,.s-topbtn:focus-visible{outline:2px solid #efd486;outline-offset:-3px}
+.s-topbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px;min-height:44px;padding:0 12px;box-sizing:border-box;border:1px solid rgba(239,212,134,.28);border-radius:2px;background:rgba(255,255,255,.02);color:#eee4d2;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:border-color .15s,color .15s}
+.s-topbtn:hover{border-color:#efd486;color:#efd486}
+.s-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:0 20px;box-sizing:border-box;border:0;border-radius:2px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;letter-spacing:.18em;text-decoration:none;cursor:pointer;transition:background-color .12s,color .12s,transform .12s,box-shadow .12s}
+.s-btn:active:not(:disabled){transform:translateY(2px)}
+.s-btn:focus-visible{outline:2px solid #efd486;outline-offset:3px}
+.s-paper .s-btn:focus-visible{outline-color:#07111f}
+.s-btn-red{background:#9e3f2a;color:#fbf6ed;box-shadow:0 3px 0 #6b2a1c,0 10px 20px rgba(158,63,42,.3)}
+.s-btn-red:hover:not(:disabled){background:#b2472f;color:#fbf6ed}
+.s-btn-red:disabled{cursor:not-allowed;background:#5a4a3e;color:#c9bfae;box-shadow:0 3px 0 #3a3029}
+.s-btn-ink{background:transparent;color:#07111f;box-shadow:inset 0 0 0 1.5px #07111f}
+.s-btn-ink:hover:not(:disabled){background:#07111f;color:#fbf6ed}
+.s-btn-ink:disabled{cursor:not-allowed;color:#6b6257;box-shadow:inset 0 0 0 1.5px rgba(91,82,72,.35)}
+.s-btn-gold{background:transparent;color:#efd486;box-shadow:inset 0 0 0 1.5px rgba(239,212,134,.6)}
+.s-btn-gold:hover:not(:disabled){background:rgba(239,212,134,.12);color:#fbf6ed}
+.s-btn-sm{min-height:36px;padding:0 14px;font-size:11px}
+.s-link{display:inline-flex;align-items:center;min-height:44px;color:#5b5248;font-size:16px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(91,82,72,.45);text-underline-offset:3px}
+.s-link:hover{color:#9e3f2a}
+.s-link-gold{display:inline-flex;align-items:center;gap:8px;min-height:44px;color:#efd486;font-family:'Crimson Text',Georgia,serif;font-size:17px;font-style:italic;text-decoration:underline;text-decoration-color:rgba(239,212,134,.4);text-underline-offset:4px}
+.s-link-gold:hover{color:#fbf6ed;text-decoration-color:#fbf6ed}
+.s-link:focus-visible,.s-link-gold:focus-visible{outline:2px solid #efd486;outline-offset:2px}
+.s-pin{position:absolute;z-index:3;width:18px;height:18px;border-radius:50%;box-shadow:0 4px 5px rgba(0,0,0,.55)}
+.s-pin.red{background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%)}
+.s-pin.gold{background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%)}
+.s-chip{display:inline-flex;align-items:center;min-height:24px;padding:0 8px;border-radius:2px;background:rgba(251,246,237,.7);box-shadow:inset 0 0 0 1px rgba(79,69,54,.35);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.1em;color:#3b3328;white-space:nowrap}
+.s-chip.dark{background:#0d1014;color:#efd486;box-shadow:none}
+.s-stamp{display:inline-block;padding:6px 12px;border:4px double currentColor;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.2em;transform:rotate(-8deg);mix-blend-mode:multiply}
+@keyframes sLens{0%{clip-path:circle(0px at 50% 46%)}16%{clip-path:circle(66px at 50% 46%)}34%{clip-path:circle(66px at 50% 46%)}100%{clip-path:circle(150% at 50% 46%)}}
+@keyframes sZoom{0%,34%{transform:scale(1.14)}100%{transform:none}}
+@keyframes sRim{0%{width:0;height:0;opacity:0}16%{width:132px;height:132px;opacity:1}34%{width:132px;height:132px;opacity:1}100%{width:3200px;height:3200px;opacity:0}}
+@keyframes sFlicker{0%,100%{opacity:1}8%{opacity:.82}10%{opacity:.97}44%{opacity:.9}47%{opacity:1}71%{opacity:.93}}
+.s-enter{animation:sLens 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-enter-zoom{transform-origin:50% 46%;animation:sZoom 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim{position:absolute;left:50%;top:46%;z-index:6;width:0;height:0;opacity:0;box-sizing:border-box;border-radius:50%;transform:translate(-50%,-50%);border:8px solid #c7a24b;background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.14),rgba(255,255,255,0) 42%);box-shadow:inset 0 0 0 2px #5e4a1c,0 0 0 2px #5e4a1c,0 14px 30px rgba(0,0,0,.6);pointer-events:none;animation:sRim 1.15s cubic-bezier(.7,0,.2,1) both}
+.s-rim::after{content:"";position:absolute;left:85%;top:85%;width:18px;height:90px;margin-left:-9px;border-radius:6px;background:linear-gradient(90deg,#2a1b10,#5a3b22 45%,#2a1b10);box-shadow:0 0 0 2px #5e4a1c;transform-origin:50% 0;transform:rotate(-45deg)}
+.s-lamp{animation:sFlicker 7s linear infinite}
+/* ---- Result (rs-) ---- */
+@property --rs-n{syntax:'<integer>';inherits:false;initial-value:0}
+.rs-wrap{display:flex;flex-direction:column;gap:30px}
+.rs-wrap [hidden]{display:none !important}
+.rs-mini{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#5b5248;text-transform:uppercase}
+.rs-mini.gold{color:#efd486}
+.rs-mini.muted{color:#b3a794}
+.rs-kick{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:600;letter-spacing:.2em;color:#5b5248;text-transform:uppercase}
+.rs-kick.gold{color:#efd486}
+.rs-kick.red{color:#9e3f2a}
+.rs-h2{margin:2px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:700;line-height:1.1;color:#07111f}
+.rs-h2.light{color:#fbf6ed}
+.rs-card{position:relative;box-sizing:border-box;box-shadow:0 1px 0 rgba(0,0,0,.2),0 22px 44px rgba(0,0,0,.55)}
+.rs-dark{background:#0d1014;color:#eee4d2;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 0 1px rgba(239,212,134,.16),0 24px 48px rgba(0,0,0,.6)}
+.rs-margin{position:absolute;top:0;bottom:0;left:24px;width:1.5px;background:rgba(182,64,48,.5)}
+.rs-up{text-transform:uppercase}
+.rs-msm{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;border-radius:50%;background:#1a2c42;box-shadow:inset 0 0 0 1.5px #c7a24b;color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:13px;font-weight:700;font-style:normal;letter-spacing:.02em}
+/* title row */
+.rs-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 24px}
+.rs-title{position:relative;padding:12px 26px;background:#0d1014;box-shadow:0 14px 30px rgba(0,0,0,.55);transform:rotate(-1deg)}
+.rs-title h1{margin:2px 0 0 10px;font-family:'Playfair Display',Georgia,serif;font-size:34px;font-weight:700;line-height:1.1;color:#fbf6ed}
+.rs-aside{flex:1 1 320px;max-width:560px;margin:0;font-size:18px;font-style:italic;line-height:1.4;color:#d9cfbd}
+/* hero: newspaper + performance */
+.rs-hero{display:grid;grid-template-columns:minmax(0,1fr) 436px;gap:34px;align-items:stretch}
+.rs-news{padding:18px 26px 22px;background:#e3dbc9;color:#15120e;transform:rotate(-.35deg)}
+.rs-mast{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;padding-bottom:7px;border-bottom:3px double rgba(58,52,43,.6);font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.2em;color:#3a342b}
+.rs-mast span+span{color:#9e3f2a}
+.rs-newskick{margin-top:14px}
+.rs-headline{margin:4px 0 0;font-family:'Playfair Display',Georgia,serif;font-size:60px;font-weight:700;line-height:1.02;letter-spacing:-.012em;color:#15120e}
+.rs-headline span{display:block}
+.rs-deck{margin:0;font-size:20px;font-style:italic;line-height:1.38;color:#3a342b}
+.rs-stampbox{position:absolute;z-index:2;top:62px;right:22px;pointer-events:none}
+.rs-stamp{display:block;width:250px;height:auto;transform:rotate(-9deg);mix-blend-mode:multiply}
+.rs-newsbody{display:grid;grid-template-columns:332px minmax(0,1fr);gap:24px;margin-top:16px;padding-top:15px;border-top:1px solid rgba(58,52,43,.5)}
+.rs-photo{margin:0}
+.rs-photo svg{display:block;width:100%;height:auto;box-shadow:0 0 0 1px rgba(58,52,43,.45)}
+.rs-cap{margin:7px 0 0;font-size:15px;font-style:italic;line-height:1.3;color:#3a342b}
+.rs-cap .rs-mini{display:block;margin-top:3px;font-style:normal}
+.rs-newsright{display:flex;flex-direction:column;gap:12px;min-width:0;padding-left:22px;border-left:1px solid rgba(58,52,43,.4)}
+.rs-facts{display:flex;flex-direction:column;margin:0;padding:0;border-top:1px solid rgba(58,52,43,.4)}
+.rs-fact{display:grid;grid-template-columns:112px minmax(0,1fr);gap:12px;align-items:center;padding:9px 0;border-bottom:1px dashed rgba(58,52,43,.4)}
+.rs-fact:last-child{border-bottom:0;padding-bottom:0}
+.rs-fact dt{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#5b5248;text-transform:uppercase}
+.rs-fact dd{margin:0;min-width:0;color:#15120e}
+.rs-fname{font-family:'Playfair Display',Georgia,serif;font-size:23px;font-weight:700;line-height:1.1}
+.rs-ftime{font-family:'Source Code Pro',ui-monospace,monospace;font-size:26px;font-weight:700;letter-spacing:.04em;line-height:1.1;font-variant-numeric:tabular-nums}
+.rs-team{display:flex;flex-wrap:wrap;gap:8px 20px}
+.rs-member{display:flex;align-items:center;gap:10px}
+.rs-mname{display:block;font-size:18px;font-weight:600;line-height:1.15;color:#15120e}
+.rs-mrole{display:block;margin-top:1px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.rs-mrole.inv{color:#2f6363}
+.rs-mrole.int{color:#7a3f27}
+.rs-perf{display:flex;flex-direction:column;padding:18px 24px 20px;transform:rotate(.5deg)}
+.rs-perfhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.rs-scorerow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:6px}
+.rs-score{display:flex;align-items:flex-end;gap:12px;margin:0}
+.rs-num{position:relative;display:inline-block;--rs-n:0;counter-reset:rsn var(--rs-n);font-family:'Playfair Display',Georgia,serif;font-size:98px;font-weight:700;line-height:.84;font-variant-numeric:lining-nums tabular-nums;color:#fbf6ed;text-shadow:0 3px 0 rgba(0,0,0,.45)}
+.rs-num::after{content:counter(rsn);position:absolute;left:0;top:0;visibility:hidden}
+.rs-unit{display:flex;flex-direction:column;gap:4px;padding-bottom:6px}
+.rs-seal{display:block;flex:none;width:110px;height:110px;filter:drop-shadow(0 8px 8px rgba(0,0,0,.55))}
+.rs-ruler{margin-top:10px}
+.rs-rulerhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 10px}
+.rs-next{font-size:16px;font-style:italic;color:#cfc4b1}
+.rs-track{position:relative;display:flex;height:10px;margin:21px 0 23px;box-shadow:inset 0 0 0 1px rgba(239,212,134,.24)}
+.rs-zone{position:relative;box-sizing:border-box;height:100%;background:rgba(239,212,134,.06)}
+.rs-zone+.rs-zone{box-shadow:inset 1px 0 0 rgba(239,212,134,.45)}
+.rs-zone.is-on{background:var(--rs-gc)}
+.rs-zone i{position:absolute;top:15px;left:50%;transform:translateX(-50%);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;font-style:normal;letter-spacing:.1em;color:#b3a794}
+.rs-zone.is-on i{color:#efd486}
+.rs-zone b{position:absolute;bottom:14px;left:0;transform:translateX(-50%);font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:600;color:#b3a794}
+.rs-mark{position:absolute;z-index:2;top:-6px;bottom:-4px;width:2px;margin-left:-1px;background:#efd486;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+.rs-mark::before{content:"";position:absolute;top:-9px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3a291,#c0392b 45%,#6e1a12);box-shadow:0 2px 3px rgba(0,0,0,.6)}
+.rs-bars{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 22px;margin:7px 0 0;padding:0;list-style:none}
+.rs-bar{display:flex;flex-direction:column;gap:6px;min-width:0}
+.rs-bartop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rs-barname{font-size:16px;line-height:1.2;color:#e9dfcc}
+.rs-barval{font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:#efd486;white-space:nowrap}
+.rs-barval.is-zero{color:#e8a58c}
+.rs-bartrack{position:relative;display:block;height:8px;background:#1b1f25 repeating-linear-gradient(90deg,transparent 0 calc(25% - 1px),rgba(239,212,134,.16) calc(25% - 1px) 25%);box-shadow:inset 0 1px 2px rgba(0,0,0,.7),inset 0 0 0 1px rgba(239,212,134,.16)}
+.rs-fill{position:absolute;top:0;bottom:0;left:0;background:linear-gradient(180deg,#f6e3a6,#c7a24b 55%,#8a6e2e);box-shadow:0 0 8px rgba(239,212,134,.25);transform-origin:0 50%}
+.rs-pen{margin-top:14px;padding-top:11px;border-top:1px dashed rgba(239,212,134,.24)}
+.rs-penhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.rs-penchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.rs-penchip{display:inline-flex;align-items:center;min-height:26px;padding:0 9px;background:rgba(158,63,42,.2);box-shadow:inset 0 0 0 1px rgba(232,165,140,.45);color:#f0bba8;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.06em;white-space:nowrap}
+.rs-eq{font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;font-weight:700;letter-spacing:.04em;font-variant-numeric:tabular-nums;color:#efd486;white-space:nowrap}
+.rs-flags{display:flex;flex-wrap:wrap;gap:8px;margin:11px 0 0;padding:0;list-style:none}
+.rs-flag{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px 0 8px;background:rgba(79,154,154,.13);box-shadow:inset 0 0 0 1px rgba(143,208,207,.45);color:#a9dcdb;font-family:'Source Code Pro',ui-monospace,monospace;font-size:11px;font-weight:700;letter-spacing:.08em;white-space:nowrap}
+.rs-flag .ic-off{display:none}
+.rs-flag.is-off{background:transparent;box-shadow:inset 0 0 0 1px rgba(179,167,148,.4);color:#b3a794}
+.rs-flag.is-off .ic-on{display:none}
+.rs-flag.is-off .ic-off{display:inline}
+/* analysis ledger */
+.rs-ana{padding:20px 28px 14px 50px;background:#f4efe3;color:#07111f;transform:rotate(.12deg)}
+.rs-anahead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 16px}
+.rs-tally{display:inline-flex;align-items:center;gap:10px}
+.rs-dots{display:inline-flex;gap:5px}
+.rs-dot{width:10px;height:10px;border-radius:50%;background:#2f6363}
+.rs-dot.bad{background:transparent;box-shadow:inset 0 0 0 1.5px #9e3f2a}
+.rs-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 44px;margin-top:14px}
+.rs-colh{margin:0;padding-bottom:7px;border-bottom:1.5px solid rgba(182,64,48,.6)}
+.rs-rows{margin:0;padding:0;list-style:none}
+.rs-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:0 12px;padding:11px 0 12px;border-bottom:1px solid rgba(79,154,154,.4)}
+.rs-row:last-child{border-bottom:0}
+.rs-ic{grid-column:1;grid-row:1 / span 2;align-self:start;width:22px;height:22px;margin-top:2px}
+.rs-row.is-ok .rs-ic{color:#2f6363}
+.rs-row.is-bad .rs-ic{color:#9e3f2a}
+.rs-rk{grid-column:2;grid-row:1;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#5b5248;text-transform:uppercase}
+.rs-ra{grid-column:2 / span 2;grid-row:2;margin:4px 0 0;font-size:17px;line-height:1.32;color:#2a2318}
+.rs-q{margin-right:4px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#5b5248}
+.rs-row.is-bad .rs-av{color:#5b5248;text-decoration:line-through;text-decoration-color:rgba(158,63,42,.85);text-decoration-thickness:1.5px}
+.rs-ok,.rs-no{grid-column:3;grid-row:1;justify-self:end;display:inline-block;padding:0 7px;border:3px double #2f6363;color:#2f6363;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.14em;line-height:1.5;text-transform:uppercase;--rot:-2deg;transform:rotate(var(--rot));mix-blend-mode:multiply}
+.rs-no{border-color:#9e3f2a;color:#9e3f2a;--rot:2deg}
+.rs-truth{display:inline-block;max-width:100%}
+.rs-arrow{margin:0 7px 0 1px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:14px;font-weight:700;color:#9e3f2a}
+.rs-truth b{margin-right:4px;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9e3f2a}
+.rs-truth span{font-weight:600;color:#07111f}
+/* your accusation vs the truth */
+.rs-pair{position:relative;display:grid;grid-template-columns:404px minmax(0,1fr);gap:64px;align-items:stretch}
+.rs-yours{padding:20px 22px 22px 44px;background:#fbf6ed;color:#07111f;transform:rotate(-.6deg)}
+.rs-truthc{display:flex;flex-direction:column;padding:20px 24px 22px;transform:rotate(.35deg)}
+.rs-cardhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;min-height:30px;padding-bottom:8px;border-bottom:1.5px solid rgba(182,64,48,.55)}
+.rs-truthc .rs-cardhead{border-bottom-color:rgba(239,212,134,.3)}
+.rs-label2{margin:0;font-family:'Source Code Pro',ui-monospace,monospace;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#07111f}
+.rs-label2.gold{color:#efd486}
+.rs-confirm{display:inline-flex;align-items:center;gap:10px;padding-right:4px}
+.rs-confirm .rs-msm{position:relative;width:28px;height:28px;font-size:11px}
+.rs-confirm .rs-msm::after{content:"";position:absolute;right:-7px;bottom:-5px;width:13px;height:13px;border-radius:50%;background:#2f6363 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6.2l2 2 4-4.4' fill='none' stroke='%23fbf6ed' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;box-shadow:0 0 0 1.5px #fbf6ed}
+.rs-suspect{display:flex;align-items:center;gap:14px;margin-top:14px}
+.rs-mono{display:grid;place-items:center;flex:none;width:58px;height:58px;border-radius:50%;background:#1a2c42;box-shadow:inset 0 0 0 2px #c7a24b,0 0 0 3px #fbf6ed,0 0 0 4px rgba(26,44,66,.4);color:#efd486;font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:700;letter-spacing:.02em}
+.rs-truthc .rs-mono{box-shadow:inset 0 0 0 2px #c7a24b,0 0 0 3px #0d1014,0 0 0 4px rgba(239,212,134,.45)}
+.rs-sname{display:block;font-family:'Playfair Display',Georgia,serif;font-size:27px;font-weight:700;line-height:1.1;color:#07111f}
+.rs-truthc .rs-sname{color:#fbf6ed}
+.rs-srole{display:block;margin-top:4px}
+.rs-claims{margin:14px 0 0;padding:0}
+.rs-claims>div{padding:9px 0 10px;border-top:1px solid rgba(79,154,154,.4)}
+.rs-claims dt{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#5b5248;text-transform:uppercase}
+.rs-claims dd{margin:3px 0 0;font-size:17px;line-height:1.35;color:#2a2318}
+.rs-evid{padding-top:12px;border-top:1px dashed rgba(91,82,72,.45)}
+.rs-evk{display:flex;align-items:center;gap:8px;margin:0;font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:700;color:#07111f}
+.rs-evk svg{flex:none;color:#9e3f2a}
+.rs-evlist{display:flex;flex-direction:column;gap:6px;margin:8px 0 0;padding:0;list-style:none}
+.rs-evlist li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:baseline;font-size:16px;line-height:1.3;color:#2a2318}
+.rs-evc{font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;color:#7a3f27;text-transform:uppercase}
+.rs-truthtop{display:grid;grid-template-columns:236px minmax(0,1fr);gap:22px;align-items:start}
+.rs-truthtop .rs-suspect{flex-wrap:wrap}
+.rs-truthtop .rs-claims{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px;margin-top:12px}
+.rs-truthc .rs-claims>div{border-top-color:rgba(239,212,134,.22)}
+.rs-truthc .rs-claims dt{color:#efd486}
+.rs-truthc .rs-claims dd{font-size:17px;color:#e9dfcc}
+.rs-edge{display:block}
+.rs-link{position:absolute;z-index:4;top:86px;left:404px;width:64px;height:40px;pointer-events:none}
+.rs-link svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.rs-vs{position:absolute;left:50%;top:50%;display:grid;place-items:center;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%);box-shadow:0 4px 6px rgba(0,0,0,.6),inset 0 0 0 1.5px rgba(94,74,28,.8);color:#1d1510;font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:700;line-height:1}
+.rs-vs.is-bad{background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%);color:#fbf6ed}
+/* timeline */
+.rs-tlhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 12px;margin-top:auto;padding-top:14px;border-top:1px dashed rgba(239,212,134,.25)}
+.rs-tlhead h3{margin:0}
+.rs-tlwrap{position:relative;margin-top:6px}
+.rs-tlstr{position:absolute;left:0;top:0;width:100%;height:30px;overflow:visible}
+.rs-tl{position:relative;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin:0;padding:0;list-style:none}
+.rs-ev{position:relative;display:flex;flex-direction:column;align-items:center;padding:40px 5px 4px}
+.rs-ev:nth-child(even){padding-top:60px}
+.rs-tpin{position:absolute;z-index:3;top:5px;left:50%;width:18px;height:18px;margin-left:-9px;border-radius:50%;box-shadow:0 4px 5px rgba(0,0,0,.55)}
+.rs-tpin.gold{background:radial-gradient(circle at 35% 30%,#fff1c2 0%,#c7a24b 45%,#5e4a1c 100%)}
+.rs-tpin.red{background:radial-gradient(circle at 35% 30%,#f3a291 0%,#c0392b 45%,#6e1a12 100%)}
+.rs-thread{position:absolute;z-index:2;top:14px;left:50%;width:1.5px;height:39px;margin-left:-.75px;background:#cdb98d;box-shadow:1px 2px 0 rgba(0,0,0,.35)}
+.rs-ev:nth-child(even) .rs-thread{height:59px}
+.rs-tag{position:relative;z-index:1;width:100%;max-width:134px}
+.rs-tagin{position:relative;box-sizing:border-box;min-height:104px;padding:24px 7px 12px;background:linear-gradient(135deg,transparent 11px,#e9dcc0 11.5px) left top/51% 100% no-repeat,linear-gradient(225deg,transparent 11px,#e9dcc0 11.5px) right top/51% 100% no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.25)) drop-shadow(0 10px 10px rgba(0,0,0,.5));color:#07111f;text-align:center}
+.rs-ev:nth-child(even) .rs-tagin{background:linear-gradient(135deg,transparent 11px,#d9c49a 11.5px) left top/51% 100% no-repeat,linear-gradient(225deg,transparent 11px,#d9c49a 11.5px) right top/51% 100% no-repeat}
+.rs-hole{position:absolute;top:8px;left:50%;width:10px;height:10px;margin-left:-5px;border-radius:50%;background:#1d1510;box-shadow:0 0 0 2.5px #c7a24b,0 0 0 3.5px #5e4a1c,inset 0 2px 2px rgba(0,0,0,.7)}
+.rs-ttime{display:block;font-family:'Source Code Pro',ui-monospace,monospace;font-size:16px;font-weight:700;letter-spacing:.04em;font-variant-numeric:tabular-nums;color:#07111f}
+.rs-ttext{margin:4px 0 0;font-size:15px;line-height:1.25;color:#2a2318;text-wrap:balance}
+.rs-tchip{display:inline-block;margin-top:8px;padding:2px 6px;background:#0d1014;color:#efd486;font-family:'Source Code Pro',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;max-width:100%;box-sizing:border-box}
+.rs-ev.is-claim .rs-tagin{outline:1.5px dashed rgba(122,63,39,.7);outline-offset:-6px}
+.rs-ev.is-claim .rs-ttext{font-style:italic;color:#3b3328}
+.rs-ev.is-claim .rs-tchip{padding:1px 5px;background:transparent;border:3px double #9e3f2a;color:#9e3f2a;transform:rotate(-4deg);mix-blend-mode:multiply}
+/* footer */
+.rs-foot{display:flex;flex-wrap:wrap;align-items:center;gap:16px 28px;padding:16px 22px 16px 24px;background:linear-gradient(180deg,#17120e,#0d1014);box-shadow:inset 0 0 0 1px rgba(239,212,134,.18),inset 0 2px 0 rgba(255,255,255,.05),0 24px 48px rgba(0,0,0,.6)}
+.rs-prog{flex:0 1 400px;min-width:0}
+.rs-progrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px}
+.rs-progtxt{margin:0;font-size:18px;line-height:1.3;color:#e9dfcc}
+.rs-progtxt strong{font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#fbf6ed}
+.rs-progtxt .rs-gold{color:#efd486}
+.rs-coin{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 11px 0 7px;background:rgba(239,212,134,.12);box-shadow:inset 0 0 0 1px rgba(239,212,134,.55);color:#efd486;font-family:'Source Code Pro',ui-monospace,monospace;font-size:15px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.rs-coin small{font-size:11px;font-weight:600;letter-spacing:.14em;color:#b3a794}
+.rs-ptrack{display:block;width:100%;height:auto;margin-top:6px;overflow:visible}
+.rs-ptl{display:flex;justify-content:space-between;gap:12px;margin-top:2px}
+.rs-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px 12px;margin-left:auto}
+.rs-fbtn{padding:0 16px;font-size:12px;letter-spacing:.11em}
+.rs-first{order:-1}
+/* motion */
+@keyframes rsSlamA{0%{opacity:0;transform:rotate(-17deg) scale(2.3)}55%{opacity:1;transform:rotate(-8deg) scale(.93)}78%{transform:rotate(-9.4deg) scale(1.03)}100%{opacity:1;transform:rotate(-9deg) scale(1)}}
+@keyframes rsSlamB{0%{opacity:0;transform:rotate(-17deg) scale(2.3)}55%{opacity:1;transform:rotate(-8deg) scale(.93)}78%{transform:rotate(-9.4deg) scale(1.03)}100%{opacity:1;transform:rotate(-9deg) scale(1)}}
+@keyframes rsJoltA{0%,100%{transform:none}35%{transform:translateY(3px)}65%{transform:translateY(-1px)}}
+@keyframes rsJoltB{0%,100%{transform:none}35%{transform:translateY(3px)}65%{transform:translateY(-1px)}}
+@keyframes rsCountA{from{--rs-n:0}}
+@keyframes rsCountB{from{--rs-n:0}}
+@keyframes rsVisA{from,to{visibility:visible}}
+@keyframes rsVisB{from,to{visibility:visible}}
+@keyframes rsHidA{from,to{visibility:hidden}}
+@keyframes rsHidB{from,to{visibility:hidden}}
+@keyframes rsSealA{0%{opacity:0;transform:scale(.3) rotate(-35deg)}65%{opacity:1;transform:scale(1.12) rotate(5deg)}100%{opacity:1;transform:none}}
+@keyframes rsSealB{0%{opacity:0;transform:scale(.3) rotate(-35deg)}65%{opacity:1;transform:scale(1.12) rotate(5deg)}100%{opacity:1;transform:none}}
+@keyframes rsMarkA{from{left:0}}
+@keyframes rsMarkB{from{left:0}}
+@keyframes rsFillA{from{transform:scaleX(0)}}
+@keyframes rsFillB{from{transform:scaleX(0)}}
+@keyframes rsTickA{0%{opacity:0;transform:rotate(var(--rot)) scale(1.9)}100%{opacity:1;transform:rotate(var(--rot)) scale(1)}}
+@keyframes rsTickB{0%{opacity:0;transform:rotate(var(--rot)) scale(1.9)}100%{opacity:1;transform:rotate(var(--rot)) scale(1)}}
+@keyframes rsDrawA{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes rsDrawB{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes rsPinA{0%{opacity:0;transform:scale(0)}70%{opacity:1;transform:scale(1.3)}100%{opacity:1;transform:scale(1)}}
+@keyframes rsPinB{0%{opacity:0;transform:scale(0)}70%{opacity:1;transform:scale(1.3)}100%{opacity:1;transform:scale(1)}}
+@keyframes rsDropA{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes rsDropB{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes rsGrowA{from{transform:scaleY(0)}}
+@keyframes rsGrowB{from{transform:scaleY(0)}}
+.rs-a0{--d0:1.25s}
+.rs-a,.rs-b{--d0:.05s}
+.rs-string{stroke-dasharray:1;stroke-dashoffset:0}
+.rs-a0 .rs-stamp,.rs-a .rs-stamp{animation:rsSlamA .5s var(--d0) cubic-bezier(.2,.8,.2,1) both}
+.rs-b .rs-stamp{animation:rsSlamB .5s var(--d0) cubic-bezier(.2,.8,.2,1) both}
+.rs-a0 .rs-hero,.rs-a .rs-hero{animation:rsJoltA .32s calc(var(--d0) + .28s) ease-out}
+.rs-b .rs-hero{animation:rsJoltB .32s calc(var(--d0) + .28s) ease-out}
+.rs-a0 .rs-num,.rs-a .rs-num{animation:rsCountA 1.25s calc(var(--d0) + .35s) cubic-bezier(.2,.7,.2,1) both}
+.rs-b .rs-num{animation:rsCountB 1.25s calc(var(--d0) + .35s) cubic-bezier(.2,.7,.2,1) both}
+.rs-a0 .rs-num::after,.rs-a .rs-num::after{animation:rsVisA 1.25s calc(var(--d0) + .35s) backwards}
+.rs-b .rs-num::after{animation:rsVisB 1.25s calc(var(--d0) + .35s) backwards}
+.rs-a0 .rs-numv,.rs-a .rs-numv{animation:rsHidA 1.25s calc(var(--d0) + .35s) backwards}
+.rs-b .rs-numv{animation:rsHidB 1.25s calc(var(--d0) + .35s) backwards}
+.rs-a0 .rs-mark,.rs-a .rs-mark{animation:rsMarkA 1.25s calc(var(--d0) + .35s) cubic-bezier(.2,.7,.2,1) both}
+.rs-b .rs-mark{animation:rsMarkB 1.25s calc(var(--d0) + .35s) cubic-bezier(.2,.7,.2,1) both}
+.rs-a0 .rs-seal,.rs-a .rs-seal{animation:rsSealA .55s calc(var(--d0) + 1.5s) cubic-bezier(.2,.8,.2,1) both}
+.rs-b .rs-seal{animation:rsSealB .55s calc(var(--d0) + 1.5s) cubic-bezier(.2,.8,.2,1) both}
+.rs-a0 .rs-fill,.rs-a .rs-fill{animation:rsFillA .9s calc(var(--d0) + .55s + var(--i) * .12s) cubic-bezier(.3,.7,.2,1) both}
+.rs-b .rs-fill{animation:rsFillB .9s calc(var(--d0) + .55s + var(--i) * .12s) cubic-bezier(.3,.7,.2,1) both}
+.rs-a0 .rs-ok,.rs-a .rs-ok,.rs-a0 .rs-no,.rs-a .rs-no{animation:rsTickA .32s calc(var(--d0) + .9s + var(--i) * .09s) cubic-bezier(.2,.8,.2,1) both}
+.rs-b .rs-ok,.rs-b .rs-no{animation:rsTickB .32s calc(var(--d0) + .9s + var(--i) * .09s) cubic-bezier(.2,.8,.2,1) both}
+.rs-a0 .rs-string,.rs-a .rs-string{animation:rsDrawA 1.5s calc(var(--d0) + .65s) cubic-bezier(.5,0,.3,1) both}
+.rs-b .rs-string{animation:rsDrawB 1.5s calc(var(--d0) + .65s) cubic-bezier(.5,0,.3,1) both}
+.rs-a0 .rs-tpin,.rs-a .rs-tpin{animation:rsPinA .34s calc(var(--d0) + .75s + var(--i) * .2s) cubic-bezier(.2,.8,.2,1) both}
+.rs-b .rs-tpin{animation:rsPinB .34s calc(var(--d0) + .75s + var(--i) * .2s) cubic-bezier(.2,.8,.2,1) both}
+.rs-a0 .rs-tag,.rs-a .rs-tag,.rs-a0 .rs-thread,.rs-a .rs-thread{animation:rsDropA .45s calc(var(--d0) + .85s + var(--i) * .2s) cubic-bezier(.2,.8,.2,1) both}
+.rs-b .rs-tag,.rs-b .rs-thread{animation:rsDropB .45s calc(var(--d0) + .85s + var(--i) * .2s) cubic-bezier(.2,.8,.2,1) both}
+@media (max-width:1180px){
+  .rs-hero{grid-template-columns:minmax(0,1fr) 384px;gap:28px}
+  .rs-headline{font-size:52px}
+  .rs-stampbox{top:96px;right:14px}
+  .rs-stamp{width:214px}
+  .rs-newsbody{grid-template-columns:264px minmax(0,1fr);gap:20px}
+  .rs-newsright{padding-left:18px}
+  .rs-fact{grid-template-columns:96px minmax(0,1fr)}
+  .rs-num{font-size:88px}
+  .rs-seal{width:100px;height:100px}
+  .rs-bars{gap:12px 16px}
+  .rs-pair{grid-template-columns:360px minmax(0,1fr);gap:56px}
+  .rs-link{left:360px;width:56px}
+  .rs-truthtop{grid-template-columns:minmax(0,1fr)}
+  .rs-truthtop .rs-claims{margin-top:4px}
+  .rs-actions{justify-content:flex-start;margin-left:0}
+}
+@media (max-width:960px){
+  .rs-hero{grid-template-columns:minmax(0,1fr);gap:34px}
+  .rs-pair{grid-template-columns:minmax(0,1fr);gap:34px}
+  .rs-link,.rs-edge{display:none !important}
+  .rs-truthtop{grid-template-columns:236px minmax(0,1fr)}
+  .rs-truthtop .rs-claims{margin-top:12px}
+}
+@media (min-width:761px) and (max-width:960px){
+  .rs-yours{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:30px;align-content:start}
+  .rs-yours .rs-cardhead{grid-column:1 / -1}
+  .rs-yours .rs-suspect,.rs-yours .rs-claims{grid-column:1}
+  .rs-yours .rs-evid{grid-column:2;grid-row:2 / span 2;align-self:start;margin-top:14px;padding:4px 0 0 26px;border-top:0;border-left:1px dashed rgba(91,82,72,.45)}
+}
+@media (max-width:760px){
+  .s-nav{order:3;width:100%}
+  .rs-wrap{gap:28px}
+  .rs-title h1{font-size:30px}
+  .rs-news{padding:16px 16px 18px}
+  .rs-headline{font-size:38px;line-height:1.05}
+  .rs-stampbox{position:relative;top:auto;right:auto;display:flex;justify-content:flex-end;margin:10px 4px -6px 0}
+  .rs-stamp{width:196px}
+  .rs-deck{max-width:none;font-size:18px}
+  .rs-newsbody{grid-template-columns:minmax(0,1fr);gap:16px}
+  .rs-newsright{padding:14px 0 0;border-left:0;border-top:1px solid rgba(58,52,43,.4)}
+  .rs-fact{grid-template-columns:96px minmax(0,1fr)}
+  .rs-perf{padding:18px 18px 20px}
+  .rs-num{font-size:84px}
+  .rs-seal{width:100px;height:100px}
+  .rs-eq{margin-left:0}
+  .rs-ana{padding:18px 16px 12px 40px}
+  .rs-cols{grid-template-columns:minmax(0,1fr)}
+  .rs-cols>div+div .rs-colh{margin-top:14px}
+  .rs-yours{padding:18px 16px 20px 40px}
+  .rs-truthc{padding:18px 16px 20px}
+  .rs-truthtop{grid-template-columns:minmax(0,1fr);gap:4px}
+  .rs-truthtop .rs-claims{grid-template-columns:minmax(0,1fr);margin-top:8px}
+  .rs-evlist li{grid-template-columns:minmax(0,1fr);gap:1px}
+  .rs-tlstr{display:none}
+  .rs-tl{grid-template-columns:minmax(0,1fr);gap:12px;padding:6px 0 4px 40px}
+  .rs-tl::before{content:"";position:absolute;left:14px;top:6px;bottom:8px;width:2.1px;background:#bf3b2c;box-shadow:2px 5px 0 rgba(0,0,0,.45);transform-origin:50% 0}
+  .rs-ev,.rs-ev:nth-child(even){display:block;padding:0}
+  .rs-tpin{top:50%;left:-35px;margin:-9px 0 0}
+  .rs-thread,.rs-ev:nth-child(even) .rs-thread{top:50%;left:-26px;width:32px;height:1.5px;margin:-.75px 0 0}
+  .rs-tag{max-width:none}
+  .rs-tagin,.rs-ev:nth-child(even) .rs-tagin{min-height:0;padding:12px 14px 12px 30px;background:#e9dcc0;text-align:left;transform:none !important}
+  .rs-ev:nth-child(even) .rs-tagin{background:#d9c49a}
+  .rs-hole{top:50%;left:9px;margin:-5px 0 0}
+  .rs-ttime{display:inline;margin-right:8px}
+  .rs-ttext{display:inline;margin:0}
+  .rs-tchip{margin:6px 0 0;vertical-align:1px}
+  .rs-a0 .rs-tl::before,.rs-a .rs-tl::before{animation:rsGrowA 1.4s calc(var(--d0) + .75s) cubic-bezier(.5,0,.3,1) both}
+  .rs-b .rs-tl::before{animation:rsGrowB 1.4s calc(var(--d0) + .75s) cubic-bezier(.5,0,.3,1) both}
+  .rs-foot{padding:16px}
+  .rs-prog{flex:1 1 100%}
+  .rs-actions{flex-direction:column;align-items:stretch;width:100%;margin-left:0}
+  .rs-actions .s-link-gold{align-self:center}
+}
+@media (prefers-reduced-motion:reduce){
+  .s-enter,.s-enter-zoom,.s-rim,.s-lamp,.rs-stamp,.rs-hero,.rs-num,.rs-num::after,.rs-numv,.rs-mark,.rs-seal,.rs-fill,.rs-ok,.rs-no,.rs-string,.rs-tpin,.rs-tag,.rs-thread,.rs-tl::before{animation:none !important}
+}
+</style>
+</helmet>
+<main style="position: relative; isolation: isolate; display: flex; flex-direction: column; min-height: 100vh; overflow: hidden; background: #120d09; color: #eee4d2; font-family: 'Crimson Text', Georgia, serif">
+
+  <svg aria-hidden="true" width="100%" height="100%" style="position: absolute; inset: 0; z-index: -1">
+    <defs>
+      <filter id="k-light" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .42  0 0 0 0 .31  0 0 0 0 .2  0 0 0 4 -2.35"></feColorMatrix></filter>
+      <filter id="k-dark" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.3" numOctaves="2" seed="21"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 .05  0 0 0 0 .035  0 0 0 0 .02  0 0 0 -4 1.75"></feColorMatrix></filter>
+      <filter id="k-blotch" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".006 .01" numOctaves="3" seed="3"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.6 -.6"></feColorMatrix></filter>
+      <radialGradient id="k-lamp" cx=".5" cy=".3" r=".62"><stop offset="0" style="stop-color: #ffd98a; stop-opacity: .2"></stop><stop offset=".5" style="stop-color: #efd486; stop-opacity: .05"></stop><stop offset="1" style="stop-color: #efd486; stop-opacity: 0"></stop></radialGradient>
+      <radialGradient id="k-vig" cx=".5" cy=".5" r=".75"><stop offset=".45" style="stop-color: #050a12; stop-opacity: 0"></stop><stop offset="1" style="stop-color: #050a12; stop-opacity: .85"></stop></radialGradient>
+    </defs>
+    <rect width="100%" height="100%" style="fill: #2a1f17"></rect>
+    <rect width="100%" height="100%" filter="url(#k-blotch)" style="opacity: .5"></rect>
+    <rect width="100%" height="100%" filter="url(#k-light)"></rect>
+    <rect width="100%" height="100%" filter="url(#k-dark)"></rect>
+    <rect class="s-lamp" width="100%" height="100%" fill="url(#k-lamp)"></rect>
+    <rect width="100%" height="100%" fill="url(#k-vig)"></rect>
+  </svg>
+
+  <svg aria-hidden="true" width="0" height="0" style="position: absolute">
+    <defs>
+      <symbol id="rs-i-ok" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><circle cx="12" cy="12" r="9.5"></circle><path d="M7.6 12.4l3 3 5.8-6.4"></path></g></symbol>
+      <symbol id="rs-i-bad" viewBox="0 0 24 24"><g style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round"><circle cx="12" cy="12" r="9.5"></circle><path d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8"></path></g></symbol>
+      <symbol id="rs-i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" style="fill: #c7a24b; stroke: #5e4a1c; stroke-width: 1.2"></circle><circle cx="12" cy="12" r="7" style="fill: none; stroke: #8a6e2e; stroke-width: 1"></circle><path d="M12 7.8a1.9 1.9 0 0 1 1.1 3.5l.7 3.9h-3.6l.7-3.9A1.9 1.9 0 0 1 12 7.8z" style="fill: #5e4a1c"></path></symbol>
+    </defs>
+  </svg>
+
+  <header style="position: relative; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; box-sizing: border-box; padding: 8px clamp(16px, 3vw, 40px); background: linear-gradient(180deg, #101317, #0a0c0f); border-bottom: 1px solid rgba(239,212,134,.16); box-shadow: 0 10px 28px rgba(0,0,0,.55)">
+    <a class="s-brand" href="Home.dc.html" aria-label="Sir Locked, về trang chủ">
+      <span aria-hidden="true" style="position: relative; display: grid; place-items: center; width: 30px; height: 30px; box-sizing: border-box; border: 1px solid #c7a24b; border-radius: 999px">
+        <span style="position: absolute; width: 1px; height: 58%; background: #efd486"></span>
+        <span style="position: absolute; width: 58%; height: 1px; background: #efd486"></span>
+        <span style="position: absolute; width: 6px; height: 6px; box-sizing: border-box; border: 1px solid #efd486; border-radius: 999px; background: #0a0c0f"></span>
+      </span>
+      <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; letter-spacing: .08em">SIR <span style="color: #efd486">LOCKED</span></span>
+    </a>
+    <nav class="s-nav" aria-label="Điều hướng chính">
+      <a href="Home.dc.html">TRANG CHỦ</a>
+      <a href="FindGame.dc.html">TÌM TRẬN</a>
+      <a href="Rooms.dc.html">PHÒNG</a>
+      <a href="Cases.dc.html">VỤ ÁN</a>
+      <a href="Market.dc.html">CHỢ ĐỒ</a>
+      <a href="Workshop.dc.html">WORKSHOP</a>
+    </nav>
+    <div style="display: flex; align-items: center; gap: 10px; margin-left: auto">
+      <a class="s-topbtn" href="Market.dc.html" aria-label="Ví: 1.250 xu">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" style="fill: #c7a24b; stroke: #5e4a1c; stroke-width: 1.2"></circle><circle cx="12" cy="12" r="7" style="fill: none; stroke: #8a6e2e; stroke-width: 1"></circle><path d="M12 7.8a1.9 1.9 0 0 1 1.1 3.5l.7 3.9h-3.6l.7-3.9A1.9 1.9 0 0 1 12 7.8z" style="fill: #5e4a1c"></path></svg>
+        <span>1.250</span><span style="color: #b3a794; font-weight: 500">xu</span>
+      </a>
+      <button type="button" class="s-topbtn" aria-label="Thông báo, 2 mới" style="position: relative; padding: 0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>
+        <span aria-hidden="true" style="position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 999px; background: #bf3b2c; box-shadow: 0 0 0 2px #0a0c0f"></span>
+      </button>
+      <a class="s-topbtn" href="Profile.dc.html" aria-label="Hồ sơ thám tử: Thám tử Minh" style="gap: 10px; padding: 0 12px 0 4px">
+        <span aria-hidden="true" style="display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; background: #1a2c42; box-shadow: inset 0 0 0 1px #c7a24b; color: #efd486; font-family: 'Playfair Display', Georgia, serif; font-size: 14px; font-weight: 700; letter-spacing: .04em">TM</span>
+        <span aria-hidden="true" style="display: flex; flex-direction: column; gap: 2px; text-align: left; line-height: 1.1">
+          <span style="font-family: 'Crimson Text', Georgia, serif; font-size: 15px; font-weight: 600; letter-spacing: 0; color: #fbf6ed">Thám tử Minh</span>
+          <span style="font-size: 10px; font-weight: 500; letter-spacing: .14em; color: #b3a794">THANH TRA · CẤP 12</span>
+        </span>
+      </a>
+    </div>
+  </header>
+
+  <div style="position: relative; flex: 1 0 auto; display: flex; flex-direction: column">
+    <div class="s-enter" style="flex: 1 0 auto; display: flex; flex-direction: column">
+      <div class="s-enter-zoom" style="flex: 1 0 auto; display: flex; flex-direction: column; box-sizing: border-box; width: 100%; max-width: 1352px; margin: 0 auto; padding: 24px 16px 44px">
+        <div class="{{ animCls }}">
+
+          <div class="rs-top">
+            <div class="rs-title">
+              <span aria-hidden="true" style="position: absolute; top: 8px; left: 10px; width: 12px; height: 12px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #fff1c2 0%, #c7a24b 45%, #5e4a1c 100%)"></span>
+              <p class="rs-kick gold" style="margin-left: 10px; letter-spacing: .26em">KẾT QUẢ VỤ ÁN · PHÒNG K7Q2LM</p>
+              <h1><span class="s-sr">Kết quả vụ án: </span>Đêm khóa sổ</h1>
+            </div>
+            <p class="rs-aside">{{ aside }}</p>
+          </div>
+
+          <div class="rs-hero">
+
+            <section class="rs-card rs-news s-paper" aria-labelledby="rs-headline">
+              <span class="s-pin red" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+              <div class="rs-mast"><span>BÁO 221B · SỐ ĐẶC BIỆT</span><span>THỨ TƯ · 14.10.2026</span></div>
+              <p class="rs-kick red rs-newskick">Vụ Đêm khóa sổ · Nhà hát Vọng Âm</p>
+              <h2 id="rs-headline" class="rs-headline"><span>{{ head1 }}</span> <span>{{ head2 }}</span></h2>
+              <div class="rs-stampbox">
+                <svg class="rs-stamp" viewBox="0 0 270 136" role="img" aria-label="{{ stampLabel }}" style="color: {{ stampColor }}">
+                  <defs>
+                    <filter id="rs-ink" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+                      <feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="11" result="n"></feTurbulence>
+                      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -4.2 3.1" result="m"></feColorMatrix>
+                      <feComposite in="SourceGraphic" in2="m" operator="in"></feComposite>
+                    </filter>
+                  </defs>
+                  <g filter="url(#rs-ink)">
+                    <rect x="4" y="4" width="262" height="128" rx="8" style="fill: none; stroke: currentColor; stroke-width: 5"></rect>
+                    <rect x="13" y="13" width="244" height="110" rx="4" style="fill: none; stroke: currentColor; stroke-width: 1.8"></rect>
+                    <text x="135" y="33" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 700; letter-spacing: .26em; text-anchor: middle; fill: currentColor">SỞ ĐIỀU TRA · SIR LOCKED</text>
+                    <text x="135" y="74" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 31px; font-weight: 700; letter-spacing: .08em; text-anchor: middle; fill: currentColor">{{ stamp1 }}</text>
+                    <text x="135" y="110" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 31px; font-weight: 700; letter-spacing: .08em; text-anchor: middle; fill: currentColor">{{ stamp2 }}</text>
+                  </g>
+                </svg>
+              </div>
+              <div class="rs-newsbody">
+                <figure class="rs-photo">
+                  <svg viewBox="0 0 320 190" role="img" aria-label="Ảnh vật chứng trên mặt quầy: phong bì lệnh chi với hai lớp sáp đỏ, bản lưu lệnh chi lúc 21:30, cuống giao nhận lúc 21:18 và chìa ngăn hồ sơ">
+                    <defs>
+                      <radialGradient id="rs-ph-bg" cx=".46" cy=".44" r=".74"><stop offset="0" style="stop-color: #5d5448"></stop><stop offset=".62" style="stop-color: #332c25"></stop><stop offset="1" style="stop-color: #1b1713"></stop></radialGradient>
+                      <radialGradient id="rs-ph-wax" cx=".34" cy=".3" r=".8"><stop offset="0" style="stop-color: #e06a5a"></stop><stop offset=".5" style="stop-color: #a32e24"></stop><stop offset="1" style="stop-color: #5c1611"></stop></radialGradient>
+                      <pattern id="rs-ht" width="3.2" height="3.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="1.6" cy="1.6" r=".72" style="fill: rgba(10,8,6,.3)"></circle></pattern>
+                    </defs>
+                    <rect width="320" height="190" fill="url(#rs-ph-bg)"></rect>
+                    <path d="M0 158C70 150 170 168 320 152M0 178C110 170 210 186 320 176M0 24C90 18 190 32 320 20" style="fill: none; stroke: rgba(0,0,0,.3); stroke-width: 1.4"></path>
+                    <g transform="translate(160 16) rotate(8)">
+                      <rect width="134" height="92" style="fill: #e7e0d0; stroke: rgba(0,0,0,.18)"></rect>
+                      <text x="10" y="19" style="font-family: 'Source Code Pro', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1px; fill: #2a241e">LỆNH CHI</text>
+                      <text x="124" y="19" style="font-family: 'Source Code Pro', monospace; font-size: 10px; font-weight: 700; text-anchor: end; fill: #8a2a1f">21:30</text>
+                      <path d="M10 31H124M10 41H106M10 51H118M10 61H88" style="stroke: #8f8676; stroke-width: 2"></path>
+                      <path d="M72 80c6-8 13 5 21-3s10 4 22-2" style="fill: none; stroke: #2a241e; stroke-width: 1.4; stroke-linecap: round"></path>
+                    </g>
+                    <g transform="translate(20 62) rotate(-5)">
+                      <rect width="180" height="106" style="fill: #d3c6ad"></rect>
+                      <path d="M0 0L90 58L180 0" style="fill: rgba(0,0,0,.06); stroke: #9c8f78; stroke-width: 2"></path>
+                      <path d="M0 106L70 50M180 106L110 50" style="stroke: #b0a389; stroke-width: 1.2"></path>
+                      <text x="12" y="96" style="font-family: 'Source Code Pro', monospace; font-size: 10px; letter-spacing: 1.5px; fill: #4f463b">QUỸ CỨU TRỢ</text>
+                      <circle cx="86" cy="60" r="19" style="fill: #5e1b14"></circle>
+                      <path d="M70 50L80 60L74 68L86 78" style="fill: none; stroke: #1c0d0a; stroke-width: 2.2; stroke-linejoin: round"></path>
+                      <circle cx="94" cy="55" r="15.5" fill="url(#rs-ph-wax)"></circle>
+                      <circle cx="94" cy="55" r="10.5" style="fill: none; stroke: rgba(255,214,196,.4); stroke-width: 1.2"></circle>
+                      <text x="94" y="59.5" style="font-family: 'Playfair Display', Georgia, serif; font-size: 12px; font-weight: 700; text-anchor: middle; fill: #f3c7b8">Q</text>
+                    </g>
+                    <g transform="translate(214 116) rotate(11)">
+                      <rect width="82" height="48" style="fill: #eee7d6"></rect>
+                      <path d="M0 1.5H82" style="stroke: #2e2822; stroke-width: 3; stroke-dasharray: 2.5 3"></path>
+                      <text x="9" y="21" style="font-family: 'Source Code Pro', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1px; fill: #2a241e">CUỐNG</text>
+                      <text x="9" y="39" style="font-family: 'Source Code Pro', monospace; font-size: 14px; font-weight: 700; fill: #8a2a1f">21:18</text>
+                    </g>
+                    <g transform="translate(42 32) rotate(-9)" style="fill: none; stroke: #bfa66a; stroke-width: 3.5; stroke-linecap: round">
+                      <circle r="8"></circle>
+                      <path d="M8 0H42M34 0V7M40 0V6"></path>
+                    </g>
+                    <g transform="translate(118 154)"><path d="M0 16L6 0H20L26 16Z" style="fill: #ece0b2; stroke: #1b1713; stroke-width: 1"></path><text x="13" y="12.5" style="font-family: 'Source Code Pro', monospace; font-size: 11px; font-weight: 700; text-anchor: middle; fill: #1b1713">4</text></g>
+                    <g transform="translate(284 104)"><path d="M0 16L6 0H20L26 16Z" style="fill: #ece0b2; stroke: #1b1713; stroke-width: 1"></path><text x="13" y="12.5" style="font-family: 'Source Code Pro', monospace; font-size: 11px; font-weight: 700; text-anchor: middle; fill: #1b1713">5</text></g>
+                    <g transform="translate(200 166)"><path d="M0 16L6 0H20L26 16Z" style="fill: #ece0b2; stroke: #1b1713; stroke-width: 1"></path><text x="13" y="12.5" style="font-family: 'Source Code Pro', monospace; font-size: 11px; font-weight: 700; text-anchor: middle; fill: #1b1713">6</text></g>
+                    <rect width="320" height="190" fill="url(#rs-ht)"></rect>
+                  </svg>
+                  <figcaption class="rs-cap">Lớp sáp đỏ mới phủ lên viền sáp cũ đã gãy.<span class="rs-mini">Ảnh: Thám tử Minh · Điều tra viên</span></figcaption>
+                </figure>
+                <div class="rs-newsright">
+                  <p class="rs-deck">{{ deck }}</p>
+                  <dl class="rs-facts">
+                    <div class="rs-fact"><dt>Vụ án</dt><dd class="rs-fname">Đêm khóa sổ</dd></div>
+                    <div class="rs-fact"><dt>Thời gian</dt><dd class="rs-ftime">31:20</dd></div>
+                    <div class="rs-fact">
+                      <dt>Đội điều tra</dt>
+                      <dd class="rs-team">
+                        <span class="rs-member"><span class="rs-msm" aria-hidden="true">TM</span><span><span class="rs-mname">Thám tử Minh</span><span class="rs-mrole inv">Điều tra viên</span></span></span>
+                        <span class="rs-member"><span class="rs-msm" aria-hidden="true">TV</span><span><span class="rs-mname">Thám tử Vy</span><span class="rs-mrole int">Thẩm vấn viên</span></span></span>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+            </section>
+
+            <section class="rs-card rs-dark rs-perf" aria-labelledby="rs-perf-h">
+              <span class="s-pin red" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+              <div class="rs-perfhead">
+                <div>
+                  <p class="rs-kick gold">Hiệu suất</p>
+                  <h2 id="rs-perf-h" class="rs-h2 light">Điểm điều tra</h2>
+                </div>
+              </div>
+              <div class="rs-scorerow">
+                <p class="rs-score">
+                  <span class="rs-num" aria-hidden="true" style="--rs-n: {{ score }}"><span class="rs-numv">{{ score }}</span></span>
+                  <span class="s-sr">{{ scoreSr }}</span>
+                  <span class="rs-unit" aria-hidden="true"><span class="rs-mini gold" style="font-size: 12px">Điểm</span><span class="rs-mini muted" style="font-size: 12px">/ 100</span></span>
+                </p>
+                <svg class="rs-seal" viewBox="0 0 120 120" role="img" aria-label="{{ gradeName }}">
+                  <defs>
+                    <radialGradient id="rs-wax" cx=".36" cy=".3" r=".85"><stop offset="0" style="stop-color: {{ waxHi }}"></stop><stop offset=".52" style="stop-color: {{ waxMid }}"></stop><stop offset="1" style="stop-color: {{ waxLo }}"></stop></radialGradient>
+                    <radialGradient id="rs-wax-in" cx=".62" cy=".68" r=".75"><stop offset="0" style="stop-color: {{ waxMid }}"></stop><stop offset="1" style="stop-color: {{ waxLo }}"></stop></radialGradient>
+                  </defs>
+                  <path d="M113.5 60.0C114.1 62.7 113.7 65.8 112.7 68.3C111.6 70.9 108.4 72.9 107.0 75.3C105.6 77.6 105.2 80.1 104.2 82.5C103.2 84.9 102.6 87.8 100.9 89.7C99.2 91.6 96.2 92.6 94.1 94.1C91.9 95.6 90.1 97.1 88.1 98.7C86.1 100.2 84.3 102.1 82.1 103.5C80.0 104.9 77.6 105.6 75.3 107.1C73.0 108.7 70.9 111.5 68.4 112.8C65.8 114.1 62.7 115.5 60.0 114.9C57.3 114.3 54.6 110.9 52.2 109.1C49.8 107.3 47.9 105.3 45.6 104.2C43.3 103.1 40.8 103.2 38.4 102.3C36.1 101.5 34.0 100.2 31.6 99.1C29.2 98.0 26.5 97.2 24.1 95.9C21.8 94.5 19.0 93.0 17.5 90.9C16.0 88.7 16.1 85.4 15.1 82.9C14.2 80.3 13.2 78.0 12.0 75.6C10.8 73.2 8.3 70.8 8.0 68.2C7.7 65.6 9.1 62.6 10.1 60.0C11.1 57.4 13.1 55.1 13.9 52.7C14.8 50.3 14.6 47.9 15.1 45.4C15.6 43.0 16.4 40.7 16.9 38.1C17.5 35.4 17.5 32.5 18.2 29.6C18.9 26.8 19.1 22.9 20.9 20.9C22.8 19.0 26.5 18.4 29.4 17.8C32.3 17.2 35.7 18.1 38.3 17.4C40.9 16.8 42.7 14.9 45.1 14.0C47.4 13.1 49.9 12.3 52.4 11.9C54.9 11.5 57.4 11.7 60.0 11.5C62.6 11.2 65.3 10.2 67.9 10.4C70.4 10.5 73.0 11.6 75.5 12.3C78.0 13.1 80.2 14.4 82.9 15.1C85.6 15.7 89.3 15.1 91.7 16.4C94.1 17.7 96.1 20.1 97.3 22.7C98.4 25.4 97.7 29.4 98.4 32.1C99.0 34.8 100.0 36.8 101.2 39.0C102.3 41.2 103.9 43.1 105.2 45.3C106.4 47.5 107.5 49.8 108.9 52.3C110.3 54.7 112.9 57.3 113.5 60.0Z" fill="url(#rs-wax)"></path>
+                  <circle cx="61" cy="62" r="38" style="fill: rgba(0,0,0,.28)"></circle>
+                  <circle cx="60" cy="60" r="38" fill="url(#rs-wax-in)"></circle>
+                  <path d="M27.5 46A36 36 0 0 1 74 26.5" style="fill: none; stroke: rgba(255,255,255,.3); stroke-width: 2; stroke-linecap: round"></path>
+                  <circle cx="60" cy="60" r="31" style="fill: none; stroke: rgba(255,255,255,.22); stroke-width: 1.2; stroke-dasharray: 1.4 3.2"></circle>
+                  <text x="60" y="41.5" style="font-family: 'Source Code Pro', ui-monospace, monospace; font-size: 10px; font-weight: 700; letter-spacing: .2em; text-anchor: middle; fill: rgba(255,255,255,.62)">HẠNG</text>
+                  <text x="61.4" y="86.4" style="font-family: 'Playfair Display', Georgia, serif; font-size: 46px; font-weight: 700; text-anchor: middle; fill: rgba(0,0,0,.4)">{{ grade }}</text>
+                  <text x="59.2" y="84.2" style="font-family: 'Playfair Display', Georgia, serif; font-size: 46px; font-weight: 700; text-anchor: middle; fill: rgba(255,255,255,.34)">{{ grade }}</text>
+                  <text x="60" y="85" style="font-family: 'Playfair Display', Georgia, serif; font-size: 46px; font-weight: 700; text-anchor: middle; fill: {{ waxLetter }}">{{ grade }}</text>
+                  <ellipse cx="40" cy="27" rx="15" ry="6" transform="rotate(-32 40 27)" style="fill: rgba(255,255,255,.2)"></ellipse>
+                </svg>
+              </div>
+              <div class="rs-ruler" style="--rs-gc: {{ gradeFill }}">
+                <div class="rs-rulerhead"><span class="rs-mini muted">Thang hạng</span><span class="rs-next">{{ nextText }}</span></div>
+                <div class="rs-track" role="img" aria-label="{{ rulerSr }}">
+                  <span class="{{ zC }}" style="width: 60%"><i>C</i></span>
+                  <span class="{{ zB }}" style="width: 15%"><b>60</b><i>B</i></span>
+                  <span class="{{ zA }}" style="width: 15%"><b>75</b><i>A</i></span>
+                  <span class="{{ zS }}" style="width: 10%"><b>90</b><i>S</i></span>
+                  <span class="rs-mark" style="left: {{ markLeft }}"></span>
+                </div>
+              </div>
+              <h3 class="rs-mini gold" style="margin: 4px 0 0">Phối hợp</h3>
+              <ul class="rs-bars">
+                <li class="rs-bar"><span class="rs-bartop"><span class="rs-barname">Chứng cứ</span><span class="rs-barval">{{ b1V }}</span></span><span class="rs-bartrack" aria-hidden="true"><span class="rs-fill" style="width: {{ b1W }}; --i: 0"></span></span></li>
+                <li class="rs-bar"><span class="rs-bartop"><span class="rs-barname">Mâu thuẫn</span><span class="rs-barval">{{ b2V }}</span></span><span class="rs-bartrack" aria-hidden="true"><span class="rs-fill" style="width: {{ b2W }}; --i: 1"></span></span></li>
+                <li class="rs-bar"><span class="rs-bartop"><span class="rs-barname">Suy luận</span><span class="{{ b3Cls }}">{{ b3V }}</span></span><span class="rs-bartrack" aria-hidden="true"><span class="rs-fill" style="width: {{ b3W }}; --i: 2"></span></span></li>
+                <li class="rs-bar"><span class="rs-bartop"><span class="rs-barname">Phối hợp</span><span class="rs-barval">{{ b4V }}</span></span><span class="rs-bartrack" aria-hidden="true"><span class="rs-fill" style="width: {{ b4W }}; --i: 3"></span></span></li>
+              </ul>
+              <div class="rs-pen">
+                <div class="rs-penhead"><h3 class="rs-mini muted" style="margin: 0">Điểm trừ</h3><span class="rs-eq"><span aria-hidden="true">{{ eq }}</span><span class="s-sr">{{ eqSr }}</span></span></div>
+                <div class="rs-penchips"><span class="rs-penchip">{{ pen1 }}</span><span class="rs-penchip">{{ pen2 }}</span></div>
+              </div>
+              <ul class="rs-flags" aria-label="Đóng góp của đội">
+                <li class="rs-flag"><svg width="14" height="14" aria-hidden="true"><use href="#rs-i-ok"></use></svg>Điều tra viên</li>
+                <li class="rs-flag"><svg width="14" height="14" aria-hidden="true"><use href="#rs-i-ok"></use></svg>Thẩm vấn viên</li>
+                <li class="{{ flag3Cls }}"><svg class="ic-on" width="14" height="14" aria-hidden="true"><use href="#rs-i-ok"></use></svg><svg class="ic-off" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-dasharray: 3 3"></circle></svg>Phối hợp<span class="s-sr">{{ flag3Sr }}</span></li>
+              </ul>
+            </section>
+          </div>
+
+          <section class="rs-card rs-ana s-paper" aria-labelledby="rs-ana-h">
+            <span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 26px; width: 1.5px; background: rgba(182,64,48,.5)"></span>
+            <span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 30px; width: 1.5px; background: rgba(182,64,48,.5)"></span>
+            <span class="s-pin gold" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+            <div class="rs-anahead">
+              <div>
+                <p class="rs-kick">Tổng kết vụ án</p>
+                <h2 id="rs-ana-h" class="rs-h2">Phân tích cáo buộc</h2>
+              </div>
+              <p class="rs-tally" style="margin: 0">
+                <span class="rs-dots" aria-hidden="true"><span class="{{ d1 }}"></span><span class="{{ d2 }}"></span><span class="{{ d3 }}"></span><span class="{{ d4 }}"></span><span class="{{ d5 }}"></span><span class="{{ d6 }}"></span></span>
+                <span class="rs-mini" style="font-size: 11px; color: #3b3328">{{ tally }}</span>
+              </p>
+            </div>
+            <div class="rs-cols">
+              <div>
+                <h3 class="rs-mini rs-colh">Luận điểm</h3>
+                <ol class="rs-rows">
+                  <li class="{{ r1Cls }}"><svg class="rs-ic" aria-hidden="true"><use href="{{ r1Ic }}"></use></svg><span class="rs-rk">Hung thủ</span><span class="rs-ok" hidden="{{ r1Bad }}" style="--i: 0">Chính xác</span><span class="rs-no" hidden="{{ r1Ok }}" style="--i: 0">Sai</span><p class="rs-ra"><span class="rs-q">Câu trả lời:</span> <span class="rs-av">{{ r1Ans }}</span> <span class="rs-truth" hidden="{{ r1Ok }}"><span class="rs-arrow" aria-hidden="true">→</span><b>Sự thật:</b> <span>{{ r1Truth }}</span></span></p></li>
+                  <li class="{{ r2Cls }}"><svg class="rs-ic" aria-hidden="true"><use href="{{ r2Ic }}"></use></svg><span class="rs-rk">Động cơ</span><span class="rs-ok" hidden="{{ r2Bad }}" style="--i: 1">Chính xác</span><span class="rs-no" hidden="{{ r2Ok }}" style="--i: 1">Sai</span><p class="rs-ra"><span class="rs-q">Câu trả lời:</span> <span class="rs-av">{{ r2Ans }}</span> <span class="rs-truth" hidden="{{ r2Ok }}"><span class="rs-arrow" aria-hidden="true">→</span><b>Sự thật:</b> <span>{{ r2Truth }}</span></span></p></li>
+                  <li class="{{ r3Cls }}"><svg class="rs-ic" aria-hidden="true"><use href="{{ r3Ic }}"></use></svg><span class="rs-rk">Phương thức</span><span class="rs-ok" hidden="{{ r3Bad }}" style="--i: 2">Chính xác</span><span class="rs-no" hidden="{{ r3Ok }}" style="--i: 2">Sai</span><p class="rs-ra"><span class="rs-q">Câu trả lời:</span> <span class="rs-av">{{ r3Ans }}</span> <span class="rs-truth" hidden="{{ r3Ok }}"><span class="rs-arrow" aria-hidden="true">→</span><b>Sự thật:</b> <span>{{ r3Truth }}</span></span></p></li>
+                </ol>
+              </div>
+              <div>
+                <h3 class="rs-mini rs-colh">Chứng cứ cho từng luận điểm</h3>
+                <ol class="rs-rows">
+                  <li class="{{ r4Cls }}"><svg class="rs-ic" aria-hidden="true"><use href="{{ r4Ic }}"></use></svg><span class="rs-rk">Động cơ chứng cứ</span><span class="rs-ok" hidden="{{ r4Bad }}" style="--i: 3">Chính xác</span><span class="rs-no" hidden="{{ r4Ok }}" style="--i: 3">Sai</span><p class="rs-ra"><span class="rs-q">Câu trả lời:</span> <span class="rs-av">{{ r4Ans }}</span> <span class="rs-truth" hidden="{{ r4Ok }}"><span class="rs-arrow" aria-hidden="true">→</span><b>Sự thật:</b> <span>{{ r4Truth }}</span></span></p></li>
+                  <li class="{{ r5Cls }}"><svg class="rs-ic" aria-hidden="true"><use href="{{ r5Ic }}"></use></svg><span class="rs-rk">Phương thức chứng cứ</span><span class="rs-ok" hidden="{{ r5Bad }}" style="--i: 4">Chính xác</span><span class="rs-no" hidden="{{ r5Ok }}" style="--i: 4">Sai</span><p class="rs-ra"><span class="rs-q">Câu trả lời:</span> <span class="rs-av">{{ r5Ans }}</span> <span class="rs-truth" hidden="{{ r5Ok }}"><span class="rs-arrow" aria-hidden="true">→</span><b>Sự thật:</b> <span>{{ r5Truth }}</span></span></p></li>
+                  <li class="{{ r6Cls }}"><svg class="rs-ic" aria-hidden="true"><use href="{{ r6Ic }}"></use></svg><span class="rs-rk">Cơ hội chứng cứ</span><span class="rs-ok" hidden="{{ r6Bad }}" style="--i: 5">Chính xác</span><span class="rs-no" hidden="{{ r6Ok }}" style="--i: 5">Sai</span><p class="rs-ra"><span class="rs-q">Câu trả lời:</span> <span class="rs-av">{{ r6Ans }}</span> <span class="rs-truth" hidden="{{ r6Ok }}"><span class="rs-arrow" aria-hidden="true">→</span><b>Sự thật:</b> <span>{{ r6Truth }}</span></span></p></li>
+                </ol>
+              </div>
+            </div>
+          </section>
+
+          <div class="rs-pair">
+
+            <section class="rs-card rs-yours s-paper" aria-labelledby="rs-yours-h">
+              <span class="rs-margin" aria-hidden="true"></span>
+              <span class="s-pin gold" aria-hidden="true" style="top: -8px; left: 50%; margin-left: -9px"></span>
+              <span class="s-pin red rs-edge" aria-hidden="true" style="top: 97px; right: -9px"></span>
+              <div class="rs-cardhead">
+                <h2 id="rs-yours-h" class="rs-label2">Cáo buộc của bạn</h2>
+                <span class="rs-confirm"><span class="rs-msm" aria-hidden="true">TM</span><span class="rs-msm" aria-hidden="true">TV</span><span class="s-sr">Cả hai thám tử đã xác nhận cùng một phiên bản.</span></span>
+              </div>
+              <div class="rs-suspect">
+                <span class="rs-mono" aria-hidden="true">{{ yMono }}</span>
+                <span><span class="rs-sname">{{ ySus }}</span><span class="rs-mini rs-srole">{{ yRole }}</span></span>
+              </div>
+              <dl class="rs-claims">
+                <div><dt>Động cơ:</dt><dd>{{ yMotive }}</dd></div>
+                <div><dt>Phương thức:</dt><dd>{{ yMethod }}</dd></div>
+              </dl>
+              <div class="rs-evid">
+                <p class="rs-evk"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 8.5l-7.4 7.4a2.2 2.2 0 0 1-3.1-3.1l7.8-7.8a3.6 3.6 0 0 1 5.1 5.1l-8.2 8.2a5 5 0 0 1-7.1-7.1l7-7"></path></svg>3 chứng cứ đã trình bày</p>
+                <ul class="rs-evlist">
+                  <li><span class="rs-evc">Động cơ</span><span>{{ yEv1 }}</span></li>
+                  <li><span class="rs-evc">Phương thức</span><span>{{ yEv2 }}</span></li>
+                  <li><span class="rs-evc">Cơ hội</span><span>{{ yEv3 }}</span></li>
+                </ul>
+              </div>
+            </section>
+
+            <div class="rs-link">
+              <svg viewBox="0 0 64 40" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M0 20Q32 32 64 20" transform="translate(2 5)" style="fill: none; stroke: rgba(0,0,0,.45); stroke-width: 2.8; stroke-linecap: round"></path>
+                <path d="M0 20Q32 32 64 20" style="fill: none; stroke: #bf3b2c; stroke-width: 2.1; stroke-linecap: round"></path>
+              </svg>
+              <span class="{{ vsCls }}"><span aria-hidden="true">{{ vsSym }}</span><span class="s-sr">{{ vsSr }}</span></span>
+            </div>
+
+            <section class="rs-card rs-dark rs-truthc" aria-labelledby="rs-truth-h">
+              <span class="s-pin red" aria-hidden="true" style="top: -9px; left: 50%; margin-left: -9px"></span>
+              <span class="s-pin red rs-edge" aria-hidden="true" style="top: 97px; left: -9px"></span>
+              <div class="rs-cardhead">
+                <h2 id="rs-truth-h" class="rs-label2 gold">Sự thật</h2>
+                <span class="rs-mini muted">Hồ sơ đã mở niêm phong</span>
+              </div>
+              <div class="rs-truthtop">
+                <div class="rs-suspect">
+                  <span class="rs-mono" aria-hidden="true">MV</span>
+                  <span><span class="rs-sname">Mai Vân</span><span class="rs-mini muted rs-srole">Nhân viên phòng vé</span></span>
+                </div>
+                <dl class="rs-claims">
+                  <div><dt>Động cơ:</dt><dd>Dùng quỹ cứu trợ để trả khoản nợ riêng của Mai</dd></div>
+                  <div><dt>Phương thức:</dt><dd>Mở phong bì, đổi lệnh chi rồi niêm phong lại bằng sáp đỏ</dd></div>
+                </dl>
+              </div>
+              <div class="rs-tlhead">
+                <h3 class="rs-mini gold">Dòng thời gian đã dựng lại</h3>
+                <span class="rs-mini muted">20:50 → 21:45</span>
+              </div>
+              <div class="rs-tlwrap">
+                <svg class="rs-tlstr" viewBox="0 0 1200 30" preserveAspectRatio="none" aria-hidden="true">
+                  <path class="rs-string" pathLength="1" d="M0 4Q50 12 100 14Q200 28 300 14Q400 28 500 14Q600 28 700 14Q800 28 900 14Q1000 28 1100 14Q1150 12 1200 4" transform="translate(2 5)" style="fill: none; stroke: rgba(0,0,0,.45); stroke-width: 2.8; stroke-linecap: round"></path>
+                  <path class="rs-string" pathLength="1" d="M0 4Q50 12 100 14Q200 28 300 14Q400 28 500 14Q600 28 700 14Q800 28 900 14Q1000 28 1100 14Q1150 12 1200 4" style="fill: none; stroke: #bf3b2c; stroke-width: 2.1; stroke-linecap: round"></path>
+                </svg>
+                <ol class="rs-tl">
+                  <li class="rs-ev">
+                    <span class="rs-tpin gold" aria-hidden="true" style="--i: 0"></span><span class="rs-thread" aria-hidden="true" style="--i: 0"></span>
+                    <div class="rs-tag" style="--i: 0"><div class="rs-tagin" style="transform: rotate(-2deg)"><span class="rs-hole" aria-hidden="true"></span><time class="rs-ttime">20:50</time><p class="rs-ttext">Mai nhận phong bì</p></div></div>
+                  </li>
+                  <li class="rs-ev is-claim">
+                    <span class="rs-tpin gold" aria-hidden="true" style="--i: 1"></span><span class="rs-thread" aria-hidden="true" style="--i: 1"></span>
+                    <div class="rs-tag" style="--i: 1"><div class="rs-tagin" style="transform: rotate(1.6deg)"><span class="rs-hole" aria-hidden="true"></span><time class="rs-ttime">21:00</time><p class="rs-ttext">Mai nói đã rời nhà hát</p><span class="rs-tchip">Lời khai sai</span></div></div>
+                  </li>
+                  <li class="rs-ev">
+                    <span class="rs-tpin gold" aria-hidden="true" style="--i: 2"></span><span class="rs-thread" aria-hidden="true" style="--i: 2"></span>
+                    <div class="rs-tag" style="--i: 2"><div class="rs-tagin" style="transform: rotate(-1.2deg)"><span class="rs-hole" aria-hidden="true"></span><time class="rs-ttime">21:10</time><p class="rs-ttext">Khang giao giấy ở ngân hàng</p></div></div>
+                  </li>
+                  <li class="rs-ev is-key">
+                    <span class="rs-tpin red" aria-hidden="true" style="--i: 3"></span><span class="rs-thread" aria-hidden="true" style="--i: 3"></span>
+                    <div class="rs-tag" style="--i: 3"><div class="rs-tagin" style="transform: rotate(2deg)"><span class="rs-hole" aria-hidden="true"></span><time class="rs-ttime">21:18</time><p class="rs-ttext">Cuống giao nhận (Mai tự nộp)</p><span class="rs-tchip">Cơ hội</span></div></div>
+                  </li>
+                  <li class="rs-ev is-key">
+                    <span class="rs-tpin red" aria-hidden="true" style="--i: 4"></span><span class="rs-thread" aria-hidden="true" style="--i: 4"></span>
+                    <div class="rs-tag" style="--i: 4"><div class="rs-tagin" style="transform: rotate(-1.8deg)"><span class="rs-hole" aria-hidden="true"></span><time class="rs-ttime">21:30</time><p class="rs-ttext">Bản lưu lệnh chi trả nợ</p><span class="rs-tchip">Động cơ</span></div></div>
+                  </li>
+                  <li class="rs-ev">
+                    <span class="rs-tpin gold" aria-hidden="true" style="--i: 5"></span><span class="rs-thread" aria-hidden="true" style="--i: 5"></span>
+                    <div class="rs-tag" style="--i: 5"><div class="rs-tagin" style="transform: rotate(1.4deg)"><span class="rs-hole" aria-hidden="true"></span><time class="rs-ttime">21:45</time><p class="rs-ttext">Lâm bắt đầu ca</p></div></div>
+                  </li>
+                </ol>
+              </div>
+            </section>
+          </div>
+
+          <section class="rs-foot" aria-labelledby="rs-foot-h">
+            <h2 id="rs-foot-h" class="s-sr">Tiến độ và bước tiếp theo</h2>
+            <div class="rs-prog">
+              <div class="rs-progrow">
+                <p class="rs-progtxt">Vụ đã giải: <strong>{{ solved }}</strong> · {{ toGo }} <strong class="rs-gold">Bậc thầy</strong></p>
+                <sc-if value="{{ hasReward }}" hint-placeholder-val="{{ true }}">
+                  <span class="rs-coin"><svg width="20" height="20" aria-hidden="true"><use href="#rs-i-coin"></use></svg>+120 xu<span class="s-sr"> phần thưởng</span></span>
+                </sc-if>
+              </div>
+              <svg class="rs-ptrack" viewBox="0 0 340 30" role="img" aria-label="{{ trackSr }}">
+                <path d="{{ trackDash }}" style="fill: none; stroke: rgba(179,167,148,.7); stroke-width: 1.5; stroke-dasharray: 3 2"></path>
+                <path d="{{ trackPath }}" transform="translate(2 5)" style="fill: none; stroke: rgba(0,0,0,.5); stroke-width: 2.8; stroke-linecap: round"></path>
+                <path d="{{ trackPath }}" style="fill: none; stroke: #bf3b2c; stroke-width: 2.1; stroke-linecap: round"></path>
+                <circle cx="11.5" cy="15.5" r="7.5" style="fill: rgba(0,0,0,.35)"></circle>
+                <circle cx="10" cy="12" r="7.5" style="fill: #c7a24b"></circle>
+                <circle cx="8" cy="10" r="2.6" style="fill: #fff1c2; opacity: .7"></circle>
+                <circle cx="330" cy="12" r="7" style="fill: #0d1014; stroke: #b3a794; stroke-width: 1.4; stroke-dasharray: 2.4 2"></circle>
+                <circle cx="{{ trackPinS }}" cy="15.5" r="7.5" style="fill: rgba(0,0,0,.35)"></circle>
+                <circle cx="{{ trackX }}" cy="12" r="7.5" style="fill: #c0392b"></circle>
+                <circle cx="{{ trackHi }}" cy="10" r="2.6" style="fill: #f3a291; opacity: .8"></circle>
+              </svg>
+              <div class="rs-ptl"><span class="rs-mini muted">Thanh tra · 10</span><span class="rs-mini muted">Bậc thầy · 25</span></div>
+            </div>
+            <div class="rs-actions">
+              <a class="s-btn rs-fbtn rs-up {{ casesCls }}" href="Cases.dc.html">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"></path><path d="M11 6l-6 6 6 6"></path></svg>
+                Quay lại danh sách vụ án
+              </a>
+              <a class="s-btn rs-fbtn rs-up {{ replayCls }}" href="Lobby.dc.html">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"></path><path d="M4 4.5v4.2h4.2"></path></svg>
+                Chơi lại cùng Thám tử Vy
+              </a>
+              <a class="s-btn s-btn-gold rs-fbtn rs-up" href="WorkshopCase.dc.html">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.8l2.5 5.1 5.6.8-4.05 3.95.96 5.6L12 16.6l-5.01 2.65.96-5.6L3.9 9.7l5.6-.8z"></path></svg>
+                Đánh giá vụ án
+              </a>
+              <a class="s-link-gold" href="Home.dc.html">Về trang chủ</a>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+    <div class="s-rim" aria-hidden="true"></div>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"outcome":{"editor":"enum","options":["thang","thua"],"default":"thang","section":"Trạng thái"},"$preview":{"width":1440,"height":1740}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { flip: null };
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.outcome !== this.props.outcome) {
+      const s = this.state || {};
+      this.setState({ flip: !s.flip });
+    }
+  }
+
+  renderVals() {
+    const s = this.state || {};
+    const win = (this.props.outcome || 'thang') !== 'thua';
+    const MOTIVE = 'Dùng quỹ cứu trợ để trả khoản nợ riêng của Mai';
+    const METHOD = 'Mở phong bì, đổi lệnh chi rồi niêm phong lại bằng sáp đỏ';
+    const EV_MOTIVE = 'Bản sao lệnh chi trả nợ';
+    const EV_METHOD = 'Niêm phong đỏ bị chồng lớp';
+    const EV_CHANCE = 'Cuống giao nhận lúc 21:18';
+    const EV_CODE = 'Mã hộp đối soát: 2142';
+    const truth = ['Mai Vân', MOTIVE, METHOD, EV_MOTIVE, EV_METHOD, EV_CHANCE];
+    const ans = win
+      ? ['Mai Vân', MOTIVE, METHOD, EV_MOTIVE, EV_METHOD, EV_CODE]
+      : ['Sơn Lâm', 'Che giấu việc Lâm bắt đầu trực muộn', 'Giật chìa bằng cách bẻ gãy móc treo', EV_CHANCE, EV_METHOD, EV_CODE];
+    const ok = ans.map((a, i) => a === truth[i]);
+    const nOk = ok.filter(Boolean).length;
+    const bars = win ? [[36, 40], [25, 25], [15, 20], [12, 15]] : [[22, 40], [12, 25], [0, 20], [11, 15]];
+    const raw = bars.reduce((t, b) => t + b[0], 0);
+    const pens = win ? ['chứng cứ sai', 'lần chụp trượt'] : ['suy luận sai', 'lần chụp trượt'];
+    const penTotal = 2 + 2;
+    const score = raw - penTotal;
+    const grade = score >= 90 ? 'S' : (score >= 75 ? 'A' : (score >= 60 ? 'B' : 'C'));
+    const nextAt = { C: [60, 'B'], B: [75, 'A'], A: [90, 'S'] }[grade];
+    const wax = {
+      S: ['#fff1c2', '#c7a24b', '#5e4a1c', '#3a2c0c', 'rgba(199,162,75,.6)'],
+      A: ['#8fcdc8', '#2f6f6c', '#103030', '#e3f3f1', 'rgba(79,154,154,.6)'],
+      B: ['#8aa6c8', '#1f3a5a', '#0a1420', '#e6eef8', 'rgba(70,110,160,.6)'],
+      C: ['#e3a07d', '#8a4429', '#2e140a', '#fbe3d6', 'rgba(196,98,63,.62)']
+    }[grade];
+    const zone = (g) => (g === grade ? 'rs-zone is-on' : 'rs-zone');
+    const solved = win ? 24 : 23;
+    const pct = (solved - 10) / 15;
+    const tx = Math.round((10 + 320 * pct) * 10) / 10;
+    const qx = Math.round(((10 + tx) / 2) * 10) / 10;
+    const row = (i) => ({
+      cls: ok[i] ? 'rs-row is-ok' : 'rs-row is-bad',
+      ic: ok[i] ? '#rs-i-ok' : '#rs-i-bad'
+    });
+    const R = [0, 1, 2, 3, 4, 5].map(row);
+    const v = {
+      animCls: 'rs-wrap ' + (s.flip == null ? 'rs-a0' : (s.flip ? 'rs-b' : 'rs-a')),
+      aside: win
+        ? 'Hồ sơ đã khép lại. Xem lại cáo buộc của đội, điểm điều tra và điều thực sự đã xảy ra đêm đó.'
+        : 'Cáo buộc không đứng vững. Xem cáo buộc đã lệch khỏi sự thật ở đâu — rồi mở lại hồ sơ cùng đồng đội.',
+      stampColor: win ? '#2f6363' : '#9e3f2a',
+      stamp1: win ? 'PHÁ ÁN' : 'VỤ ÁN',
+      stamp2: win ? 'THÀNH CÔNG' : 'BẾ TẮC',
+      stampLabel: win ? 'Con dấu: Phá án thành công' : 'Con dấu: Vụ án bế tắc',
+      head1: win ? 'Hung thủ đã bị' : 'Hung thủ vẫn ngoài',
+      head2: win ? 'vạch mặt.' : 'vòng pháp luật.',
+      deck: win
+        ? 'Nhân viên phòng vé Mai Vân bị buộc tội đổi lệnh chi quỹ cứu trợ để trả khoản nợ riêng. Chưa có đồng nào rời quỹ.'
+        : 'Cáo buộc nhắm vào bảo vệ đêm Sơn Lâm không đứng vững. Sáng mai, ngân hàng sẽ trả tiền cho người ghi trên lệnh chi.',
+      score: score,
+      scoreSr: score + ' điểm trên 100',
+      grade: grade,
+      gradeName: 'Hạng ' + grade,
+      waxHi: wax[0], waxMid: wax[1], waxLo: wax[2], waxLetter: wax[3], gradeFill: wax[4],
+      nextText: nextAt ? 'Còn ' + (nextAt[0] - score) + ' điểm tới Hạng ' + nextAt[1] : 'Hạng cao nhất',
+      rulerSr: 'Thang hạng: C dưới 60, B từ 60, A từ 75, S từ 90. Đội đạt ' + score + ' điểm, hạng ' + grade + '.',
+      zC: zone('C'), zB: zone('B'), zA: zone('A'), zS: zone('S'),
+      markLeft: score + '%',
+      b1V: bars[0][0] + '/' + bars[0][1], b1W: (100 * bars[0][0] / bars[0][1]).toFixed(1) + '%',
+      b2V: bars[1][0] + '/' + bars[1][1], b2W: (100 * bars[1][0] / bars[1][1]).toFixed(1) + '%',
+      b3V: bars[2][0] + '/' + bars[2][1], b3W: (100 * bars[2][0] / bars[2][1]).toFixed(1) + '%',
+      b4V: bars[3][0] + '/' + bars[3][1], b4W: (100 * bars[3][0] / bars[3][1]).toFixed(1) + '%',
+      b3Cls: bars[2][0] === 0 ? 'rs-barval is-zero' : 'rs-barval',
+      pen1: '−2 ' + pens[0],
+      pen2: '−2 ' + pens[1],
+      eq: raw + ' − ' + penTotal + ' = ' + score,
+      eqSr: 'Tổng điểm thành phần ' + raw + ', trừ ' + penTotal + ', còn ' + score + ' điểm.',
+      flag3Cls: win ? 'rs-flag' : 'rs-flag is-off',
+      flag3Sr: win ? ', đạt' : ', chưa đạt',
+      tally: nOk + ' / 6 chính xác',
+      yMono: win ? 'MV' : 'SL',
+      ySus: ans[0],
+      yRole: win ? 'Nhân viên phòng vé' : 'Bảo vệ đêm',
+      yMotive: ans[1],
+      yMethod: ans[2],
+      yEv1: ans[3], yEv2: ans[4], yEv3: ans[5],
+      vsCls: win ? 'rs-vs' : 'rs-vs is-bad',
+      vsSym: win ? '=' : '≠',
+      vsSr: win ? 'Cáo buộc khớp với sự thật' : 'Cáo buộc không khớp với sự thật',
+      solved: solved,
+      toGo: 'Còn ' + (25 - solved) + ' vụ tới',
+      hasReward: win,
+      trackPath: 'M10 12Q' + qx + ' 30 ' + tx + ' 12',
+      trackDash: 'M' + tx + ' 12H322',
+      trackX: tx,
+      trackPinS: Math.round((tx + 1.5) * 10) / 10,
+      trackHi: Math.round((tx - 2) * 10) / 10,
+      trackSr: 'Tiến độ thăng bậc: đã giải ' + solved + ' vụ, còn ' + (25 - solved) + ' vụ tới Bậc thầy (25 vụ)',
+      casesCls: win ? 's-btn-red rs-first' : 's-btn-gold',
+      replayCls: win ? 's-btn-gold' : 's-btn-red rs-first'
+    };
+    for (let i = 0; i < 6; i++) {
+      const n = i + 1;
+      v['r' + n + 'Cls'] = R[i].cls;
+      v['r' + n + 'Ic'] = R[i].ic;
+      v['r' + n + 'Ans'] = ans[i];
+      v['r' + n + 'Truth'] = truth[i];
+      v['r' + n + 'Ok'] = ok[i];
+      v['r' + n + 'Bad'] = !ok[i];
+      v['d' + n] = ok[i] ? 'rs-dot' : 'rs-dot bad';
+    }
+    return v;
+  }
+}
+</script>
+</body>
+</html>

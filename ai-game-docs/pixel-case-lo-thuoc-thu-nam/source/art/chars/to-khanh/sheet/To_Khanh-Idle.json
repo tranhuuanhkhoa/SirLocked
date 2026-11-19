@@ -1,0 +1,53 @@
+{
+  "character": {
+    "id": "678085c3-9d51-404b-8c5f-bf02ccdccf27",
+    "name": "Idle",
+    "prompt": "old Victorian photographer, white hair and beard, round glasses, brown waistcoat, rolled sleeves, stained grey apron, holding a glass photo plate",
+    "size": {
+      "width": 96,
+      "height": 96
+    },
+    "directions": 8,
+    "view": "low top-down"
+  },
+  "spritesheet": {
+    "path": "To_Khanh-Idle.png",
+    "cell_size": {
+      "width": 116,
+      "height": 116
+    },
+    "sheet_size": {
+      "width": 1044,
+      "height": 232
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "npc_idle_south",
+        "animation_group_id": "c2a605a0-2bcc-4073-83d9-3c3769138fef",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-25T04:54:49.730152+00:00"
+}

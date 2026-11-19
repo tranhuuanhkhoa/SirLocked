@@ -1,0 +1,77 @@
+{
+  "status": "PASSED",
+  "schemaVersion": "v3-pair-review-v2",
+  "pairEvaluations": [],
+  "cracks": [
+    {
+      "challengeId": "challenge-01",
+      "expectedPairCount": 6,
+      "pairEvaluations": [
+        {
+          "evidenceId": "clue-trace_edwin_right_thumbprint_in_display_lock_wax",
+          "testimonyFragmentId": "fragment-challenge-01-01",
+          "isValidContradiction": true,
+          "reasonCode": "DIRECT_NEGATION",
+          "reason": "Edwin's identified right-thumb impression in the lock wax directly establishes that he touched the wax, negating his claim that he never touched it.",
+          "confidence": 0.99
+        },
+        {
+          "evidenceId": "clue-trace_edwin_right_thumbprint_in_display_lock_wax",
+          "testimonyFragmentId": "fragment-challenge-01-02",
+          "isValidContradiction": true,
+          "reasonCode": "DIRECT_NEGATION",
+          "reason": "In context, “it” refers to the lock wax; Edwin's identified thumb impression directly proves his hand touched that wax.",
+          "confidence": 0.98
+        },
+        {
+          "evidenceId": "clue-trace_edwin_signed_inheritance_loss_calculation",
+          "testimonyFragmentId": "fragment-challenge-01-01",
+          "isValidContradiction": false,
+          "reasonCode": "RELATED_ONLY",
+          "reason": "The signed calculation establishes Edwin's knowledge and financial motive but says nothing about whether he touched the lock wax.",
+          "confidence": 0.99
+        },
+        {
+          "evidenceId": "clue-trace_edwin_signed_inheritance_loss_calculation",
+          "testimonyFragmentId": "fragment-challenge-01-02",
+          "isValidContradiction": false,
+          "reasonCode": "RELATED_ONLY",
+          "reason": "Edwin's knowledge of an inheritance loss does not establish physical contact with the wax referenced by the testimony.",
+          "confidence": 0.99
+        },
+        {
+          "evidenceId": "clue-trace_clocked_entrance_record_for_three_innocents",
+          "testimonyFragmentId": "fragment-challenge-01-01",
+          "isValidContradiction": false,
+          "reasonCode": "SCOPE_MISMATCH",
+          "reason": "The entrance record concerns Clara, Hector, and Mabel during a specified interval, not Edwin's contact with the display-lock wax.",
+          "confidence": 0.99
+        },
+        {
+          "evidenceId": "clue-trace_clocked_entrance_record_for_three_innocents",
+          "testimonyFragmentId": "fragment-challenge-01-02",
+          "isValidContradiction": false,
+          "reasonCode": "SCOPE_MISMATCH",
+          "reason": "The record tracks three other people and does not establish that Edwin touched the wax referred to as “it.”",
+          "confidence": 0.99
+        }
+      ]
+    }
+  ],
+  "reviewedAt": "2026-09-30T02:18:36.221Z",
+  "batchCheckpoints": [
+    {
+      "batchKey": "9d303494bcc97a819062f6c8efe29675d321f955eb7749b46034cfe4dc447881",
+      "challengeIds": [
+        "challenge-01"
+      ],
+      "status": "COMPLETED",
+      "attemptId": "9d303494bcc97a819062f6c8efe29675d321f955eb7749b46034cfe4dc447881:2",
+      "callId": "resp_058eb6765906715c006abc71753afc87d0a786009f3a362e54",
+      "attemptNumber": 2,
+      "attemptCount": 1,
+      "resultJson": "{\r\n  \"cracks\": [\r\n    {\r\n      \"challengeId\": \"challenge-01\",\r\n      \"expectedPairCount\": 6,\r\n      \"pairEvaluations\": [\r\n        {\r\n          \"evidenceId\": \"clue-trace_edwin_right_thumbprint_in_display_lock_wax\",\r\n          \"testimonyFragmentId\": \"fragment-challenge-01-01\",\r\n          \"isValidContradiction\": true,\r\n          \"reasonCode\": \"DIRECT_NEGATION\",\r\n          \"reason\": \"Edwin\\u0027s identified right-thumb impression in the lock wax directly establishes that he touched the wax, negating his claim that he never touched it.\",\r\n          \"confidence\": 0.99\r\n        },\r\n        {\r\n          \"evidenceId\": \"clue-trace_edwin_right_thumbprint_in_display_lock_wax\",\r\n          \"testimonyFragmentId\": \"fragment-challenge-01-02\",\r\n          \"isValidContradiction\": true,\r\n          \"reasonCode\": \"DIRECT_NEGATION\",\r\n          \"reason\": \"In context, \\u201Cit\\u201D refers to the lock wax; Edwin\\u0027s identified thumb impression directly proves his hand touched that wax.\",\r\n          \"confidence\": 0.98\r\n        },\r\n        {\r\n          \"evidenceId\": \"clue-trace_edwin_signed_inheritance_loss_calculation\",\r\n          \"testimonyFragmentId\": \"fragment-challenge-01-01\",\r\n          \"isValidContradiction\": false,\r\n          \"reasonCode\": \"RELATED_ONLY\",\r\n          \"reason\": \"The signed calculation establishes Edwin\\u0027s knowledge and financial motive but says nothing about whether he touched the lock wax.\",\r\n          \"confidence\": 0.99\r\n        },\r\n        {\r\n          \"evidenceId\": \"clue-trace_edwin_signed_inheritance_loss_calculation\",\r\n          \"testimonyFragmentId\": \"fragment-challenge-01-02\",\r\n          \"isValidContradiction\": false,\r\n          \"reasonCode\": \"RELATED_ONLY\",\r\n          \"reason\": \"Edwin\\u0027s knowledge of an inheritance loss does not establish physical contact with the wax referenced by the testimony.\",\r\n          \"confidence\": 0.99\r\n        },\r\n        {\r\n          \"evidenceId\": \"clue-trace_clocked_entrance_record_for_three_innocents\",\r\n          \"testimonyFragmentId\": \"fragment-challenge-01-01\",\r\n          \"isValidContradiction\": false,\r\n          \"reasonCode\": \"SCOPE_MISMATCH\",\r\n          \"reason\": \"The entrance record concerns Clara, Hector, and Mabel during a specified interval, not Edwin\\u0027s contact with the display-lock wax.\",\r\n          \"confidence\": 0.99\r\n        },\r\n        {\r\n          \"evidenceId\": \"clue-trace_clocked_entrance_record_for_three_innocents\",\r\n          \"testimonyFragmentId\": \"fragment-challenge-01-02\",\r\n          \"isValidContradiction\": false,\r\n          \"reasonCode\": \"SCOPE_MISMATCH\",\r\n          \"reason\": \"The record tracks three other people and does not establish that Edwin touched the wax referred to as \\u201Cit.\\u201D\",\r\n          \"confidence\": 0.99\r\n        }\r\n      ]\r\n    }\r\n  ],\r\n  \"pairEvaluations\": []\r\n}",
+      "updatedAt": "2026-09-30T02:18:36.176Z"
+    }
+  ]
+}

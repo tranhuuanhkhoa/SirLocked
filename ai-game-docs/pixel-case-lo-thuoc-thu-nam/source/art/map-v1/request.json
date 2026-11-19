@@ -1,0 +1,8 @@
+{
+  "tool": "create_image_pro",
+  "width": 512,
+  "height": 512,
+  "no_background": false,
+  "seed": 707,
+  "description": "Top-down, front-facing pixel art map, not isometric. A compact Victorian riverside street block on a clear morning, one complete scene filling the whole square canvas. North edge: a calm river with a small wooden ferry pier and a moored rowing ferry boat, an iron railing along the stone quay. Below it a cobblestone riverside street runs from left to right. Centre: a small paved square with a cast-iron clock post, two wooden benches, gas lamps and a few flower planters. Four separate buildings, each fully visible with roof, front wall, windows and ONE clearly visible front door opening onto the street or square, spaced apart with walkable pavement between them: 1) West: a large two-storey red-brick townhouse with a slate roof, white window frames and a tiny front garden behind a low iron fence; attached to its south side a small wooden carriage house with wide open doors and a black two-wheeled carriage parked in front. 2) East: a narrow apothecary shop with a dark green shopfront, two display windows full of glass bottles and a hanging lantern. 3) South-east: a photographer's studio with a glass skylight roof section, large front windows and a striped awning. 4) South-west: a pawnbroker's shop with a dark timber shopfront, barred windows and a hanging sign of three brass balls. Cobblestone streets connect every door, and a street leaves the map at the bottom centre. Small details: barrels, crates, a hand cart, street trees, window flower boxes, a few puddles. No people, no animals, no readable text or letters on any sign. Clear walkable paths; buildings never overlap each other."
+}

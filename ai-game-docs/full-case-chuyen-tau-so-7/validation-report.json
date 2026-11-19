@@ -1,0 +1,8 @@
+{
+  "caseId": "case-full-chuyen-tau-so-7-vi",
+  "sourceSha256": "3d5c084169fd5fd263bb7df90aba8ba01baea60c3bf9114c0fce089113441e05",
+  "validator": "CaseValidationService",
+  "isValid": true,
+  "errors": [],
+  "scope": "Authoritative schema, reference, runtime and reachability validation; no database or provider calls. Asset files and browser gameplay require separate checks."
+}

@@ -1,0 +1,12 @@
+{
+ "job_id": "42741c32-149d-4c36-aaa9-e77e592b4899",
+ "asset_id": "de40caf4-5451-5fe2-9de7-34a016d39c29",
+ "model": "pro",
+ "size": "512x512",
+ "seed": 707,
+ "cost_generations": 25,
+ "submitted": "2026-10-25T11:3x+07:00",
+ "status": "completed",
+ "charged_generations": 25,
+ "result": "map-512.png"
+}

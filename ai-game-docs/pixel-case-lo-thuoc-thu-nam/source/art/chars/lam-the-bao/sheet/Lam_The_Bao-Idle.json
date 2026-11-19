@@ -1,0 +1,53 @@
+{
+  "character": {
+    "id": "88c1a125-b78c-45ca-992a-19b227679aee",
+    "name": "Idle",
+    "prompt": "young Victorian man, dark messy hair, mustard waistcoat over white rolled-sleeve shirt, dark trousers, brown boots, small notebook in hand",
+    "size": {
+      "width": 96,
+      "height": 96
+    },
+    "directions": 8,
+    "view": "low top-down"
+  },
+  "spritesheet": {
+    "path": "Lam_The_Bao-Idle.png",
+    "cell_size": {
+      "width": 124,
+      "height": 124
+    },
+    "sheet_size": {
+      "width": 1116,
+      "height": 248
+    },
+    "columns": 9,
+    "pivot": "cell-center",
+    "rows": [
+      {
+        "row": 0,
+        "type": "rotations",
+        "frame_count": 8,
+        "directions": [
+          "south",
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      {
+        "row": 1,
+        "type": "animation",
+        "frame_count": 9,
+        "animation": "npc_idle_south",
+        "animation_group_id": "cb88503c-583f-4943-bfc0-7cefa50772e9",
+        "direction": "south"
+      }
+    ]
+  },
+  "export_version": "1.0",
+  "export_date": "2026-10-25T04:54:45.217359+00:00"
+}

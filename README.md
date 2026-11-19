@@ -6,11 +6,11 @@ AI-assisted cooperative detective game MVP.
 
 - Backend: ASP.NET Core Web API, MongoDB, JWT, SignalR
 - Frontend: Vite JavaScript SPA, with Phaser 4 + TypeScript for the gameplay renderer
-- AI case generation: OpenAI preview/truth approval flow, validation and publishing; optional xAI cinematic videos
+- AI case generation: the Claude bot answers every step through the bridge queue (no AI API is called by the server); preview/truth/logic/layout approval gates, validation and publishing; optional xAI cinematic videos
 
 ## Cinematic presentation
 
-Visual-novel dialogue, NPC idle, independent cutscenes, audio, recap and cooperative pings are available with legacy-case fallbacks. Optional xAI generation is off by default and requires explicit budget/pricing configuration. Paid text/image calls also require configured usage reservations. See [setup, authoring, cost accounting and verification](docs/CINEMATIC_PRESENTATION_VI.md).
+Visual-novel dialogue, NPC idle, independent cutscenes, audio, recap and cooperative pings are available with legacy-case fallbacks. Optional xAI generation is off by default and requires explicit budget/pricing configuration. See [setup, authoring and verification](docs/CINEMATIC_PRESENTATION_VI.md).
 
 ## Requirements
 
@@ -42,16 +42,16 @@ CaseCache__SlidingExpirationSeconds=60
 Jwt__Secret=replace-with-at-least-32-characters
 Jwt__Issuer=SirLocked
 Jwt__Audience=SirLockedUsers
-OpenAI__ApiKey=
-OpenAI__LogicModel=gpt-5.6-sol
-OpenAI__ImageModel=gpt-image-2
-OpenAI__CutoutImageModel=gpt-image-1.5
-OpenAI__BaseUrl=https://api.openai.com/v1
-OpenAI__TimeoutSeconds=900
+# Claude bridge key (32+ characters). Set it on the server with bash scripts/set-bridge-key.sh; never commit it.
+Bridge__Key=
+# Mock answers instead of the Claude queue (tests, local demo).
+AiGeneration__MockAiResponses=false
 ```
 
-`OpenAI__ApiKey` is required for the AI case creator. Keep real keys in local `.env` files or deployment secrets only.
-Paid case creation also requires AI quota and dated model prices. Cloudinary storage is required when generating images; JSON-only testing can leave it disabled. See [AI case setup and repair workflow](docs/AI_CASE_SETUP_VI.md) and the [5 USD JSON-only configuration example](config/ai-generation.json-only.example.json).
+The AI case creator needs `Bridge__Key`: every model-written step is queued for the Claude bot, which works through `/api/bridge/*` with that key. Keep real keys in local `.env` files or deployment secrets only.
+Cloudinary storage is required when the bot uploads case images. See [AI case setup with the Claude bridge](docs/AI_CASE_SETUP_VI.md) and the [audio, weather and voice fields](docs/case-audio-weather.md).
+In the game, each character speaks in its own synthesized blips, each area plays its own looping music (cross-faded between areas, ducked under dialogue), and outdoor scenes show and play rain, wind, snow or storms drawn and synthesized in code (off indoors, lighter on slow devices, with a switch in the sound panel). Puzzle and interface sounds come from a CC0 Kenney pack listed in `src/FE/public/assets/audio/sfx/LICENSES.json`.
+The bot side (MCP server `tools/studio-mcp`, the `/tao-vu-an` skill, sub-agents, style guide, world handbooks, image library) is described in [the studio guide](docs/studio-vps.md); `cd tools/studio-mcp && npm ci && npm test` builds and tests it.
 Swagger is always available in `Development`; outside Development it is disabled unless `Swagger__Enabled=true` is explicitly configured.
 The case cache is process-local and intended for the current single-instance deployment. Use a distributed cache or coordinated invalidation before scaling the API to multiple instances.
 
@@ -84,7 +84,60 @@ A proposal is reviewed by both players, but its evidence ids still respect the V
 Accusation__RequireConsensus=true
 ```
 
+### Mở hòm (chest opening)
+
+`/kho-ruong` lets a player spend in-game coins on chests and keys and open a chest for one item, which then trades on the market like any other. Chests spend coins; optional payOS coin top-ups are documented below. The server decides every result; the client only animates the answer.
+
+- `GET /api/chests` lists the chests, their contents, the caller's free chests and keys, prices and the public drop rates.
+- `POST /api/chests/{chestId}/keys`, `/buy` and `/open` take `{ "idempotencyKey": "<uuid>" }`. Resending a key returns the original result and spends nothing more. They are limited to 60 calls per minute per user.
+- `POST /api/chests/admin/grant` gives a detective chests and keys for testing (`ADMIN` only, `Source = GRANT`, not in the audit log). The admin page uses `POST /api/admin/chests/grant`, which is logged.
+- Errors carry a code: `CHEST_NONE`, `KEY_NONE`, `FUNDS`, `SLOTS_FULL`, `IN_PROGRESS`, `CHEST_NOT_FOR_SALE`, `CHEST_PRICE_CHANGED`. Opening always frees a slot, so `SLOTS_FULL` only comes from buying or granting.
+- Each chest has its own drop table and look (`ChestDto.Odds`, `ChestDto.Look`). A chest switched off leaves the shop, but anyone still holding one or its key sees it in `ChestListDto.OffSale` and can open it. Buying may send `expectedPrice`, so a price changed by an admin is refused instead of charged.
+
+Contents, drop rates and prices live in MongoDB (see [admin contracts](docs/admin-contracts.md)) and every read goes through `ICatalogProvider`. `Services/Market/ChestCatalog.cs` and the `Chests:Prices` section of `appsettings.json` only seed an empty database, so changing them later has no effect. At startup the API still refuses to start if the configured seed prices would pay out more on average than an opening costs.
+
+As MongoDB runs standalone, `chestOpenings` is a journal: the reward is rolled and stored before anything is spent, one free chest and key are locked (`LockedBy = chest:<id>`), and a commit flag separates the part that can still fail from the part that only rolls forward. `chestPurchases` does the same for the shop. The market's maintenance worker resumes anything left unfinished for more than 30 seconds.
+
+### Hồ sơ thám tử (detective profile)
+
+`/detective` adds a framed portrait, a level and four tabs; the lobby shows every player's frame and title and plays their
+entrance for the whole room. Drawing code lives in `src/FE/Client/js/cosmetics/`, moved as it is from the approved mock-up (see
+the README there); art is in `src/FE/public/assets/cosmetics/`.
+
+- XP to go from level `lv` to `lv + 1` is `200 + 40 * (lv - 1)`, capped at level 50. `POST /api/progress/exchange` burns Rare items
+  for 150 XP and Epic items for 600 XP (the rates are in `gameSettings/progress`), journaled in `xpExchanges` with an idempotency key. `GET /api/progress/me` reads it all.
+- Categories `FRAME`, `TITLE` and `ENTRANCE` hold one equipped item each, through the market's equip API. Ids are prefixed
+  (`frame_`, `title_`, `entrance_`) because titles and entrances share names.
+- Chest drops are tradable. What a detective earns (levels, achievements, the defaults) has `Tradable = false`, takes no bag slot,
+  and the market refuses to list, bid on, trade or exchange it.
+- `title_tho-khoa` ("Giải 25 câu đố ổ khóa") stays closed: rooms record which puzzles were solved, not by whom.
+- `GameHub.JoinRoom` announces an arrival once per seat through SignalR `PlayerEntrance`. A refresh or reconnect plays nothing.
+- Uploaded avatars need `Cloudinary__Enabled=true`, `Cloudinary__CloudName`, `Cloudinary__ApiKey` and `Cloudinary__ApiSecret`; without them the upload button is not offered. `bash scripts/set-cloudinary.sh` checks them with Cloudinary and sets them on the server. The browser turns the picked photo into a square of at most 512px before sending it, so phone photos up to 40 MB work. The API then re-encodes it as a 256px WebP.
+
+### Admin catalog
+
+Items, chests, level rewards, achievements and XP rates live in MongoDB (`catalogItems`, `chests`, `levelRewards`, `achievements`,
+`gameSettings`) and are managed from `/admin`. The API seeds them from code at startup, once per seed version and never over an
+admin's edit. Every admin write records itself in `adminAudit` (`GET /api/admin/audit`). `POST /api/admin/assets` stores admin
+pictures as WebP in the Cloudinary folder `sirlocked/admin` and answers `ASSET_STORAGE_UNAVAILABLE` without Cloudinary. Schemas and
+rules for anyone extending this are in [docs/admin-contracts.md](docs/admin-contracts.md) and [docs/admin-cosmetics.md](docs/admin-cosmetics.md).
+
+The admin tabs: `/admin/chests` and `/admin/items` (chests, items, odds, versions, grants), `/admin/cosmetics` (frames, titles,
+entrances, how each is earned, XP rates), `/admin/players` (coins, items, level, avatars, sessions), `/admin/economy` (listings,
+orders, sales, stuck operations, rooms, reviews) and `/admin/audit`. Operations on a player are journaled in `adminPlayerOps` and
+take an idempotency key.
+
+## payOS coin top-ups (disabled by default)
+
+Players can open **Market → Top up coins** (`/payments`) to select a server-priced package,
+view a transfer QR or open payOS checkout, cancel an unpaid order and view recent top-ups.
+Signed webhooks and background reconciliation confirm payment before an atomic, permanently deduplicated wallet credit.
+Configure a dedicated payOS channel using [the local setup and webhook guide](docs/PAYOS_TOPUP_VI.md)
+and [configuration example](config/payos.env.example). No real payment is enabled without credentials and `PayOS__Enabled=true`.
+payOS has no separate sandbox; automated tests use a fake provider and isolated local MongoDB.
+
 ## Run Locally
+
 
 To run the project with your existing database and accounts, keep the repository-root `.env` configuration and start the backend and frontend below. The backend connects to the database specified by `MongoDb__ConnectionString` and `MongoDb__DatabaseName`.
 
@@ -117,7 +170,7 @@ Frontend default URL: `http://localhost:5173`
 
 ### Optional isolated Windows demo
 
-For a separate demo with portable MongoDB, two seeded V3 cases, two player accounts and no paid AI calls, run `./scripts/start-local-demo.ps1` from the repository root. Open [the isolated demo](http://127.0.0.1:5174); its API uses port `5216` and MongoDB uses port `27020`. These defaults keep the normal project's `5173`/`5215` ports and browser sessions separate. The demo uses its own database and preserves the existing `.env`.
+For a separate demo with portable MongoDB, the two pixel cases (older cases are hidden; `-LegacyCases` brings them back), two player accounts and no paid AI calls, run `./scripts/start-local-demo.ps1` from the repository root. Open [the isolated demo](http://127.0.0.1:5174); its API uses port `5216` and MongoDB uses port `27020`. These defaults keep the normal project's `5173`/`5215` ports and browser sessions separate. The demo uses its own database and preserves the existing `.env`.
 
 Stop only the demo with `./scripts/stop-local-demo.ps1`. See [Vietnamese demo and release instructions](docs/LOCAL_DEMO_VI.md).
 
@@ -131,6 +184,8 @@ On backend startup in `Development`, if no admin exists, the app seeds:
 
 Outside `Development`, default admin seeding is disabled unless `Auth__SeedDefaultAdmin=true` is explicitly configured. When enabling it outside development, also configure `Auth__SeedAdminPassword`; do not use the demo password in deployed environments.
 
+Admins sign in at `/admin/login`, players at `/login`. An admin who signs in at `/login` lands on the menu like anyone else and can still open `/admin`; that is also the way in for an admin whose account only has Google sign-in. No page can make someone an `ADMIN`.
+
 Public registration creates `PLAYER` accounts. Admins can promote a non-admin user to `VIP` from the dashboard. `VIP` and `ADMIN` accounts can create AI cases.
 
 ## Health Checks
@@ -140,7 +195,7 @@ Public registration creates `PLAYER` accounts. Admins can promote a non-admin us
 
 ## Demo Flow
 
-1. Log in as admin.
+1. Log in as admin at `/admin/login`.
 2. Open Admin Dashboard and seed demo/sample cases.
 3. Publish a valid case if needed.
 4. Register or log in as two player accounts in two browser sessions.
@@ -216,6 +271,7 @@ dotnet test SirLocked.sln
 ./scripts/test-v3-full-stack.ps1
 cd src/FE
 npm run typecheck
+npm run test:atmosphere
 npm run build
 ```
 

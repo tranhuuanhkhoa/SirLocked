@@ -1,0 +1,2023 @@
+{
+  "recordVersion": 1,
+  "caseId": "case-pixel-lo-thuoc-thu-nam-vi",
+  "title": "Lọ thuốc thứ Năm",
+  "description": "Bản ghi hợp nhất, theo thứ tự quy trình, của mọi request PixelLab đã gửi cho case này. Dựng từ art/**/request.json, *.receipt.json, rot/metadata.json và sheet/*.json; không thêm ID nào không có trong các tệp đó.",
+  "artRoot": "art/ = thư mục bản gốc PixelLab của case (PNG gốc, request, receipt), giữ ngoài src/FE/public.",
+  "conventions": {
+    "prompt": "Văn bản gửi vào tham số ghi ở promptParam (description cho create_image_pro / edit_image / create_character, action cho animate_character).",
+    "cost_generations": "Lấy từ receipt (cost_generations, hoặc charged_generations nếu receipt chỉ có trường đó).",
+    "receipt": "Sao nguyên văn receipt gốc để đối chiếu.",
+    "outputs": "Tệp PixelLab trả về, giữ nguyên trong art/.",
+    "derivedLocal": "Tệp xử lý cục bộ từ outputs (không AI).",
+    "runtimeAssets": "Tệp game đọc dưới src/FE/public (sinh bởi build_assets.py)."
+  },
+  "styleReference": {
+    "description": "Sprite Sherlock V3 96 hướng south có sẵn, dùng làm tham chiếu phong cách cho mọi sprite mặt trước.",
+    "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+    "localCopy": "art/chars/sherlock-south.png"
+  },
+  "totals": {
+    "pixellabCalls": 36,
+    "records": 30,
+    "cost_generations": 297,
+    "byStep": {
+      "1": 25,
+      "2": 84,
+      "3": 28,
+      "5": 25,
+      "7": 135
+    },
+    "byStage": {
+      "outdoor-map": 25,
+      "character-front": 70,
+      "character-rotate": 14,
+      "character-walk": 8,
+      "character-idle": 20,
+      "object-mask": 25,
+      "interior": 125,
+      "icon-sheet": 10
+    }
+  },
+  "requests": [
+    {
+      "seq": 1,
+      "step": 1,
+      "stage": "outdoor-map",
+      "id": "map-v1",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "scene",
+        "sceneId": "scene-px-pho",
+        "title": "Phố Hàng Đường"
+      },
+      "params": {
+        "width": 512,
+        "height": 512,
+        "no_background": false,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Top-down, front-facing pixel art map, not isometric. A compact Victorian riverside street block on a clear morning, one complete scene filling the whole square canvas. North edge: a calm river with a small wooden ferry pier and a moored rowing ferry boat, an iron railing along the stone quay. Below it a cobblestone riverside street runs from left to right. Centre: a small paved square with a cast-iron clock post, two wooden benches, gas lamps and a few flower planters. Four separate buildings, each fully visible with roof, front wall, windows and ONE clearly visible front door opening onto the street or square, spaced apart with walkable pavement between them: 1) West: a large two-storey red-brick townhouse with a slate roof, white window frames and a tiny front garden behind a low iron fence; attached to its south side a small wooden carriage house with wide open doors and a black two-wheeled carriage parked in front. 2) East: a narrow apothecary shop with a dark green shopfront, two display windows full of glass bottles and a hanging lantern. 3) South-east: a photographer's studio with a glass skylight roof section, large front windows and a striped awning. 4) South-west: a pawnbroker's shop with a dark timber shopfront, barred windows and a hanging sign of three brass balls. Cobblestone streets connect every door, and a street leaves the map at the bottom centre. Small details: barrels, crates, a hand cart, street trees, window flower boxes, a few puddles. No people, no animals, no readable text or letters on any sign. Clear walkable paths; buildings never overlap each other.",
+      "references": [],
+      "job_id": "42741c32-149d-4c36-aaa9-e77e592b4899",
+      "asset_id": "de40caf4-5451-5fe2-9de7-34a016d39c29",
+      "cost_generations": 25,
+      "receipt": {
+        "job_id": "42741c32-149d-4c36-aaa9-e77e592b4899",
+        "asset_id": "de40caf4-5451-5fe2-9de7-34a016d39c29",
+        "model": "pro",
+        "size": "512x512",
+        "seed": 707,
+        "cost_generations": 25,
+        "submitted": "2026-10-25T11:3x+07:00",
+        "status": "completed",
+        "charged_generations": 25,
+        "result": "map-512.png"
+      },
+      "outputs": [
+        "art/map-v1/map-512.png"
+      ],
+      "derivedLocal": [
+        "art/map-v1/map-2048-nearest-x4.png",
+        "art/map-v1/crop-hieu-anh.png",
+        "art/map-v1/crop-hieu-thuoc.png",
+        "art/map-v1/crop-nha-so-7.png",
+        "art/map-v1/crop-nha-xe.png",
+        "art/map-v1/crop-tiem-cam-do.png",
+        "art/map-v1/crops-guide.png"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/scenes/pho.png",
+        "/assets/pixel/lo-thuoc-thu-nam/cover.png"
+      ],
+      "sourceFiles": [
+        "art/map-v1/request.json",
+        "art/map-v1/receipt.json"
+      ]
+    },
+    {
+      "seq": 2,
+      "step": 2,
+      "stage": "character-front",
+      "id": "watson-front",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "player",
+        "role": "INTERROGATOR",
+        "name": "Dr. John Watson"
+      },
+      "params": {
+        "width": 96,
+        "height": 96,
+        "no_background": true,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Dr. John Watson, a Victorian doctor in his late thirties with a sturdy medium build, short brown hair under a dark bowler hat, a neat moustache and a calm friendly face. He wears a dark green tweed three-piece suit with a buttoned waistcoat, white shirt and dark necktie, and brown leather shoes, and carries a small black leather doctor's bag in his right hand at his side. Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+          "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity"
+        }
+      ],
+      "job_id": "e4aab0ce-60f0-4d79-a9db-f3e9419b1776",
+      "asset_id": "7662e652-a304-5204-974e-6131ef4d13a6",
+      "candidates": 4,
+      "cost_generations": 10,
+      "receipt": {
+        "job_id": "e4aab0ce-60f0-4d79-a9db-f3e9419b1776",
+        "asset_id": "7662e652-a304-5204-974e-6131ef4d13a6",
+        "charged_generations": 10,
+        "candidates": 4
+      },
+      "outputs": [
+        "art/chars/watson/front-0.png",
+        "art/chars/watson/front-1.png",
+        "art/chars/watson/front-2.png",
+        "art/chars/watson/front-3.png"
+      ],
+      "selectedCandidate": "art/chars/watson/front-0.png",
+      "sourceFiles": [
+        "art/chars/watson.front.request.json",
+        "art/chars/watson/front.receipt.json"
+      ]
+    },
+    {
+      "seq": 3,
+      "step": 2,
+      "stage": "character-front",
+      "id": "lam-the-bao-front",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-lam-the-bao",
+        "name": "Lâm Thế Bảo",
+        "role": "Cháu ruột ông Vinh"
+      },
+      "params": {
+        "width": 96,
+        "height": 96,
+        "no_background": true,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Lâm Thế Bảo, a Vietnamese gentleman in his early thirties with a slim build, untidy black hair, a clean-shaven slightly gaunt face and tired eyes. He wears a worn mustard-brown waistcoat over a white shirt with rolled sleeves, a loosened dark cravat, dark trousers and scuffed boots, holding a small pocket notebook in his left hand. Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+          "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity"
+        }
+      ],
+      "job_id": "135f4c3c-0716-4a76-b8e0-21036c365255",
+      "asset_id": "9a518ba8-db50-5c28-aea4-3a02538f4699",
+      "candidates": 4,
+      "cost_generations": 10,
+      "receipt": {
+        "job_id": "135f4c3c-0716-4a76-b8e0-21036c365255",
+        "asset_id": "9a518ba8-db50-5c28-aea4-3a02538f4699",
+        "cost_generations": 10,
+        "candidates": 4
+      },
+      "outputs": [
+        "art/chars/lam-the-bao/front-0.png",
+        "art/chars/lam-the-bao/front-1.png",
+        "art/chars/lam-the-bao/front-2.png",
+        "art/chars/lam-the-bao/front-3.png"
+      ],
+      "selectedCandidate": "art/chars/lam-the-bao/front-0.png",
+      "sourceFiles": [
+        "art/chars/lam-the-bao.front.request.json",
+        "art/chars/lam-the-bao/front.receipt.json"
+      ]
+    },
+    {
+      "seq": 4,
+      "step": 2,
+      "stage": "character-front",
+      "id": "ly-hanh-front",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-ly-hanh",
+        "name": "Lý Hạnh",
+        "role": "Người giúp việc 22 năm"
+      },
+      "params": {
+        "width": 96,
+        "height": 96,
+        "no_background": true,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Lý Hạnh, a Vietnamese housemaid in her mid fifties with a small sturdy build, black hair with a few grey strands tied in a neat bun and a kind lined face. She wears a long dark grey dress with a white apron and white collar and black shoes, hands folded in front of her. Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+          "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity"
+        }
+      ],
+      "job_id": "fc73c310-cd11-4cce-9398-294d5a6cfa8e",
+      "asset_id": "25fcb767-b580-5cf7-b8b3-a07a9fa48d85",
+      "candidates": 4,
+      "cost_generations": 10,
+      "receipt": {
+        "job_id": "fc73c310-cd11-4cce-9398-294d5a6cfa8e",
+        "asset_id": "25fcb767-b580-5cf7-b8b3-a07a9fa48d85",
+        "cost_generations": 10,
+        "candidates": 4
+      },
+      "outputs": [
+        "art/chars/ly-hanh/front-0.png",
+        "art/chars/ly-hanh/front-1.png",
+        "art/chars/ly-hanh/front-2.png",
+        "art/chars/ly-hanh/front-3.png"
+      ],
+      "selectedCandidate": "art/chars/ly-hanh/front-2.png",
+      "sourceFiles": [
+        "art/chars/ly-hanh.front.request.json",
+        "art/chars/ly-hanh/front.receipt.json"
+      ]
+    },
+    {
+      "seq": 5,
+      "step": 2,
+      "stage": "character-front",
+      "id": "trinh-luc-front",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-trinh-luc",
+        "name": "Trịnh Lực",
+        "role": "Tài xế nhà họ Lâm"
+      },
+      "params": {
+        "width": 96,
+        "height": 96,
+        "no_background": true,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Trịnh Lực, a Vietnamese coachman around forty with a tall broad-shouldered build, short black hair and light stubble. He wears a long dark blue driving coat with brass buttons, a black top hat, brown leather gloves and tall black boots, arms relaxed at his sides. Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+          "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity"
+        }
+      ],
+      "job_id": "9ae58b2f-f673-4d8e-976e-9045c444ca90",
+      "asset_id": "e1486e08-2a4b-594a-b0c8-1debf1452bba",
+      "candidates": 4,
+      "cost_generations": 10,
+      "receipt": {
+        "job_id": "9ae58b2f-f673-4d8e-976e-9045c444ca90",
+        "asset_id": "e1486e08-2a4b-594a-b0c8-1debf1452bba",
+        "cost_generations": 10,
+        "candidates": 4
+      },
+      "outputs": [
+        "art/chars/trinh-luc/front-0.png",
+        "art/chars/trinh-luc/front-1.png",
+        "art/chars/trinh-luc/front-2.png",
+        "art/chars/trinh-luc/front-3.png"
+      ],
+      "selectedCandidate": "art/chars/trinh-luc/front-0.png",
+      "sourceFiles": [
+        "art/chars/trinh-luc.front.request.json",
+        "art/chars/trinh-luc/front.receipt.json"
+      ]
+    },
+    {
+      "seq": 6,
+      "step": 2,
+      "stage": "character-front",
+      "id": "to-khanh-front",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-to-khanh",
+        "name": "Tô Khánh",
+        "role": "Thợ ảnh, hiệu ảnh số 22"
+      },
+      "params": {
+        "width": 96,
+        "height": 96,
+        "no_background": true,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Tô Khánh, an elderly Vietnamese photographer in his sixties with a thin build, grey hair, a short grey beard and round wire spectacles. He wears a brown waistcoat, a white shirt with rolled sleeves and a dark canvas apron with faint chemical stains, holding a small glass photographic plate. Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+          "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity"
+        }
+      ],
+      "job_id": "c283618a-0553-4194-b7f5-42799fcfc18f",
+      "asset_id": "5d4282c6-e874-5793-b959-39a3903858b7",
+      "candidates": 4,
+      "cost_generations": 10,
+      "receipt": {
+        "job_id": "c283618a-0553-4194-b7f5-42799fcfc18f",
+        "asset_id": "5d4282c6-e874-5793-b959-39a3903858b7",
+        "cost_generations": 10,
+        "candidates": 4
+      },
+      "outputs": [
+        "art/chars/to-khanh/front-0.png",
+        "art/chars/to-khanh/front-1.png",
+        "art/chars/to-khanh/front-2.png",
+        "art/chars/to-khanh/front-3.png"
+      ],
+      "selectedCandidate": "art/chars/to-khanh/front-0.png",
+      "sourceFiles": [
+        "art/chars/to-khanh.front.request.json",
+        "art/chars/to-khanh/front.receipt.json"
+      ]
+    },
+    {
+      "seq": 7,
+      "step": 2,
+      "stage": "character-front",
+      "id": "dang-buu-front",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-dang-buu",
+        "name": "Đặng Bửu",
+        "role": "Chủ tiệm cầm đồ"
+      },
+      "params": {
+        "width": 96,
+        "height": 96,
+        "no_background": true,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Đặng Bửu, a Vietnamese pawnbroker in his fifties with a stout build, a balding head with grey hair at the sides, a thick moustache and small spectacles. He wears a maroon waistcoat with a gold watch chain, a white shirt with sleeve garters and dark trousers, hands clasped in front. Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+          "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity"
+        }
+      ],
+      "job_id": "23f9f9a6-825f-4edd-b28d-85627ba113d2",
+      "asset_id": "e94d1c47-7c97-5a2e-80b7-411298459571",
+      "candidates": 4,
+      "cost_generations": 10,
+      "receipt": {
+        "job_id": "23f9f9a6-825f-4edd-b28d-85627ba113d2",
+        "asset_id": "e94d1c47-7c97-5a2e-80b7-411298459571",
+        "cost_generations": 10,
+        "candidates": 4
+      },
+      "outputs": [
+        "art/chars/dang-buu/front-0.png",
+        "art/chars/dang-buu/front-1.png",
+        "art/chars/dang-buu/front-2.png",
+        "art/chars/dang-buu/front-3.png"
+      ],
+      "selectedCandidate": "art/chars/dang-buu/front-0.png",
+      "sourceFiles": [
+        "art/chars/dang-buu.front.request.json",
+        "art/chars/dang-buu/front.receipt.json"
+      ]
+    },
+    {
+      "seq": 8,
+      "step": 2,
+      "stage": "character-front",
+      "id": "hoc-viec-front",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-hoc-viec",
+        "name": "Phạm Tùng",
+        "role": "Học việc Hiệu thuốc Hưng Long"
+      },
+      "params": {
+        "width": 96,
+        "height": 96,
+        "no_background": true,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "a young Vietnamese apothecary apprentice around eighteen with a slender build and neat parted black hair. He wears a white shop coat over a grey waistcoat, dark trousers and black shoes, holding a small amber glass medicine bottle. Detailed pixel art character sprite in the same style as the reference, full body, standing straight and facing the viewer (south-facing, straight-on), low top-down view, natural adult proportions, centred on a transparent background with the feet near the bottom edge.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "https://backblaze.pixellab.ai/file/pixellab-characters/d1031aaf-7250-4096-b5f4-bf13894f0c1a/220acee3-5456-4238-a0c3-29080b8b119c/rotations/south.png?t=1792820203",
+          "usage": "art style reference only: match this sprite's pixel density, single dark outline, shading, colour treatment, low top-down camera and overall adult body scale on the canvas; do NOT copy his face, hat, coat or identity"
+        }
+      ],
+      "job_id": "3dcbc68c-5c8c-4071-9031-83c610749be5",
+      "asset_id": "a8dbc3c2-371b-57d1-9e17-4252601d7313",
+      "candidates": 4,
+      "cost_generations": 10,
+      "receipt": {
+        "job_id": "3dcbc68c-5c8c-4071-9031-83c610749be5",
+        "asset_id": "a8dbc3c2-371b-57d1-9e17-4252601d7313",
+        "cost_generations": 10,
+        "candidates": 4
+      },
+      "outputs": [
+        "art/chars/hoc-viec/front-0.png",
+        "art/chars/hoc-viec/front-1.png",
+        "art/chars/hoc-viec/front-2.png",
+        "art/chars/hoc-viec/front-3.png"
+      ],
+      "selectedCandidate": "art/chars/hoc-viec/front-2.png",
+      "sourceFiles": [
+        "art/chars/hoc-viec.front.request.json",
+        "art/chars/hoc-viec/front.receipt.json"
+      ]
+    },
+    {
+      "seq": 9,
+      "step": 2,
+      "stage": "character-rotate",
+      "id": "watson-rotate",
+      "tool": "create_character",
+      "subject": {
+        "kind": "player",
+        "role": "INTERROGATOR",
+        "name": "Dr. John Watson"
+      },
+      "params": {
+        "mode": "v3 reference"
+      },
+      "promptParam": "description",
+      "prompt": "Dr. John Watson, a Victorian doctor with a sturdy medium build, dark bowler hat, short brown hair, neat moustache, dark green tweed three-piece suit with buttoned waistcoat, white shirt, dark necktie, brown leather shoes, carrying a small black leather doctor's bag in his right hand",
+      "promptSource": "art/chars/watson/sheet/Watson_V3_96_-_case_Lo_t-Idle.json (character.prompt)",
+      "references": [
+        {
+          "param": "reference_image_url",
+          "image": "watson/front-0.png (job e4aab0ce index 0)",
+          "job_id": "e4aab0ce-60f0-4d79-a9db-f3e9419b1776",
+          "note": "ứng viên mặt trước nhìn thẳng hướng south được chọn từ job create_image_pro ở trên (receipt chỉ ghi tệp + index)"
+        }
+      ],
+      "character_id": "1d31d2ec-5be3-4d26-995e-3d4a6946e682",
+      "cost_generations": 2,
+      "receipt": {
+        "character_id": "1d31d2ec-5be3-4d26-995e-3d4a6946e682",
+        "mode": "v3 reference",
+        "reference": "watson/front-0.png (job e4aab0ce index 0)",
+        "cost_generations": 2
+      },
+      "resultMeta": {
+        "size": {
+          "width": 96,
+          "height": 96
+        },
+        "directions": 8,
+        "view": "low top-down",
+        "source": "art/chars/watson/sheet/Watson_V3_96_-_case_Lo_t-Idle.json"
+      },
+      "outputs": [],
+      "note": "Không tải character.zip riêng; 8 hướng nằm ở hàng 0 của sprite sheet export (bước 3).",
+      "sourceFiles": [
+        "art/chars/watson/character.receipt.json"
+      ]
+    },
+    {
+      "seq": 10,
+      "step": 2,
+      "stage": "character-rotate",
+      "id": "lam-the-bao-rotate",
+      "tool": "create_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-lam-the-bao",
+        "name": "Lâm Thế Bảo",
+        "role": "Cháu ruột ông Vinh"
+      },
+      "params": {
+        "mode": "v3 reference",
+        "n_directions": 8
+      },
+      "promptParam": "description",
+      "prompt": "young Victorian man, dark messy hair, mustard waistcoat over white rolled-sleeve shirt, dark trousers, brown boots, small notebook in hand",
+      "promptSource": "art/chars/lam-the-bao/rot/metadata.json (character.prompt)",
+      "references": [
+        {
+          "param": "reference_image_url",
+          "image": "lam-the-bao/front-0.png (job 135f4c3c-0716-4a76-b8e0-21036c365255 index 0)",
+          "job_id": "135f4c3c-0716-4a76-b8e0-21036c365255",
+          "note": "ứng viên mặt trước nhìn thẳng hướng south được chọn từ job create_image_pro ở trên (receipt chỉ ghi tệp + index)"
+        }
+      ],
+      "character_id": "88c1a125-b78c-45ca-992a-19b227679aee",
+      "cost_generations": 2,
+      "receipt": {
+        "character_id": "88c1a125-b78c-45ca-992a-19b227679aee",
+        "mode": "v3 reference",
+        "n_directions": 8,
+        "reference": "lam-the-bao/front-0.png (job 135f4c3c-0716-4a76-b8e0-21036c365255 index 0)",
+        "cost_generations": 2
+      },
+      "resultMeta": {
+        "size": {
+          "width": 96,
+          "height": 96
+        },
+        "directions": 8,
+        "view": "low top-down",
+        "template_id": "mannequin",
+        "created_at": "2026-10-25T04:39:37.300134+00:00",
+        "source": "art/chars/lam-the-bao/rot/metadata.json"
+      },
+      "outputs": [
+        "art/chars/lam-the-bao/character.zip",
+        "art/chars/lam-the-bao/rot/metadata.json",
+        "art/chars/lam-the-bao/rot/Idle/rotations/east.png",
+        "art/chars/lam-the-bao/rot/Idle/rotations/north-east.png",
+        "art/chars/lam-the-bao/rot/Idle/rotations/north-west.png",
+        "art/chars/lam-the-bao/rot/Idle/rotations/north.png",
+        "art/chars/lam-the-bao/rot/Idle/rotations/south-east.png",
+        "art/chars/lam-the-bao/rot/Idle/rotations/south-west.png",
+        "art/chars/lam-the-bao/rot/Idle/rotations/south.png",
+        "art/chars/lam-the-bao/rot/Idle/rotations/west.png"
+      ],
+      "sourceFiles": [
+        "art/chars/lam-the-bao/character.receipt.json"
+      ]
+    },
+    {
+      "seq": 11,
+      "step": 2,
+      "stage": "character-rotate",
+      "id": "ly-hanh-rotate",
+      "tool": "create_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-ly-hanh",
+        "name": "Lý Hạnh",
+        "role": "Người giúp việc 22 năm"
+      },
+      "params": {
+        "mode": "v3 reference",
+        "n_directions": 8
+      },
+      "promptParam": "description",
+      "prompt": "elderly Victorian housekeeper woman, grey hair bun, round glasses, black dress, white apron, hands folded",
+      "promptSource": "art/chars/ly-hanh/rot/metadata.json (character.prompt)",
+      "references": [
+        {
+          "param": "reference_image_url",
+          "image": "ly-hanh/front-2.png (job fc73c310-cd11-4cce-9398-294d5a6cfa8e index 2)",
+          "job_id": "fc73c310-cd11-4cce-9398-294d5a6cfa8e",
+          "note": "ứng viên mặt trước nhìn thẳng hướng south được chọn từ job create_image_pro ở trên (receipt chỉ ghi tệp + index)"
+        }
+      ],
+      "character_id": "a312e82f-946b-43d0-997f-e2f4bee4c670",
+      "cost_generations": 2,
+      "receipt": {
+        "character_id": "a312e82f-946b-43d0-997f-e2f4bee4c670",
+        "mode": "v3 reference",
+        "n_directions": 8,
+        "reference": "ly-hanh/front-2.png (job fc73c310-cd11-4cce-9398-294d5a6cfa8e index 2)",
+        "cost_generations": 2
+      },
+      "resultMeta": {
+        "size": {
+          "width": 96,
+          "height": 96
+        },
+        "directions": 8,
+        "view": "low top-down",
+        "template_id": "mannequin",
+        "created_at": "2026-10-25T04:39:39.018943+00:00",
+        "source": "art/chars/ly-hanh/rot/metadata.json"
+      },
+      "outputs": [
+        "art/chars/ly-hanh/character.zip",
+        "art/chars/ly-hanh/rot/metadata.json",
+        "art/chars/ly-hanh/rot/Idle/rotations/east.png",
+        "art/chars/ly-hanh/rot/Idle/rotations/north-east.png",
+        "art/chars/ly-hanh/rot/Idle/rotations/north-west.png",
+        "art/chars/ly-hanh/rot/Idle/rotations/north.png",
+        "art/chars/ly-hanh/rot/Idle/rotations/south-east.png",
+        "art/chars/ly-hanh/rot/Idle/rotations/south-west.png",
+        "art/chars/ly-hanh/rot/Idle/rotations/south.png",
+        "art/chars/ly-hanh/rot/Idle/rotations/west.png"
+      ],
+      "sourceFiles": [
+        "art/chars/ly-hanh/character.receipt.json"
+      ]
+    },
+    {
+      "seq": 12,
+      "step": 2,
+      "stage": "character-rotate",
+      "id": "trinh-luc-rotate",
+      "tool": "create_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-trinh-luc",
+        "name": "Trịnh Lực",
+        "role": "Tài xế nhà họ Lâm"
+      },
+      "params": {
+        "mode": "v3 reference",
+        "n_directions": 8
+      },
+      "promptParam": "description",
+      "prompt": "Victorian coachman, black top hat, long navy blue coat with brass buttons, brown leather gloves, black boots",
+      "promptSource": "art/chars/trinh-luc/rot/metadata.json (character.prompt)",
+      "references": [
+        {
+          "param": "reference_image_url",
+          "image": "trinh-luc/front-0.png (job 9ae58b2f-f673-4d8e-976e-9045c444ca90 index 0)",
+          "job_id": "9ae58b2f-f673-4d8e-976e-9045c444ca90",
+          "note": "ứng viên mặt trước nhìn thẳng hướng south được chọn từ job create_image_pro ở trên (receipt chỉ ghi tệp + index)"
+        }
+      ],
+      "character_id": "628a9ad5-fbd3-492d-afa8-1165185dd083",
+      "cost_generations": 2,
+      "receipt": {
+        "character_id": "628a9ad5-fbd3-492d-afa8-1165185dd083",
+        "mode": "v3 reference",
+        "n_directions": 8,
+        "reference": "trinh-luc/front-0.png (job 9ae58b2f-f673-4d8e-976e-9045c444ca90 index 0)",
+        "cost_generations": 2
+      },
+      "resultMeta": {
+        "size": {
+          "width": 96,
+          "height": 96
+        },
+        "directions": 8,
+        "view": "low top-down",
+        "template_id": "mannequin",
+        "created_at": "2026-10-25T04:39:39.700322+00:00",
+        "source": "art/chars/trinh-luc/rot/metadata.json"
+      },
+      "outputs": [
+        "art/chars/trinh-luc/character.zip",
+        "art/chars/trinh-luc/rot/metadata.json",
+        "art/chars/trinh-luc/rot/Idle/rotations/east.png",
+        "art/chars/trinh-luc/rot/Idle/rotations/north-east.png",
+        "art/chars/trinh-luc/rot/Idle/rotations/north-west.png",
+        "art/chars/trinh-luc/rot/Idle/rotations/north.png",
+        "art/chars/trinh-luc/rot/Idle/rotations/south-east.png",
+        "art/chars/trinh-luc/rot/Idle/rotations/south-west.png",
+        "art/chars/trinh-luc/rot/Idle/rotations/south.png",
+        "art/chars/trinh-luc/rot/Idle/rotations/west.png"
+      ],
+      "sourceFiles": [
+        "art/chars/trinh-luc/character.receipt.json"
+      ]
+    },
+    {
+      "seq": 13,
+      "step": 2,
+      "stage": "character-rotate",
+      "id": "to-khanh-rotate",
+      "tool": "create_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-to-khanh",
+        "name": "Tô Khánh",
+        "role": "Thợ ảnh, hiệu ảnh số 22"
+      },
+      "params": {
+        "mode": "v3 reference",
+        "n_directions": 8
+      },
+      "promptParam": "description",
+      "prompt": "old Victorian photographer, white hair and beard, round glasses, brown waistcoat, rolled sleeves, stained grey apron, holding a glass photo plate",
+      "promptSource": "art/chars/to-khanh/rot/metadata.json (character.prompt)",
+      "references": [
+        {
+          "param": "reference_image_url",
+          "image": "to-khanh/front-0.png (job c283618a-0553-4194-b7f5-42799fcfc18f index 0)",
+          "job_id": "c283618a-0553-4194-b7f5-42799fcfc18f",
+          "note": "ứng viên mặt trước nhìn thẳng hướng south được chọn từ job create_image_pro ở trên (receipt chỉ ghi tệp + index)"
+        }
+      ],
+      "character_id": "678085c3-9d51-404b-8c5f-bf02ccdccf27",
+      "cost_generations": 2,
+      "receipt": {
+        "character_id": "678085c3-9d51-404b-8c5f-bf02ccdccf27",
+        "mode": "v3 reference",
+        "n_directions": 8,
+        "reference": "to-khanh/front-0.png (job c283618a-0553-4194-b7f5-42799fcfc18f index 0)",
+        "cost_generations": 2
+      },
+      "resultMeta": {
+        "size": {
+          "width": 96,
+          "height": 96
+        },
+        "directions": 8,
+        "view": "low top-down",
+        "template_id": "mannequin",
+        "created_at": "2026-10-25T04:39:40.431264+00:00",
+        "source": "art/chars/to-khanh/rot/metadata.json"
+      },
+      "outputs": [
+        "art/chars/to-khanh/character.zip",
+        "art/chars/to-khanh/rot/metadata.json",
+        "art/chars/to-khanh/rot/Idle/rotations/east.png",
+        "art/chars/to-khanh/rot/Idle/rotations/north-east.png",
+        "art/chars/to-khanh/rot/Idle/rotations/north-west.png",
+        "art/chars/to-khanh/rot/Idle/rotations/north.png",
+        "art/chars/to-khanh/rot/Idle/rotations/south-east.png",
+        "art/chars/to-khanh/rot/Idle/rotations/south-west.png",
+        "art/chars/to-khanh/rot/Idle/rotations/south.png",
+        "art/chars/to-khanh/rot/Idle/rotations/west.png"
+      ],
+      "sourceFiles": [
+        "art/chars/to-khanh/character.receipt.json"
+      ]
+    },
+    {
+      "seq": 14,
+      "step": 2,
+      "stage": "character-rotate",
+      "id": "dang-buu-rotate",
+      "tool": "create_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-dang-buu",
+        "name": "Đặng Bửu",
+        "role": "Chủ tiệm cầm đồ"
+      },
+      "params": {
+        "mode": "v3 reference",
+        "n_directions": 8
+      },
+      "promptParam": "description",
+      "prompt": "stout bald Victorian pawnbroker, round glasses, grey mustache, burgundy waistcoat with gold watch chain, white shirt, dark trousers",
+      "promptSource": "art/chars/dang-buu/rot/metadata.json (character.prompt)",
+      "references": [
+        {
+          "param": "reference_image_url",
+          "image": "dang-buu/front-0.png (job 23f9f9a6-825f-4edd-b28d-85627ba113d2 index 0)",
+          "job_id": "23f9f9a6-825f-4edd-b28d-85627ba113d2",
+          "note": "ứng viên mặt trước nhìn thẳng hướng south được chọn từ job create_image_pro ở trên (receipt chỉ ghi tệp + index)"
+        }
+      ],
+      "character_id": "e18fac38-bc69-465c-ac58-d189de0f94ea",
+      "cost_generations": 2,
+      "receipt": {
+        "character_id": "e18fac38-bc69-465c-ac58-d189de0f94ea",
+        "mode": "v3 reference",
+        "n_directions": 8,
+        "reference": "dang-buu/front-0.png (job 23f9f9a6-825f-4edd-b28d-85627ba113d2 index 0)",
+        "cost_generations": 2
+      },
+      "resultMeta": {
+        "size": {
+          "width": 96,
+          "height": 96
+        },
+        "directions": 8,
+        "view": "low top-down",
+        "template_id": "mannequin",
+        "created_at": "2026-10-25T04:39:41.114912+00:00",
+        "source": "art/chars/dang-buu/rot/metadata.json"
+      },
+      "outputs": [
+        "art/chars/dang-buu/character.zip",
+        "art/chars/dang-buu/rot/metadata.json",
+        "art/chars/dang-buu/rot/Idle/rotations/east.png",
+        "art/chars/dang-buu/rot/Idle/rotations/north-east.png",
+        "art/chars/dang-buu/rot/Idle/rotations/north-west.png",
+        "art/chars/dang-buu/rot/Idle/rotations/north.png",
+        "art/chars/dang-buu/rot/Idle/rotations/south-east.png",
+        "art/chars/dang-buu/rot/Idle/rotations/south-west.png",
+        "art/chars/dang-buu/rot/Idle/rotations/south.png",
+        "art/chars/dang-buu/rot/Idle/rotations/west.png"
+      ],
+      "sourceFiles": [
+        "art/chars/dang-buu/character.receipt.json"
+      ]
+    },
+    {
+      "seq": 15,
+      "step": 2,
+      "stage": "character-rotate",
+      "id": "hoc-viec-rotate",
+      "tool": "create_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-hoc-viec",
+        "name": "Phạm Tùng",
+        "role": "Học việc Hiệu thuốc Hưng Long"
+      },
+      "params": {
+        "mode": "v3 reference",
+        "n_directions": 8
+      },
+      "promptParam": "description",
+      "prompt": "young Victorian apothecary apprentice, short black hair, white lab coat over grey waistcoat, dark trousers, small amber medicine bottle in hand",
+      "promptSource": "art/chars/hoc-viec/rot/metadata.json (character.prompt)",
+      "references": [
+        {
+          "param": "reference_image_url",
+          "image": "hoc-viec/front-2.png (job 3dcbc68c-5c8c-4071-9031-83c610749be5 index 2)",
+          "job_id": "3dcbc68c-5c8c-4071-9031-83c610749be5",
+          "note": "ứng viên mặt trước nhìn thẳng hướng south được chọn từ job create_image_pro ở trên (receipt chỉ ghi tệp + index)"
+        }
+      ],
+      "character_id": "c965e3bd-e07d-4743-86ae-1bb7356ecb37",
+      "cost_generations": 2,
+      "receipt": {
+        "character_id": "c965e3bd-e07d-4743-86ae-1bb7356ecb37",
+        "mode": "v3 reference",
+        "n_directions": 8,
+        "reference": "hoc-viec/front-2.png (job 3dcbc68c-5c8c-4071-9031-83c610749be5 index 2)",
+        "cost_generations": 2
+      },
+      "resultMeta": {
+        "size": {
+          "width": 96,
+          "height": 96
+        },
+        "directions": 8,
+        "view": "low top-down",
+        "template_id": "mannequin",
+        "created_at": "2026-10-25T04:39:42.345815+00:00",
+        "source": "art/chars/hoc-viec/rot/metadata.json"
+      },
+      "outputs": [
+        "art/chars/hoc-viec/character.zip",
+        "art/chars/hoc-viec/rot/metadata.json",
+        "art/chars/hoc-viec/rot/Idle/rotations/east.png",
+        "art/chars/hoc-viec/rot/Idle/rotations/north-east.png",
+        "art/chars/hoc-viec/rot/Idle/rotations/north-west.png",
+        "art/chars/hoc-viec/rot/Idle/rotations/north.png",
+        "art/chars/hoc-viec/rot/Idle/rotations/south-east.png",
+        "art/chars/hoc-viec/rot/Idle/rotations/south-west.png",
+        "art/chars/hoc-viec/rot/Idle/rotations/south.png",
+        "art/chars/hoc-viec/rot/Idle/rotations/west.png"
+      ],
+      "sourceFiles": [
+        "art/chars/hoc-viec/character.receipt.json"
+      ]
+    },
+    {
+      "seq": 16,
+      "step": 3,
+      "stage": "character-walk",
+      "id": "watson-walking",
+      "tool": "animate_character",
+      "subject": {
+        "kind": "player",
+        "role": "INTERROGATOR",
+        "name": "Dr. John Watson"
+      },
+      "params": {
+        "character_id": "1d31d2ec-5be3-4d26-995e-3d4a6946e682",
+        "mode": "v3",
+        "frame_count": 8,
+        "keep_first_frame": false
+      },
+      "perRequest": "một request cho mỗi hướng trong jobs (direction = khóa của jobs)",
+      "animation_name": "watson_walking",
+      "promptParam": "action",
+      "prompt": "walking",
+      "references": [],
+      "character_id": "1d31d2ec-5be3-4d26-995e-3d4a6946e682",
+      "animation_group_id": "27924b56-976f-4081-bd5e-4194a6efe104",
+      "jobs": {
+        "south": "1b8e032f-0b50-4fb7-ac45-4b6ba26e50ed",
+        "east": "8a1eb31b-048c-4e8c-90a0-72ad26b4067c",
+        "north": "b54cd097-a258-4ecd-9cb0-a551702a476b",
+        "west": "8bfc5dc4-9f89-4097-9294-1c0884f75a86"
+      },
+      "n_requests": 4,
+      "cost_generations": 8,
+      "receipt": {
+        "mode": "v3",
+        "action": "walking",
+        "frame_count": 8,
+        "keep_first_frame": false,
+        "group": "27924b56-976f-4081-bd5e-4194a6efe104",
+        "jobs": {
+          "south": "1b8e032f-0b50-4fb7-ac45-4b6ba26e50ed",
+          "east": "8a1eb31b-048c-4e8c-90a0-72ad26b4067c",
+          "north": "b54cd097-a258-4ecd-9cb0-a551702a476b",
+          "west": "8bfc5dc4-9f89-4097-9294-1c0884f75a86"
+        },
+        "cost_generations": 8,
+        "note": "same action text/frame count as Sherlock V3 96 user animations (walking 8f, idle 8+1f)"
+      },
+      "outputs": [
+        "art/chars/watson/sheet/Watson_V3_96_-_case_Lo_t-Idle.png",
+        "art/chars/watson/sheet/Watson_V3_96_-_case_Lo_t-Idle.json",
+        "art/chars/watson/spritesheet.zip"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/players/watson96.png"
+      ],
+      "sourceFiles": [
+        "art/chars/watson/animations.receipt.json"
+      ]
+    },
+    {
+      "seq": 17,
+      "step": 3,
+      "stage": "character-idle",
+      "id": "watson-idle",
+      "tool": "animate_character",
+      "subject": {
+        "kind": "player",
+        "role": "INTERROGATOR",
+        "name": "Dr. John Watson"
+      },
+      "params": {
+        "character_id": "1d31d2ec-5be3-4d26-995e-3d4a6946e682",
+        "mode": "v3",
+        "frame_count": 8,
+        "keep_first_frame": true
+      },
+      "perRequest": "một request cho mỗi hướng trong jobs (direction = khóa của jobs)",
+      "animation_name": "watson_idle",
+      "promptParam": "action",
+      "prompt": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+      "references": [],
+      "character_id": "1d31d2ec-5be3-4d26-995e-3d4a6946e682",
+      "animation_group_id": "f3a67e38-2979-4f2d-b981-676c12fa79b7",
+      "jobs": {
+        "south": "0f9eaf74-9b52-4cb6-9ead-a08d4242ae3a",
+        "east": "786895be-8904-4eda-b384-027471fa4253",
+        "north": "3fae2a01-a548-4f74-bd13-ec2e3e839365",
+        "west": "84d3c6b3-be51-406f-9cc5-365d4fb6165b"
+      },
+      "n_requests": 4,
+      "cost_generations": 8,
+      "receipt": {
+        "mode": "v3",
+        "action": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+        "frame_count": 8,
+        "keep_first_frame": true,
+        "group": "f3a67e38-2979-4f2d-b981-676c12fa79b7",
+        "jobs": {
+          "south": "0f9eaf74-9b52-4cb6-9ead-a08d4242ae3a",
+          "east": "786895be-8904-4eda-b384-027471fa4253",
+          "north": "3fae2a01-a548-4f74-bd13-ec2e3e839365",
+          "west": "84d3c6b3-be51-406f-9cc5-365d4fb6165b"
+        },
+        "cost_generations": 8,
+        "note": "same action text/frame count as Sherlock V3 96 user animations (walking 8f, idle 8+1f)"
+      },
+      "outputs": [
+        "art/chars/watson/sheet/Watson_V3_96_-_case_Lo_t-Idle.png",
+        "art/chars/watson/sheet/Watson_V3_96_-_case_Lo_t-Idle.json",
+        "art/chars/watson/spritesheet.zip"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/players/watson96.png"
+      ],
+      "sourceFiles": [
+        "art/chars/watson/animations.receipt.json"
+      ]
+    },
+    {
+      "seq": 18,
+      "step": 3,
+      "stage": "character-idle",
+      "id": "lam-the-bao-idle",
+      "tool": "animate_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-lam-the-bao",
+        "name": "Lâm Thế Bảo",
+        "role": "Cháu ruột ông Vinh"
+      },
+      "params": {
+        "character_id": "88c1a125-b78c-45ca-992a-19b227679aee",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true
+      },
+      "animation_name": "npc_idle_south",
+      "promptParam": "action",
+      "prompt": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+      "references": [],
+      "character_id": "88c1a125-b78c-45ca-992a-19b227679aee",
+      "job_id": "7e68c441-e505-42c1-b5fe-c164f946186c",
+      "animation_group_id": "cb88503c-583f-4943-bfc0-7cefa50772e9",
+      "cost_generations": 2,
+      "receipt": {
+        "animation": "npc_idle_south",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true,
+        "job": "7e68c441-e505-42c1-b5fe-c164f946186c",
+        "group": "cb88503c-583f-4943-bfc0-7cefa50772e9",
+        "cost_generations": 2,
+        "action": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture."
+      },
+      "outputs": [
+        "art/chars/lam-the-bao/sheet/Lam_The_Bao-Idle.png",
+        "art/chars/lam-the-bao/sheet/Lam_The_Bao-Idle.json",
+        "art/chars/lam-the-bao/spritesheet.zip"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/characters/lam-the-bao-idle.png",
+        "/assets/pixel/lo-thuoc-thu-nam/characters/lam-the-bao-portrait.png"
+      ],
+      "sourceFiles": [
+        "art/chars/lam-the-bao/idle.receipt.json"
+      ]
+    },
+    {
+      "seq": 19,
+      "step": 3,
+      "stage": "character-idle",
+      "id": "ly-hanh-idle",
+      "tool": "animate_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-ly-hanh",
+        "name": "Lý Hạnh",
+        "role": "Người giúp việc 22 năm"
+      },
+      "params": {
+        "character_id": "a312e82f-946b-43d0-997f-e2f4bee4c670",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true
+      },
+      "animation_name": "npc_idle_south",
+      "promptParam": "action",
+      "prompt": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+      "references": [],
+      "character_id": "a312e82f-946b-43d0-997f-e2f4bee4c670",
+      "job_id": "496fbb90-0948-4931-bb42-b609d9834cc7",
+      "animation_group_id": "c8559ebe-6c0c-4ce6-b342-b5080057855f",
+      "cost_generations": 2,
+      "receipt": {
+        "animation": "npc_idle_south",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true,
+        "job": "496fbb90-0948-4931-bb42-b609d9834cc7",
+        "group": "c8559ebe-6c0c-4ce6-b342-b5080057855f",
+        "cost_generations": 2,
+        "action": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture."
+      },
+      "outputs": [
+        "art/chars/ly-hanh/sheet/Ly_Hanh-Idle.png",
+        "art/chars/ly-hanh/sheet/Ly_Hanh-Idle.json",
+        "art/chars/ly-hanh/spritesheet.zip"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/characters/ly-hanh-idle.png",
+        "/assets/pixel/lo-thuoc-thu-nam/characters/ly-hanh-portrait.png"
+      ],
+      "sourceFiles": [
+        "art/chars/ly-hanh/idle.receipt.json"
+      ]
+    },
+    {
+      "seq": 20,
+      "step": 3,
+      "stage": "character-idle",
+      "id": "trinh-luc-idle",
+      "tool": "animate_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-trinh-luc",
+        "name": "Trịnh Lực",
+        "role": "Tài xế nhà họ Lâm"
+      },
+      "params": {
+        "character_id": "628a9ad5-fbd3-492d-afa8-1165185dd083",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true
+      },
+      "animation_name": "npc_idle_south",
+      "promptParam": "action",
+      "prompt": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+      "references": [],
+      "character_id": "628a9ad5-fbd3-492d-afa8-1165185dd083",
+      "job_id": "bc2c3b57-60bb-4241-b11d-e4ebbbeca033",
+      "animation_group_id": "f82e943f-82dc-411e-80e1-d746b9719cbc",
+      "cost_generations": 2,
+      "receipt": {
+        "animation": "npc_idle_south",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true,
+        "job": "bc2c3b57-60bb-4241-b11d-e4ebbbeca033",
+        "group": "f82e943f-82dc-411e-80e1-d746b9719cbc",
+        "cost_generations": 2,
+        "action": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture."
+      },
+      "outputs": [
+        "art/chars/trinh-luc/sheet/Trinh_Luc-Idle.png",
+        "art/chars/trinh-luc/sheet/Trinh_Luc-Idle.json",
+        "art/chars/trinh-luc/spritesheet.zip"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/characters/trinh-luc-idle.png",
+        "/assets/pixel/lo-thuoc-thu-nam/characters/trinh-luc-portrait.png"
+      ],
+      "sourceFiles": [
+        "art/chars/trinh-luc/idle.receipt.json"
+      ]
+    },
+    {
+      "seq": 21,
+      "step": 3,
+      "stage": "character-idle",
+      "id": "to-khanh-idle",
+      "tool": "animate_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-to-khanh",
+        "name": "Tô Khánh",
+        "role": "Thợ ảnh, hiệu ảnh số 22"
+      },
+      "params": {
+        "character_id": "678085c3-9d51-404b-8c5f-bf02ccdccf27",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true
+      },
+      "animation_name": "npc_idle_south",
+      "promptParam": "action",
+      "prompt": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+      "references": [],
+      "character_id": "678085c3-9d51-404b-8c5f-bf02ccdccf27",
+      "job_id": "1038c292-fa9c-42a3-935e-86c244ea536a",
+      "animation_group_id": "c2a605a0-2bcc-4073-83d9-3c3769138fef",
+      "cost_generations": 2,
+      "receipt": {
+        "animation": "npc_idle_south",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true,
+        "job": "1038c292-fa9c-42a3-935e-86c244ea536a",
+        "group": "c2a605a0-2bcc-4073-83d9-3c3769138fef",
+        "cost_generations": 2,
+        "action": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture."
+      },
+      "outputs": [
+        "art/chars/to-khanh/sheet/To_Khanh-Idle.png",
+        "art/chars/to-khanh/sheet/To_Khanh-Idle.json",
+        "art/chars/to-khanh/spritesheet.zip"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/characters/to-khanh-idle.png",
+        "/assets/pixel/lo-thuoc-thu-nam/characters/to-khanh-portrait.png"
+      ],
+      "sourceFiles": [
+        "art/chars/to-khanh/idle.receipt.json"
+      ]
+    },
+    {
+      "seq": 22,
+      "step": 3,
+      "stage": "character-idle",
+      "id": "dang-buu-idle",
+      "tool": "animate_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-dang-buu",
+        "name": "Đặng Bửu",
+        "role": "Chủ tiệm cầm đồ"
+      },
+      "params": {
+        "character_id": "e18fac38-bc69-465c-ac58-d189de0f94ea",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true
+      },
+      "animation_name": "npc_idle_south",
+      "promptParam": "action",
+      "prompt": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+      "references": [],
+      "character_id": "e18fac38-bc69-465c-ac58-d189de0f94ea",
+      "job_id": "e30fb539-a88f-42a9-a6cc-7a41f2cb4889",
+      "animation_group_id": "805090f1-8550-4bc2-9382-c3e62662b61e",
+      "cost_generations": 2,
+      "receipt": {
+        "animation": "npc_idle_south",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true,
+        "job": "e30fb539-a88f-42a9-a6cc-7a41f2cb4889",
+        "group": "805090f1-8550-4bc2-9382-c3e62662b61e",
+        "cost_generations": 2,
+        "action": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture."
+      },
+      "outputs": [
+        "art/chars/dang-buu/sheet/Dang_Buu-Idle.png",
+        "art/chars/dang-buu/sheet/Dang_Buu-Idle.json",
+        "art/chars/dang-buu/spritesheet.zip"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/characters/dang-buu-idle.png",
+        "/assets/pixel/lo-thuoc-thu-nam/characters/dang-buu-portrait.png"
+      ],
+      "sourceFiles": [
+        "art/chars/dang-buu/idle.receipt.json"
+      ]
+    },
+    {
+      "seq": 23,
+      "step": 3,
+      "stage": "character-idle",
+      "id": "hoc-viec-idle",
+      "tool": "animate_character",
+      "subject": {
+        "kind": "npc",
+        "characterId": "char-px-hoc-viec",
+        "name": "Phạm Tùng",
+        "role": "Học việc Hiệu thuốc Hưng Long"
+      },
+      "params": {
+        "character_id": "c965e3bd-e07d-4743-86ae-1bb7356ecb37",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true
+      },
+      "animation_name": "npc_idle_south",
+      "promptParam": "action",
+      "prompt": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture.",
+      "references": [],
+      "character_id": "c965e3bd-e07d-4743-86ae-1bb7356ecb37",
+      "job_id": "53964587-ce3b-45d3-820b-c9682ba27f90",
+      "animation_group_id": "da867538-e84a-4365-b412-ab619f4b43ef",
+      "cost_generations": 2,
+      "receipt": {
+        "animation": "npc_idle_south",
+        "mode": "v3",
+        "direction": "south",
+        "frame_count": 8,
+        "keep_first_frame": true,
+        "job": "53964587-ce3b-45d3-820b-c9682ba27f90",
+        "group": "da867538-e84a-4365-b412-ab619f4b43ef",
+        "cost_generations": 2,
+        "action": "Inhale slowly to expand the chest subtly while dropping the shoulders slightly, then exhale to settle the torso back to the starting resting posture."
+      },
+      "outputs": [
+        "art/chars/hoc-viec/sheet/Hoc_Viec-Idle.png",
+        "art/chars/hoc-viec/sheet/Hoc_Viec-Idle.json",
+        "art/chars/hoc-viec/spritesheet.zip"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/characters/hoc-viec-idle.png",
+        "/assets/pixel/lo-thuoc-thu-nam/characters/hoc-viec-portrait.png"
+      ],
+      "sourceFiles": [
+        "art/chars/hoc-viec/idle.receipt.json"
+      ]
+    },
+    {
+      "seq": 24,
+      "step": 5,
+      "stage": "object-mask",
+      "id": "mask-v1",
+      "tool": "edit_image (Edit Image Pro)",
+      "subject": {
+        "kind": "scene",
+        "sceneId": "scene-px-pho"
+      },
+      "params": {
+        "width": 512,
+        "height": 512,
+        "no_background": false
+      },
+      "promptParam": "description",
+      "prompt": "Convert this exact map into a flat black-and-white object mask with the same framing and coordinates. Paint WHITE every visible solid object: buildings with roofs and walls, chimneys, shop fronts, window boxes, iron fences and railings, gates, lamp posts, the clock post, trees and bushes, benches, flower planters, barrels, crates, signs on brackets, the hand cart, the carriage and its wheels, the boat and the wooden pier. Paint BLACK all open ground: cobblestones, paving, the square floor, puddles and the river water. Gaps where the ground shows between objects stay black. Pure white and pure black only, no grey, no outlines, no texture, no shading.",
+      "references": [
+        {
+          "param": "image_urls",
+          "url": "https://api.pixellab.ai/mcp/images/42741c32-149d-4c36-aaa9-e77e592b4899/download?index=0",
+          "source": "map-v1/map-512.png (job 42741c32-149d-4c36-aaa9-e77e592b4899 index 0), native 512x512, no upscale, no characters"
+        }
+      ],
+      "job_id": "3a12d723-f6b6-4e61-9ef0-100a8f9c7177",
+      "asset_id": "157ac887-854e-5917-b297-e90781f914f1",
+      "cost_generations": 25,
+      "receipt": {
+        "job_id": "3a12d723-f6b6-4e61-9ef0-100a8f9c7177",
+        "asset_id": "157ac887-854e-5917-b297-e90781f914f1",
+        "cost_generations": 25
+      },
+      "outputs": [
+        "art/mask-v1/mask-raw.png"
+      ],
+      "derivedLocal": [
+        "art/mask-v1/review.png"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/fg/pho-carriage.png",
+        "/assets/pixel/lo-thuoc-thu-nam/fg/pho-cart.png",
+        "/assets/pixel/lo-thuoc-thu-nam/fg/pho-clock.png",
+        "/assets/pixel/lo-thuoc-thu-nam/fg/pho-lamp-1.png",
+        "/assets/pixel/lo-thuoc-thu-nam/fg/pho-lamp-2.png",
+        "/assets/pixel/lo-thuoc-thu-nam/fg/pho-lamp-3.png",
+        "/assets/pixel/lo-thuoc-thu-nam/fg/pho-lamp-4.png",
+        "/assets/pixel/lo-thuoc-thu-nam/fg/pho-tree.png"
+      ],
+      "sourceFiles": [
+        "art/mask-v1/request.json",
+        "art/mask-v1/receipt.json"
+      ]
+    },
+    {
+      "seq": 25,
+      "step": 7,
+      "stage": "interior",
+      "id": "interior-nha-so-7",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "scene",
+        "sceneId": "scene-px-nha-so-7",
+        "title": "Nhà số 7 — phòng trưng bày"
+      },
+      "params": {
+        "width": 512,
+        "height": 512,
+        "no_background": false,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Interior of a Victorian collector's townhouse room, a combined gallery and study. Along the right wall a tall wooden curio shelf full of old books, a small brass birdcage and ceramic jars. Facing that shelf, a high-backed green upholstered armchair with a small round side table beside it holding one small empty glass medicine vial and a drinking glass. Against the left wall a brick fireplace with a mantel clock, and a glass-fronted display cabinet with a small brass three-dial combination lock. Near the back corner a writing desk with drawers, an inkwell and papers, and a dressing table with a small open jewellery box. A patterned rug on the wooden floor and a tall window on the back wall. Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "upload:8b9e002b-f73a-4b6c-9dd8-654d85d788e6",
+          "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera",
+          "source": {
+            "file": "art/map-v1/crop-nha-so-7.png",
+            "cropBoxNative": [
+              0,
+              82,
+              196,
+              300
+            ],
+            "cropBoxNote": "x0,y0,x1,y1 trên map-512.png (xác định lại bằng so khớp pixel)",
+            "upload": {
+              "ref": "upload:8b9e002b-f73a-4b6c-9dd8-654d85d788e6",
+              "upload_id": "8b9e002b-f73a-4b6c-9dd8-654d85d788e6",
+              "width": 196,
+              "height": 218,
+              "n_frames": 1,
+              "expires_in_days": 3
+            }
+          }
+        }
+      ],
+      "job_id": "39282314-ff6f-40fd-86a0-4e2734f19952",
+      "asset_id": "2893e3e3-1b7d-5309-a442-886ef522ecd8",
+      "cost_generations": 25,
+      "receipt": {
+        "job_id": "39282314-ff6f-40fd-86a0-4e2734f19952",
+        "asset_id": "2893e3e3-1b7d-5309-a442-886ef522ecd8",
+        "cost_generations": 25
+      },
+      "outputs": [
+        "art/interiors/nha-so-7-512.png"
+      ],
+      "derivedLocal": [
+        "art/interiors/nha-so-7-cut.png",
+        "art/interiors/nha-so-7-grid.png"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/scenes/nha-so-7.png"
+      ],
+      "sourceFiles": [
+        "art/interiors/nha-so-7.request.json",
+        "art/interiors/nha-so-7.receipt.json"
+      ]
+    },
+    {
+      "seq": 26,
+      "step": 7,
+      "stage": "interior",
+      "id": "interior-hieu-thuoc",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "scene",
+        "sceneId": "scene-px-hieu-thuoc",
+        "title": "Hiệu thuốc Hưng Long"
+      },
+      "params": {
+        "width": 512,
+        "height": 512,
+        "no_background": false,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Interior of a Victorian apothecary shop. A long wooden counter with a brass weighing scale, an open ledger book and a small wooden tray holding a row of seven little medicine vials. Tall wall shelves full of small glass bottles, jars and drawers with brass handles. A back workbench with a mortar and pestle, flasks and a small burner. Dark green painted wood panelling, a hanging lamp and a window on the back wall. Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "upload:4470f586-9a1e-414c-a22f-5992d9ce090e",
+          "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera",
+          "source": {
+            "file": "art/map-v1/crop-hieu-thuoc.png",
+            "cropBoxNative": [
+              364,
+              54,
+              512,
+              300
+            ],
+            "cropBoxNote": "x0,y0,x1,y1 trên map-512.png (xác định lại bằng so khớp pixel)",
+            "upload": {
+              "ref": "upload:4470f586-9a1e-414c-a22f-5992d9ce090e",
+              "upload_id": "4470f586-9a1e-414c-a22f-5992d9ce090e",
+              "width": 148,
+              "height": 246,
+              "n_frames": 1,
+              "expires_in_days": 3
+            }
+          }
+        }
+      ],
+      "job_id": "5d9b85ec-39d6-4202-8061-755cb119d9d5",
+      "asset_id": "7644ab18-c033-5da9-b8aa-daaf0e4e715d",
+      "cost_generations": 25,
+      "receipt": {
+        "job_id": "5d9b85ec-39d6-4202-8061-755cb119d9d5",
+        "asset_id": "7644ab18-c033-5da9-b8aa-daaf0e4e715d",
+        "cost_generations": 25
+      },
+      "outputs": [
+        "art/interiors/hieu-thuoc-512.png"
+      ],
+      "derivedLocal": [
+        "art/interiors/hieu-thuoc-cut.png",
+        "art/interiors/hieu-thuoc-grid.png"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/scenes/hieu-thuoc.png"
+      ],
+      "sourceFiles": [
+        "art/interiors/hieu-thuoc.request.json",
+        "art/interiors/hieu-thuoc.receipt.json"
+      ]
+    },
+    {
+      "seq": 27,
+      "step": 7,
+      "stage": "interior",
+      "id": "interior-nha-xe",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "scene",
+        "sceneId": "scene-px-nha-xe",
+        "title": "Nhà xe và phòng Trịnh Lực"
+      },
+      "params": {
+        "width": 512,
+        "height": 512,
+        "no_background": false,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Interior of a Victorian wooden carriage house with a coachman's sleeping corner. Wooden plank walls with horse harness, reins and lanterns hanging on pegs, a spare carriage wheel leaning on the wall, bales of hay, a workbench with tools and a small logbook hanging on a nail beside the entrance. In the back corner a narrow cot bed with a blanket, a small table with an oil lamp and a wooden chest. Packed dirt and plank floor with straw. Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "upload:fcd2f820-a950-41ca-a75b-34e9f626376d",
+          "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera",
+          "source": {
+            "file": "art/map-v1/crop-nha-xe.png",
+            "cropBoxNative": [
+              0,
+              310,
+              100,
+              512
+            ],
+            "cropBoxNote": "x0,y0,x1,y1 trên map-512.png (xác định lại bằng so khớp pixel)",
+            "upload": {
+              "ref": "upload:fcd2f820-a950-41ca-a75b-34e9f626376d",
+              "upload_id": "fcd2f820-a950-41ca-a75b-34e9f626376d",
+              "width": 100,
+              "height": 202,
+              "n_frames": 1,
+              "expires_in_days": 3
+            }
+          }
+        }
+      ],
+      "job_id": "d9b98098-bb52-48f6-ab94-b48002a40c69",
+      "asset_id": "e987ce5e-c720-5e07-9516-8dde41a8f06e",
+      "cost_generations": 25,
+      "receipt": {
+        "job_id": "d9b98098-bb52-48f6-ab94-b48002a40c69",
+        "asset_id": "e987ce5e-c720-5e07-9516-8dde41a8f06e",
+        "cost_generations": 25
+      },
+      "outputs": [
+        "art/interiors/nha-xe-512.png"
+      ],
+      "derivedLocal": [
+        "art/interiors/nha-xe-cut.png",
+        "art/interiors/nha-xe-grid.png"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/scenes/nha-xe.png"
+      ],
+      "sourceFiles": [
+        "art/interiors/nha-xe.request.json",
+        "art/interiors/nha-xe.receipt.json"
+      ]
+    },
+    {
+      "seq": 28,
+      "step": 7,
+      "stage": "interior",
+      "id": "interior-tiem-cam-do",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "scene",
+        "sceneId": "scene-px-cam-do",
+        "title": "Tiệm cầm đồ Đặng Bửu"
+      },
+      "params": {
+        "width": 512,
+        "height": 512,
+        "no_background": false,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Interior of a Victorian pawnbroker's shop. A dark wooden counter with an iron grille and a thick ledger book on it, a glass display case of rings, brooches and pocket watches, wall shelves crowded with clocks, candlesticks, a violin and small boxes, and a heavy black iron safe in the corner. Dim warm lamplight, timber panelling and a barred window on the back wall. Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "upload:5b2f3fa5-d64b-48e8-9861-ed83edaf4ec7",
+          "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera",
+          "source": {
+            "file": "art/map-v1/crop-tiem-cam-do.png",
+            "cropBoxNative": [
+              96,
+              328,
+              248,
+              500
+            ],
+            "cropBoxNote": "x0,y0,x1,y1 trên map-512.png (xác định lại bằng so khớp pixel)",
+            "upload": {
+              "ref": "upload:5b2f3fa5-d64b-48e8-9861-ed83edaf4ec7",
+              "upload_id": "5b2f3fa5-d64b-48e8-9861-ed83edaf4ec7",
+              "width": 152,
+              "height": 172,
+              "n_frames": 1,
+              "expires_in_days": 3
+            }
+          }
+        }
+      ],
+      "job_id": "73225d87-3de6-4aa6-b856-f517c68683cb",
+      "asset_id": "8a9d2e02-8ae9-5f89-9e01-28d1b8951c8e",
+      "cost_generations": 25,
+      "receipt": {
+        "job_id": "73225d87-3de6-4aa6-b856-f517c68683cb",
+        "asset_id": "8a9d2e02-8ae9-5f89-9e01-28d1b8951c8e",
+        "cost_generations": 25
+      },
+      "outputs": [
+        "art/interiors/tiem-cam-do-512.png"
+      ],
+      "derivedLocal": [
+        "art/interiors/tiem-cam-do-cut.png",
+        "art/interiors/tiem-cam-do-grid.png"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/scenes/cam-do.png"
+      ],
+      "sourceFiles": [
+        "art/interiors/tiem-cam-do.request.json",
+        "art/interiors/tiem-cam-do.receipt.json"
+      ]
+    },
+    {
+      "seq": 29,
+      "step": 7,
+      "stage": "interior",
+      "id": "interior-hieu-anh",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "scene",
+        "sceneId": "scene-px-hieu-anh",
+        "title": "Hiệu ảnh Tô Khánh"
+      },
+      "params": {
+        "width": 512,
+        "height": 512,
+        "no_background": false,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Interior of a Victorian photographer's studio. On one side: a large wooden camera on a tripod facing a painted backdrop and a posing chair. On the other side, behind a half-open dark curtain, a small darkroom corner with a red safelight lamp, shallow developing trays and brown chemical bottles on a bench, a drying line with a few sheets of paper held by wooden clips, and a shelf with glass photographic plates and boxes. Skylight glow on the wooden floor. Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+      "references": [
+        {
+          "param": "reference_images",
+          "url": "upload:66f2c504-d009-4ee6-a0a8-b0a1ab299fb0",
+          "usage": "exterior of the same building: use only for its identity, materials, colours and pixel-art style; do not copy the outdoor camera",
+          "source": {
+            "file": "art/map-v1/crop-hieu-anh.png",
+            "cropBoxNative": [
+              332,
+              322,
+              512,
+              512
+            ],
+            "cropBoxNote": "x0,y0,x1,y1 trên map-512.png (xác định lại bằng so khớp pixel)",
+            "upload": {
+              "ref": "upload:66f2c504-d009-4ee6-a0a8-b0a1ab299fb0",
+              "upload_id": "66f2c504-d009-4ee6-a0a8-b0a1ab299fb0",
+              "width": 180,
+              "height": 190,
+              "n_frames": 1,
+              "expires_in_days": 3
+            }
+          }
+        }
+      ],
+      "job_id": "37fe2bb0-f628-4151-b7e4-e742c82f0e2d",
+      "asset_id": "e3596303-3b55-5311-990d-af898b7939e1",
+      "cost_generations": 25,
+      "receipt": {
+        "job_id": "37fe2bb0-f628-4151-b7e4-e742c82f0e2d",
+        "asset_id": "e3596303-3b55-5311-990d-af898b7939e1",
+        "cost_generations": 25
+      },
+      "outputs": [
+        "art/interiors/hieu-anh-512.png"
+      ],
+      "derivedLocal": [
+        "art/interiors/hieu-anh-cut.png",
+        "art/interiors/hieu-anh-grid.png"
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/scenes/hieu-anh.png"
+      ],
+      "sourceFiles": [
+        "art/interiors/hieu-anh.request.json",
+        "art/interiors/hieu-anh.receipt.json"
+      ]
+    },
+    {
+      "seq": 30,
+      "step": 7,
+      "stage": "icon-sheet",
+      "id": "items-sheet",
+      "tool": "create_image_pro",
+      "subject": {
+        "kind": "items"
+      },
+      "params": {
+        "width": 256,
+        "height": 256,
+        "no_background": true,
+        "seed": 707
+      },
+      "seed": 707,
+      "promptParam": "description",
+      "prompt": "Inventory icon sheet for a Victorian detective game: sixteen separate small objects arranged in a neat 4 by 4 grid, each object centred in its own 64 by 64 cell with empty space around it, all drawn at the same scale, front three-quarter view, dark outline, warm muted Victorian palette. Row 1: brass magnifying glass with dark wooden handle; tiny glass medicine vial with cork and a torn paper seal strip over the cork; small paper receipt slip with a scribbled signature; small brown leather coachman logbook. Row 2: thick pawnbroker ledger bound in dark green cloth; pawn ticket card tied with red string; folded blank white letter; brown glass chemical bottle with dropper cap. Row 3: folded letter covered in faint brown handwriting scribbles; small round glue pot with a brush; open small wooden jewelry box with red velvet lining, empty; small black leather notebook with a ribbon bookmark. Row 4: gold ring with a green jade stone; folded legal document with a red wax seal; small wooden tray holding seven tiny medicine vials in a row; old brass key. No text, no letters, no numbers, no grid lines, no background.",
+      "references": [
+        {
+          "param": "style_image_url",
+          "url": "https://api.pixellab.ai/mcp/images/39282314-ff6f-40fd-86a0-4e2734f19952/download?index=0",
+          "style_note": "style from interior nha-so-7 (job 39282314) so icons share palette/outline/shading with the rooms"
+        }
+      ],
+      "job_id": "d851e5d7-038d-4271-8335-9581275a5e88",
+      "asset_id": "35a806d4-c3fa-5ceb-b6c6-c46575d4fdff",
+      "cost_generations": 10,
+      "receipt": {
+        "job_id": "d851e5d7-038d-4271-8335-9581275a5e88",
+        "asset_id": "35a806d4-c3fa-5ceb-b6c6-c46575d4fdff",
+        "cost_generations": 10
+      },
+      "outputs": [
+        "art/items/sheet-256.png"
+      ],
+      "derivedLocal": [
+        "art/items/sheet-review.png",
+        "art/items/icons/kinh-lup.png",
+        "art/items/icons/lo-thu-nam.png",
+        "art/items/icons/phieu-nhan-thuoc.png",
+        "art/items/icons/so-xe.png",
+        "art/items/icons/so-no.png",
+        "art/items/icons/phieu-cam.png",
+        "art/items/icons/la-thu-trang.png",
+        "art/items/icons/thuoc-hien-anh.png",
+        "art/items/icons/la-thu-hien-chu.png",
+        "art/items/icons/keo-ep-anh.png",
+        "art/items/icons/hop-nu-trang.png",
+        "art/items/icons/so-tay.png",
+        "art/items/icons/nhan-ngoc-bich.png",
+        "art/items/icons/di-chuc.png",
+        "art/items/icons/hop-thuoc-tuan.png",
+        "art/items/icons/chia-khoa.png"
+      ],
+      "grid": [
+        {
+          "cell": 0,
+          "row": 1,
+          "col": 1,
+          "box": [
+            0,
+            0,
+            64,
+            64
+          ],
+          "icon": "art/items/icons/kinh-lup.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/kinh-lup.png",
+          "usedByItemIds": [
+            "item-px-kinh-lup"
+          ]
+        },
+        {
+          "cell": 1,
+          "row": 1,
+          "col": 2,
+          "box": [
+            64,
+            0,
+            128,
+            64
+          ],
+          "icon": "art/items/icons/lo-thu-nam.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/lo-thu-nam.png",
+          "usedByItemIds": [
+            "item-px-lo-thu-nam"
+          ]
+        },
+        {
+          "cell": 2,
+          "row": 1,
+          "col": 3,
+          "box": [
+            128,
+            0,
+            192,
+            64
+          ],
+          "icon": "art/items/icons/phieu-nhan-thuoc.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/phieu-nhan-thuoc.png",
+          "usedByItemIds": [
+            "item-px-so-giao-nhan"
+          ]
+        },
+        {
+          "cell": 3,
+          "row": 1,
+          "col": 4,
+          "box": [
+            192,
+            0,
+            256,
+            64
+          ],
+          "icon": "art/items/icons/so-xe.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/so-xe.png",
+          "usedByItemIds": [
+            "item-px-so-xe"
+          ]
+        },
+        {
+          "cell": 4,
+          "row": 2,
+          "col": 1,
+          "box": [
+            0,
+            64,
+            64,
+            128
+          ],
+          "icon": "art/items/icons/so-no.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/so-no.png",
+          "usedByItemIds": [
+            "item-px-so-no"
+          ]
+        },
+        {
+          "cell": 5,
+          "row": 2,
+          "col": 2,
+          "box": [
+            64,
+            64,
+            128,
+            128
+          ],
+          "icon": "art/items/icons/phieu-cam.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/phieu-cam.png",
+          "usedByItemIds": [
+            "item-px-phieu-cam"
+          ]
+        },
+        {
+          "cell": 6,
+          "row": 2,
+          "col": 3,
+          "box": [
+            128,
+            64,
+            192,
+            128
+          ],
+          "icon": "art/items/icons/la-thu-trang.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/la-thu-trang.png",
+          "usedByItemIds": [
+            "item-px-la-thu-trang"
+          ]
+        },
+        {
+          "cell": 7,
+          "row": 2,
+          "col": 4,
+          "box": [
+            192,
+            64,
+            256,
+            128
+          ],
+          "icon": "art/items/icons/thuoc-hien-anh.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/thuoc-hien-anh.png",
+          "usedByItemIds": [
+            "item-px-thuoc-hien"
+          ]
+        },
+        {
+          "cell": 8,
+          "row": 3,
+          "col": 1,
+          "box": [
+            0,
+            128,
+            64,
+            192
+          ],
+          "icon": "art/items/icons/la-thu-hien-chu.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/la-thu-hien-chu.png",
+          "usedByItemIds": [
+            "item-px-thu-hien-chu"
+          ]
+        },
+        {
+          "cell": 9,
+          "row": 3,
+          "col": 2,
+          "box": [
+            64,
+            128,
+            128,
+            192
+          ],
+          "icon": "art/items/icons/keo-ep-anh.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/keo-ep-anh.png",
+          "usedByItemIds": [
+            "item-px-keo-ep-anh"
+          ]
+        },
+        {
+          "cell": 10,
+          "row": 3,
+          "col": 3,
+          "box": [
+            128,
+            128,
+            192,
+            192
+          ],
+          "icon": "art/items/icons/hop-nu-trang.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/hop-nu-trang.png",
+          "usedByItemIds": [
+            "item-px-hop-nu-trang"
+          ]
+        },
+        {
+          "cell": 11,
+          "row": 3,
+          "col": 4,
+          "box": [
+            192,
+            128,
+            256,
+            192
+          ],
+          "icon": "art/items/icons/so-tay.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/so-tay.png",
+          "usedByItemIds": [
+            "item-px-so-tay"
+          ]
+        },
+        {
+          "cell": 12,
+          "row": 4,
+          "col": 1,
+          "box": [
+            0,
+            192,
+            64,
+            256
+          ],
+          "icon": "art/items/icons/nhan-ngoc-bich.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/nhan-ngoc-bich.png",
+          "usedByItemIds": []
+        },
+        {
+          "cell": 13,
+          "row": 4,
+          "col": 2,
+          "box": [
+            64,
+            192,
+            128,
+            256
+          ],
+          "icon": "art/items/icons/di-chuc.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/di-chuc.png",
+          "usedByItemIds": []
+        },
+        {
+          "cell": 14,
+          "row": 4,
+          "col": 3,
+          "box": [
+            128,
+            192,
+            192,
+            256
+          ],
+          "icon": "art/items/icons/hop-thuoc-tuan.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/hop-thuoc-tuan.png",
+          "usedByItemIds": [
+            "item-px-khay-tem"
+          ]
+        },
+        {
+          "cell": 15,
+          "row": 4,
+          "col": 4,
+          "box": [
+            192,
+            192,
+            256,
+            256
+          ],
+          "icon": "art/items/icons/chia-khoa.png",
+          "runtimeAsset": "/assets/pixel/lo-thuoc-thu-nam/items/chia-khoa.png",
+          "usedByItemIds": []
+        }
+      ],
+      "runtimeAssets": [
+        "/assets/pixel/lo-thuoc-thu-nam/items/kinh-lup.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/lo-thu-nam.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/phieu-nhan-thuoc.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/so-xe.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/so-no.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/phieu-cam.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/la-thu-trang.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/thuoc-hien-anh.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/la-thu-hien-chu.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/keo-ep-anh.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/hop-nu-trang.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/so-tay.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/nhan-ngoc-bich.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/di-chuc.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/hop-thuoc-tuan.png",
+        "/assets/pixel/lo-thuoc-thu-nam/items/chia-khoa.png"
+      ],
+      "sourceFiles": [
+        "art/items/request.json",
+        "art/items/receipt.json"
+      ]
+    }
+  ]
+}
