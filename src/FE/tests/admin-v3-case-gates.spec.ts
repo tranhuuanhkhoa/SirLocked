@@ -43,12 +43,28 @@ test('admin case list shows V3 metadata and blocks publish when gameplay V3 is d
     await route.fulfill({ status: 200, contentType: 'application/json', body: envelope([baseCase]) });
   });
 
-  await page.goto('/#/admin/cases');
+  await page.goto('/admin/cases');
 
   await expect(page.getByText('V3 · Crack')).toBeVisible();
   await expect(page.getByText('Review PASSED')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Publish blocked' })).toBeDisabled();
   await expect(page.locator('.v3-gate-reason')).toContainText('Gameplay V3 feature flag');
+});
+
+test('every case in the list has an Edit button that opens it in Case Studio', async ({ page }) => {
+  await routeCapabilities(page, true);
+  const published = { ...baseCase, caseId: 'case-published', title: 'The Published Case', status: 'PUBLISHED' };
+  await page.route('**/api/admin/cases', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: envelope([baseCase, published]) });
+  });
+
+  await page.goto('/admin/cases');
+
+  const draftEdit = page.getByRole('link', { name: 'Edit The Resealed Packet in Case Studio' });
+  await expect(draftEdit).toHaveAttribute('href', '/admin/editor/case-v3-ai');
+  // A published case opens read-only there: the editor says to unpublish it first.
+  await expect(page.getByRole('link', { name: 'Edit The Published Case in Case Studio' })).toHaveAttribute('href', '/admin/editor/case-published');
+  await expect(draftEdit).toHaveText('Edit');
 });
 
 test('admin case detail exposes every publish gate and deterministic errors', async ({ page }) => {
@@ -67,9 +83,11 @@ test('admin case detail exposes every publish gate and deterministic errors', as
     });
   });
 
-  await page.goto('/#/admin/cases/case-v3-ai');
+  await page.goto('/admin/cases/case-v3-ai');
 
-  await expect(page.getByRole('heading', { name: 'V3 case profile' })).toBeVisible();
+  // The V3 case profile is the "Mechanics" card of the redesigned page.
+  await expect(page.locator('.v3-case-profile')).toContainText('Mechanics 3');
+  await expect(page.locator('.v3-case-profile')).toContainText('CAMERA_EMBEDDED · NORMAL_RANDOM');
   await expect(page.getByRole('heading', { name: 'Publish gate' })).toBeVisible();
   await expect(page.locator('.v3-gate-fail').filter({ hasText: 'Deterministic validation' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Publish blocked' })).toBeDisabled();
@@ -93,7 +111,7 @@ test('admin case detail enables publish only when every V3 gate passes', async (
     }) });
   });
 
-  await page.goto('/#/admin/cases/case-v3-ai');
+  await page.goto('/admin/cases/case-v3-ai');
 
   await expect(page.locator('.v3-publish-gate')).toContainText('READY');
   const publish = page.getByRole('button', { name: 'Publish', exact: true });

@@ -50,7 +50,7 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Equal(draft.GeneratedJson, stored.GeneratedJson);
         Assert.Equal(draft.TruthHash, stored.TruthHash);
         Assert.Equal(draft.ProjectionContentHash, stored.ProjectionContentHash);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     [Fact]
@@ -95,13 +95,12 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Equal(AiFailurePhases.None, stored.FailurePhase);
         Assert.All(stored.ArtifactProvenance.Where(item => item.Artifact is
             CaseTruthArtifacts.Projection or CaseTruthArtifacts.Layout or CaseTruthArtifacts.Assets), item => Assert.True(item.IsStale));
-        Assert.Equal(draft.ReservedBudgetUsd, stored.ReservedBudgetUsd);
         Assert.Equal(draft.ActiveQuotaKey, stored.ActiveQuotaKey);
         Assert.Equal(draft.DailyQuotaKey, stored.DailyQuotaKey);
         Assert.Equal(draft.PlannedCalls.Count, stored.PlannedCalls.Count);
         Assert.Equal(draft.GenerationAttempts.Count, stored.GenerationAttempts.Count);
         Assert.Equal(draft.WorkflowVersion + 1, stored.WorkflowVersion);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     [Fact]
@@ -127,7 +126,6 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Equal(draft.ProjectionContentHash, stored.ProjectionContentHash);
         Assert.Equal(draft.V3SemanticReview.Status, stored.V3SemanticReview.Status);
         Assert.Equal(draft.TruthHash, stored.TruthHash);
-        Assert.Equal(draft.ReservedBudgetUsd, stored.ReservedBudgetUsd);
         // A replacement already validating the old JSON must lose even though reject
         // leaves the visible approval status unchanged.
         var staleWrite = await db.AiCaseDrafts.UpdateOneAsync(AiCaseService.DraftReplacementFilter(draft),
@@ -136,7 +134,7 @@ public sealed partial class AiCaseWorkflowHostTests
         var currentWrite = await db.AiCaseDrafts.UpdateOneAsync(AiCaseService.DraftReplacementFilter(stored),
             Builders<AiCaseDraft>.Update.Set(item => item.GeneratedJson, stored.GeneratedJson));
         Assert.Equal(1, currentWrite.MatchedCount);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     [Fact]
@@ -168,7 +166,7 @@ public sealed partial class AiCaseWorkflowHostTests
         var rejected = await ReadTruthRepairDraft(db, draft.Id);
         Assert.Equal(AiDraftStatus.FullLogicAwaitingApproval, rejected.Status);
         Assert.Equal(draft.GeneratedJson, rejected.GeneratedJson);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     [Theory]
@@ -196,7 +194,7 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Equal(draft.WorkflowVersion, stored.WorkflowVersion);
         Assert.Equal(draft.GeneratedJson, stored.GeneratedJson);
         Assert.Equal(queueState, stored.QueueState);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     [Theory]
@@ -221,7 +219,7 @@ public sealed partial class AiCaseWorkflowHostTests
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
         Assert.Equal(draft.WorkflowVersion, (await ReadTruthRepairDraft(db, draft.Id)).WorkflowVersion);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     [Fact]
@@ -252,7 +250,7 @@ public sealed partial class AiCaseWorkflowHostTests
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         }
         Assert.Equal(draft.WorkflowVersion, (await ReadTruthRepairDraft(db, draft.Id)).WorkflowVersion);
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        Assert.Equal(0, factory.BridgeRequestCount());
     }
 
     private static Task<AiCaseDraft> ReadTruthRepairDraft(MongoDbContext db, string id) =>
@@ -280,7 +278,7 @@ public sealed partial class AiCaseWorkflowHostTests
             BlindSolvabilityReview = new BlindSolvabilityReview { Status = CaseTruthReviewStatuses.Passed },
             CaseId = "old-case", CaseTitle = "Old case", JsonFilePath = "old-case.json", JsonFolderPath = "old-folder",
             FailedAssetIds = ["old-asset"], FailurePhase = AiFailurePhases.FullLogicJson, LastGenerationErrorCode = "OLD_ERROR",
-            ReservedBudgetUsd = .25m, ActiveQuotaKey = "test-active", DailyQuotaKey = "test-day",
+            ActiveQuotaKey = "test-active", DailyQuotaKey = "test-day",
             ArtifactProvenance = [new AiArtifactProvenance { Artifact = CaseTruthArtifacts.Projection, OutputHash = "old" }]
         };
         var json = AiCaseMockFactory.BuildMockTruthPackageJson(draft);

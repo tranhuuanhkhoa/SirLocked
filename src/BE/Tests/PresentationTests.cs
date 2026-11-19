@@ -194,15 +194,12 @@ public class PresentationTests
         await f.Run();
         Assert.Equal("PENDING", f.Store.Jobs["job"].Status);
         Assert.Equal("provider-id", f.Store.Jobs["job"].ProviderRequestId);
-        Assert.Equal("test", Assert.Single(f.Accounting.Leases).PriceVersion);
-        Assert.Empty(f.Accounting.Recorded);
         f.Store.Jobs["job"].NextPollAt = DateTime.UtcNow.AddSeconds(-1);
         // New processor instance is equivalent to a process restart; only Mongo state is retained.
         await f.Run();
         Assert.Equal("READY", f.Store.Jobs["job"].Status);
         Assert.Equal(1, f.Provider.SubmitCount);
         Assert.Equal(1, f.Provider.PollCount);
-        Assert.Equal(f.Accounting.Leases[0].Id, Assert.Single(f.Accounting.Recorded).Id);
         Assert.Equal("AWAITING_APPROVAL", f.Store.Package.Status);
         Assert.NotNull(f.Store.Package.Clips[0].VideoAssetId);
         await f.Run();
@@ -218,8 +215,6 @@ public class PresentationTests
         Assert.Equal("NEEDS_RECOVERY", f.Store.Package.Status);
         await f.Run();
         Assert.Equal(1, f.Provider.SubmitCount);
-        Assert.Single(f.Accounting.Leases);
-        Assert.Single(f.Accounting.Recorded);
     }
 
     [Fact]
@@ -247,11 +242,11 @@ public class PresentationTests
     [Fact]
     public async Task RevokedBudgetConfigurationPreventsQueuedProviderCalls()
     {
-        var f = new Fixture(); f.Quota.Enabled = false;
+        var f = new Fixture(); f.Video.PricePerSecondUsd = null;
         await f.Run();
         Assert.Equal("FAILED", f.Store.Jobs["job"].Status);
+        Assert.Equal("VIDEO_BUDGET_CONFIGURATION_REQUIRED", f.Store.Jobs["job"].ErrorCode);
         Assert.Equal(0, f.Provider.SubmitCount);
-        Assert.Empty(f.Accounting.Leases);
     }
 
     [Theory]
@@ -275,21 +270,6 @@ public class PresentationTests
         await f.Run();
         Assert.Equal(0, f.Provider.SubmitCount);
         Assert.Equal("FAILED", f.Store.Jobs["job"].Status);
-    }
-
-    [Fact]
-    public async Task AccountingFailureRetainsTerminalCheckpointAndRetriesWithoutProviderResubmission()
-    {
-        var f = new Fixture(); f.Provider.RejectSubmit = true; f.Accounting.FailRecords = 1;
-        await f.Run();
-        Assert.Equal("SETTLING", f.Store.Jobs["job"].Status);
-        Assert.NotNull(f.Store.Jobs["job"].ProviderTerminalBody);
-        f.Store.Jobs["job"].NextPollAt = DateTime.UtcNow.AddSeconds(-1);
-        await f.Run();
-        Assert.Equal("FAILED", f.Store.Jobs["job"].Status);
-        Assert.Equal("FALLBACK_READY", f.Store.Package.Clips[0].Status);
-        Assert.Equal(1, f.Provider.SubmitCount);
-        Assert.Single(f.Accounting.Recorded);
     }
 
     [Fact]
@@ -327,16 +307,15 @@ public class PresentationTests
 
     private sealed class Fixture
     {
-        public readonly MemoryStore Store = new(); public readonly Provider Provider = new(); public readonly Accounting Accounting = new();
-        public readonly AiQuotaSettings Quota = new() { Enabled = true, GlobalBudgetUsd = 100m };
+        public readonly MemoryStore Store = new(); public readonly Provider Provider = new();
+        public readonly PresentationVideoSettings Video = new() { Enabled = true, PricePerSecondUsd = .2m, PricingVersion = "test", Model = "video-test" };
         public Fixture()
         {
             var clip = Clip(); clip.JobId = "job"; clip.Status = "QUEUED";
             Store.Package = new() { Id = "draft", GenerationId = "generation", Status = "GENERATING", Clips = [clip], Model = "video-test", PricingVersion = "test", PricePerSecondUsd = .2m };
         }
-        public Task Run() => new PresentationVideoProcessor(Store, Provider, new Media(), Accounting,
-            Options.Create(new PresentationVideoSettings { Enabled = true, PricePerSecondUsd = .2m, PricingVersion = "test", Model = "video-test" }),
-            Options.Create(Quota), Options.Create(new AiUsageSettings { MaxDraftUsd = 100m })).ProcessNextAsync("worker", CancellationToken.None);
+        public Task Run() => new PresentationVideoProcessor(Store, Provider, new Media(), Options.Create(Video))
+            .ProcessNextAsync("worker", CancellationToken.None);
     }
     private sealed class Provider : IPresentationVideoProvider
     {
@@ -356,15 +335,6 @@ public class PresentationTests
         public Task<PresentationMediaAsset> UploadPosterAsync(PresentationVideoJob job, PresentationMediaBytes source, CancellationToken ct) => Task.FromResult(new PresentationMediaAsset { Id = job.Id + "-poster", DraftId = job.DraftId });
         public Task<PresentationMediaAsset> UploadVideoAsync(PresentationVideoJob job, string providerUrl, CancellationToken ct) => Task.FromResult(new PresentationMediaAsset { Id = job.Id + "-video", DraftId = job.DraftId });
         public Task<PresentationMediaBytes> DownloadAsync(PresentationMediaAsset asset, CancellationToken ct) => Task.FromResult(new PresentationMediaBytes([1, 2], "video/mp4"));
-    }
-    private sealed class Accounting : IAiUsageAccounting
-    {
-        public List<AiCallLease> Leases = new(), Recorded = new();
-        public int FailRecords;
-        public Task<AiCallLease> BeforeCallAsync(string draftId, string step, string kind, string model, CancellationToken cancellationToken = default, decimal? reservationUsd = null, string? priceVersion = null)
-        { var lease = new AiCallLease { DraftId = draftId, ReservedUsd = reservationUsd ?? 0, PriceVersion = priceVersion ?? "" }; Leases.Add(lease); return Task.FromResult(lease); }
-        public Task RecordAsync(AiCallLease lease, string? responseBody, int? statusCode, CancellationToken cancellationToken = default)
-        { if (FailRecords-- > 0) throw new InvalidOperationException("test storage failure"); Recorded.Add(lease); return Task.CompletedTask; }
     }
     private sealed class MemoryStore : IPresentationStore
     {

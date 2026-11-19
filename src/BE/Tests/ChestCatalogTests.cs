@@ -128,8 +128,10 @@ public class ChestCatalogTests
     [Fact]
     public void Catalog_ListsThreeChestsThreeKeysAndThirtyCurios_EachWithAnIconAndBothLanguages()
     {
-        Assert.Equal(3, MarketCatalog.All.Count(def => def.Category == MarketCategories.Chest));
-        Assert.Equal(3, MarketCatalog.All.Count(def => def.Category == MarketCategories.Key));
+        // The prototype's three chests; the Whitechapel chest of the outfits comes from SkinCatalog.
+        Assert.Equal(3, ChestCatalog.ItemDefs.Count(def => def.Category == MarketCategories.Chest));
+        Assert.Equal(3, ChestCatalog.ItemDefs.Count(def => def.Category == MarketCategories.Key));
+        Assert.Equal(4, MarketCatalog.All.Count(def => def.Category == MarketCategories.Chest));
         Assert.Equal(30, MarketCatalog.All.Count(def => def.Category == MarketCategories.Curio));
         Assert.All(ChestCatalog.ItemDefs, def =>
         {

@@ -9,6 +9,20 @@ namespace SirLocked.Tests;
 
 public class GameStateProjectionTests
 {
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void SceneItem_ProjectsCollectibilityWithoutRevealingUninspectedEvidence(bool collectible, bool inspected)
+    {
+        var item = new CaseItem { ItemId = "receipt", IsCollectible = collectible, InspectText = "Hidden clue" };
+        var dto = SceneItemDto.From(item, inspected);
+        Assert.Equal(collectible, dto.IsCollectible);
+        Assert.Equal(inspected, dto.IsInspected);
+        Assert.Equal(inspected ? "Hidden clue" : null, dto.InspectText);
+    }
+
     private static readonly HashSet<string> Empty = new();
 
     private static HashSet<string> Set(params string[] values) => new(values);

@@ -69,7 +69,7 @@ export async function createGateway({ root, apiPort, secret, accessPassword, por
         if (!sameSecret(supplied, accessPassword)) return respond(response, 401, 'Incorrect access password.');
         const cookie = signSession(secret, Math.floor(Date.now() / 1000) + sessionSeconds);
         const secure = request.headers['x-forwarded-proto'] === 'https' ? '; Secure' : '';
-        return respond(response, 303, '', 'text/plain', { Location: '/#/menu', 'Set-Cookie': `${cookieName}=${cookie}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${sessionSeconds}${secure}` });
+        return respond(response, 303, '', 'text/plain', { Location: '/menu', 'Set-Cookie': `${cookieName}=${cookie}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${sessionSeconds}${secure}` });
       }
       if (!validSession(secret, cookieValue(request))) {
         if (name.startsWith('/api/') || name.startsWith('/hubs/')) return respond(response, 401, '{"success":false,"message":"Playtest access required."}', 'application/json');
@@ -96,7 +96,8 @@ export async function createGateway({ root, apiPort, secret, accessPassword, por
         return;
       }
       if (!['GET', 'HEAD'].includes(request.method)) return respond(response, 405, 'Method not allowed');
-      const relative = name === '/' ? 'index.html' : name.replace(/^\/+/, '');
+      // A path with no file extension is a page of the site: the browser's router takes it from index.html.
+      const relative = name === '/' || !path.extname(name) ? 'index.html' : name.replace(/^\/+/, '');
       const ext = path.extname(relative).toLowerCase();
       if (!mime[ext] || relative.split('/').some(x => x.startsWith('.'))) return respond(response, 404, 'Not found');
       const target = await fs.realpath(path.join(publicRoot, relative));

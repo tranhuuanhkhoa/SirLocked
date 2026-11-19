@@ -1,4 +1,9 @@
 import { expect, request as playwrightRequest, test, type APIRequestContext, type Browser, type Page } from '@playwright/test';
+/*
+ * NOTE: these specs play the bundled older (non-pixel) cases. Since the pixel catalogue became the main game
+ * the API hides them from players, so start the API with CaseCatalog__PixelOnly=false (and
+ * CaseCatalog__SeedPixelOnStartup=false if you want a database without the pixel cases).
+ */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { readFile } from 'node:fs/promises';
@@ -128,8 +133,8 @@ test.describe('Crack V3 full-stack flow on the standard application host', () =>
       await expect(investigator.locator('#accusation-confirm')).toBeDisabled();
       await expect(interrogator.locator('#accusation-confirm')).toBeEnabled();
       await interrogator.locator('#accusation-confirm').click();
-      await expect(investigator).toHaveURL(/#\/result\//);
-      await expect(interrogator).toHaveURL(/#\/result\//);
+      await expect(investigator).toHaveURL(/\/result\//);
+      await expect(interrogator).toHaveURL(/\/result\//);
       await expect(investigator.locator('.result-banner')).toContainText('CASE CLOSED');
       await expect(interrogator.locator('.result-banner')).toContainText('CASE CLOSED');
       await expect(investigator.locator('#toast-root .toast')).toHaveCount(0);
@@ -377,7 +382,7 @@ async function openEndedPlayer(browser: Browser, roomId: string, auth: Auth): Pr
     window.localStorage.setItem('sirlocked.uiLanguage', 'en');
     window.sessionStorage.setItem(`sirlocked.intro.${roomId}`, '1');
   }, { roomId, auth });
-  await page.goto(`/#/game/${roomId}`);
+  await page.goto(`/game/${roomId}`);
   return page;
 }
 
@@ -457,8 +462,8 @@ async function runCrackLoop(investigator: Page, interrogator: Page) {
   await expect(interrogator.locator('[data-accusation-attempt]')).toContainText('Mara Vale');
   await interrogator.locator('#accusation-confirm').click();
 
-  await expect(interrogator).toHaveURL(/#\/result\//);
-  await expect(investigator).toHaveURL(/#\/result\//);
+  await expect(interrogator).toHaveURL(/\/result\//);
+  await expect(investigator).toHaveURL(/\/result\//);
   await expect(interrogator.locator('.result-banner')).toContainText('CASE CLOSED');
   await expect(investigator.locator('.result-banner')).toContainText('CASE CLOSED');
 }

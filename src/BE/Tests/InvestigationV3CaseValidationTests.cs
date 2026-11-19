@@ -101,6 +101,31 @@ public sealed class InvestigationV3CaseValidationTests
             name.Equals("CandidateTestimonyFragmentIds", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Theory]
+    [InlineData("valid")]
+    [InlineData("missing-source")]
+    [InlineData("missing-reward")]
+    public void DeductionChapterGate_RequiresAnExistingSourceThatAwardsTheClue(string scenario)
+    {
+        var gameCase = Load("case-v3-broken-seal-en.json");
+        var deduction = Assert.Single(gameCase.Deductions);
+        const string gateId = "clue-deduction-chapter-gate";
+        gameCase.Clues.Add(new CaseClue
+        {
+            ClueId = gateId, Title = "Chapter conclusion", Content = "The detectives agree on the documented sequence.",
+            SourceType = "deduction", DiscoverMethod = "deduction",
+            Source = scenario == "missing-source" ? "unknown-deduction" : deduction.DeductionId,
+            SceneId = gameCase.Stages[0].Scenes[0].SceneId, IsEvidence = false
+        });
+        if (scenario != "missing-reward") deduction.UnlockClueIds.Add(gateId);
+        var validation = new CaseValidationService().Validate(gameCase);
+        if (scenario == "valid")
+            Assert.True(validation.IsValid, string.Join(Environment.NewLine, validation.Errors.Select(error => error.Message)));
+        else
+            Assert.Contains(validation.Errors, error => error.Path.EndsWith(".source", StringComparison.Ordinal)
+                && error.Message.Contains("deduction", StringComparison.Ordinal));
+    }
+
     private static GameCase Load(string fileName)
     {
         var path = Path.Combine(AppContext.BaseDirectory, "SeedData", "V3", fileName);

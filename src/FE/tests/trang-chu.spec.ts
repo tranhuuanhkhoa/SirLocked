@@ -249,3 +249,90 @@ test('"Tắt hiệu ứng" and reduced motion stop the fireworks', async ({ page
   await page.waitForTimeout(1500);
   expect(await litPixels(page)).toBe(0);
 });
+
+/** The two pixel-art detectives of the hero are cut from one picture: same scale, standing on the bottom, beside the title. */
+for (const [width, height] of [[1440, 900], [1920, 1080], [1262, 903], [1100, 820], [390, 844]] as const) {
+  test(`the pixel-art Sherlock and Watson stand in the hero at ${width}×${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await openRoot(page);
+    const sherlock = page.locator('#fig-sherlock img');
+    const watson = page.locator('#fig-watson img');
+    await expect(sherlock).toHaveAttribute('src', '/trang-chu/assets/sherlock-pixel.webp');
+    await expect(watson).toHaveAttribute('src', '/trang-chu/assets/watson-pixel.webp');
+    for (const img of [sherlock, watson]) {
+      await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+    }
+    await page.waitForTimeout(2600); // the entrance animation
+    const layout = await page.evaluate(() => {
+      const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+      const stage = rect('#stage'), sh = rect('#fig-sherlock'), wa = rect('#fig-watson'), title = rect('#hero-title');
+      const smoke = rect('#fig-sherlock .smoke');
+      return { stage, sh, wa, title, smoke, vw: innerWidth };
+    });
+    const { stage, sh, wa, title, smoke, vw } = layout;
+    // One scale: each picture keeps its own proportions, and Watson is drawn at Sherlock's scale.
+    expect(Math.abs(sh.width / sh.height - 669 / 996)).toBeLessThan(0.01);
+    expect(Math.abs(wa.width / wa.height - 489 / 909)).toBeLessThan(0.01);
+    expect(Math.abs(sh.height / 996 - wa.height / 909)).toBeLessThan(0.005);
+    // Both stand on the bottom of the picture, Sherlock on the left, Watson on the right, neither lost off screen.
+    expect(Math.abs(sh.bottom - (stage.bottom + 10)) <= 3 || Math.abs(sh.bottom - (stage.bottom + 8)) <= 3).toBe(true);
+    expect(Math.abs(wa.bottom - sh.bottom)).toBeLessThanOrEqual(3);
+    expect(sh.left).toBeLessThanOrEqual(0);
+    expect(sh.right).toBeGreaterThan(sh.width * 0.85);
+    expect(wa.left).toBeGreaterThan(vw / 2);
+    expect(wa.right - vw).toBeLessThanOrEqual(wa.width * 0.07);
+    // Sherlock never covers the title on a wide screen (on a phone the title sits under the picture).
+    if (width >= 1200) expect(sh.right * 0.95).toBeLessThan(title.left + 4);
+    // The pipe smoke starts at the bowl of the pipe in his hand (78.9% across, 17.5% down the picture).
+    expect(Math.abs(smoke.left + smoke.width / 2 - (sh.left + sh.width * 0.789))).toBeLessThan(3);
+    expect(Math.abs(smoke.top - (sh.top + sh.height * 0.175))).toBeLessThan(3);
+  });
+}
+
+/**
+ * The detectives are pixel art (stored 3x: Sherlock is drawn 223 x 332). Smoothed scaling made them soft; now they are
+ * scaled nearest-neighbour, and wherever a whole number of screen pixels per drawn pixel is near, the scale snaps to it.
+ */
+for (const [width, height, dpr, whole] of [[1440, 900, 1, 2], [1440, 900, 2, 4], [1366, 768, 1, 2], [390, 844, 3, 2], [1920, 1080, 1, null]] as const) {
+  test(`Sherlock and Watson are drawn crisp at ${width}×${height} @${dpr}x`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: dpr });
+    const page = await context.newPage();
+    try {
+      await openRoot(page);
+      await page.waitForTimeout(2600); // the entrance animation
+      const figures = await page.$$eval('.fig img', (images) => images.map((img) => {
+        const image = img as HTMLImageElement, box = image.getBoundingClientRect();
+        return {
+          rendering: getComputedStyle(image).imageRendering,
+          screenPixelsPerDrawnPixel: (box.height * devicePixelRatio) / (image.naturalHeight / 3),
+          left: box.left * devicePixelRatio,
+        };
+      }));
+      expect(figures).toHaveLength(2);
+      for (const figure of figures) {
+        expect(figure.rendering).toBe('pixelated');
+        if (whole !== null) {
+          expect(figure.screenPixelsPerDrawnPixel).toBeCloseTo(whole, 3);
+          // Placed on whole screen pixels too.
+          expect(Math.abs(figure.left - Math.round(figure.left))).toBeLessThan(0.01);
+        }
+      }
+      // Both at one scale.
+      expect(figures[0].screenPixelsPerDrawnPixel).toBeCloseTo(figures[1].screenPixelsPerDrawnPixel, 3);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+test('the two role avatars show the new detectives', async ({ page }) => {
+  await openRoot(page);
+  const avatars = page.locator('.role .avatar img');
+  await expect(avatars).toHaveCount(2);
+  await avatars.first().scrollIntoViewIfNeeded();
+  expect(await avatars.evaluateAll((list) => list.map((img) => (img as HTMLImageElement).getAttribute('src'))))
+    .toEqual(['/trang-chu/assets/avatar-watson-pixel.webp', '/trang-chu/assets/avatar-sherlock-pixel.webp']);
+  for (const index of [0, 1]) {
+    await expect.poll(() => avatars.nth(index).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth === 180)).toBe(true);
+  }
+});

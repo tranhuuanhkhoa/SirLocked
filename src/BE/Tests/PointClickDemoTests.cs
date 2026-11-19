@@ -244,4 +244,3 @@ public sealed class PointClickDemoTests
             : "All the evidence is on the table. Confront the suspects and make the final accusation.", objective);
     }
 }
-

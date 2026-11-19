@@ -7,7 +7,9 @@ param(
     [string]$MongoConnectionString = 'mongodb://127.0.0.1:27017/?serverSelectionTimeoutMS=3000',
     [string]$CaseJsonPath = '',
     [switch]$UseAuthoredLayout,
-    [switch]$PointClick
+    [switch]$PointClick,
+    # Màn tân thủ: runs tests/tutorial-full-stack.spec.ts (the seeder adds the newcomer account it_newcomer).
+    [switch]$Tutorial
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,12 +35,12 @@ $apiUrl = "http://127.0.0.1:$ApiPort"
 $frontendUrl = "http://127.0.0.1:$FrontendPort"
 $apiProcess = $null
 $environmentKeys = @(
-    'ASPNETCORE_ENVIRONMENT', 'Jwt__Secret', 'MongoDb__ConnectionString', 'MongoDb__DatabaseName',
+    'ASPNETCORE_ENVIRONMENT', 'CaseCatalog__PixelOnly', 'CaseCatalog__SeedPixelOnStartup', 'Jwt__Secret', 'MongoDb__ConnectionString', 'MongoDb__DatabaseName',
     'MOCK_AI_RESPONSES', 'SKIP_ASSET_GENERATION', 'PresentationVideo__Enabled', 'Cloudinary__Enabled',
     'VITE_API_URL', 'SIRLOCKED_RUN_V3_FULL_STACK', 'SIRLOCKED_TEST_PASSWORD',
     'SIRLOCKED_TEST_API_URL', 'SIRLOCKED_PLAYWRIGHT_BASE_URL'
     'SIRLOCKED_TEST_CASE_PATH', 'SIRLOCKED_TEST_SEEDER_DLL', 'SIRLOCKED_TEST_MONGO', 'SIRLOCKED_TEST_DATABASE'
-    'SIRLOCKED_RUN_POINT_CLICK_FULL_STACK'
+    'SIRLOCKED_RUN_POINT_CLICK_FULL_STACK', 'SIRLOCKED_RUN_TUTORIAL_FULL_STACK'
 )
 $previousEnvironment = @{}
 foreach ($key in $environmentKeys) { $previousEnvironment[$key] = [Environment]::GetEnvironmentVariable($key, 'Process') }
@@ -76,6 +78,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "API build failed with exit code $LASTEXITCODE." }
 
     $env:ASPNETCORE_ENVIRONMENT = 'Development'
+    # These specs play the older non-pixel cases, which players cannot see while the catalogue is pixel-only.
+    $env:CaseCatalog__PixelOnly = 'false'
+    $env:CaseCatalog__SeedPixelOnStartup = 'false'
     $env:Jwt__Secret = $jwtSecret
     $env:MongoDb__ConnectionString = $MongoConnectionString
     $env:MongoDb__DatabaseName = $databaseName
@@ -86,6 +91,7 @@ try {
     $env:VITE_API_URL = $apiUrl
     $env:SIRLOCKED_RUN_V3_FULL_STACK = 'true'
     $env:SIRLOCKED_RUN_POINT_CLICK_FULL_STACK = if ($PointClick) { 'true' } else { 'false' }
+    $env:SIRLOCKED_RUN_TUTORIAL_FULL_STACK = if ($Tutorial) { 'true' } else { 'false' }
     $env:SIRLOCKED_TEST_PASSWORD = $testPassword
     $env:SIRLOCKED_TEST_API_URL = $apiUrl
     $env:SIRLOCKED_PLAYWRIGHT_BASE_URL = $frontendUrl
@@ -134,7 +140,7 @@ try {
     Push-Location $frontendRoot
     try {
         $npmExecutable = if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) { 'npm.cmd' } else { 'npm' }
-        $testFile = if ($PointClick) { 'tests/point-click-full-stack.spec.ts' } else { 'tests/v3-full-stack.spec.ts' }
+        $testFile = if ($Tutorial) { 'tests/tutorial-full-stack.spec.ts' } elseif ($PointClick) { 'tests/point-click-full-stack.spec.ts' } else { 'tests/v3-full-stack.spec.ts' }
         & $npmExecutable run test:ui -- $testFile
         if ($LASTEXITCODE -ne 0) { throw "V3 full-stack test failed with exit code $LASTEXITCODE." }
     }

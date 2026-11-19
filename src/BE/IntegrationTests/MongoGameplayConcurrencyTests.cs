@@ -560,6 +560,7 @@ public sealed class MongoGameplayConcurrencyTests
         public Task<List<CaseSummaryResponse>> SeedDemoAsync() => throw new NotSupportedException();
         public Task<List<CaseSummaryResponse>> SeedCrackDemoAsync() => throw new NotSupportedException();
         public Task<List<CaseSummaryResponse>> SeedPointClickDemoAsync() => throw new NotSupportedException();
+        public Task<List<CaseSummaryResponse>> SeedPixelDemoAsync() => throw new NotSupportedException();
         public GameCase ParseCase(JsonElement caseJson) => throw new NotSupportedException();
         public GameCase ParseCase(string caseJson) => throw new NotSupportedException();
     }
@@ -581,6 +582,7 @@ public sealed class MongoGameplayConcurrencyTests
         public Task StageChanged(string roomId, string previousStageId, string currentStageId, string previousSceneId, string currentSceneId, bool isFinalStageCompleted, string userId, long version) => Task.CompletedTask;
         public Task GameCompleted(string roomId, GameResultResponse result) => Task.CompletedTask;
         public Task SystemMessage(string roomId, string message) => Task.CompletedTask;
+        public Task PlayerEntrance(string roomId, SirLocked.Api.DTOs.Market.PlayerEntranceDto entrance) => Task.CompletedTask;
     }
 
     private static void ResolveWithSecondConfirmation(GameRoom room) =>

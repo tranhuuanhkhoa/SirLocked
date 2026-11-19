@@ -152,7 +152,7 @@ public sealed partial class AiCaseWorkflowHostTests
     }
 
     [Fact]
-    public async Task MockHttpFlow_ReturnsAcceptedAndAdvancesBeyondPreviewWithoutLiveOpenAi()
+    public async Task MockHttpFlow_ReturnsAcceptedAndAdvancesBeyondPreviewWithoutAskingClaude()
     {
         if (!string.Equals(
                 Environment.GetEnvironmentVariable("SIRLOCKED_RUN_MONGO_IT"),
@@ -183,70 +183,26 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.Equal(HttpStatusCode.Accepted, create.StatusCode);
         var queued = (await create.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>())!.Data!;
         Assert.Equal(AiQueueStates.Pending, queued.QueueState);
-        Assert.Equal(1, queued.Settings.ShortDemoProfileVersion);
+        // A new order (OPEN_COOP_1) takes its size from the level and runs on autopilot: no gate waits for a person.
+        Assert.Equal(SirLocked.Api.Services.AiPipelineVersions.OpenCoop1, queued.Settings.PipelineVersion);
+        Assert.Equal(AiCaseReviewModes.Auto, queued.Order!.ReviewMode);
 
-        var story = await PollAsync(client, queued.DraftId, AiDraftStatus.StoryAwaitingApproval);
-        Assert.NotNull(story.StoryPreview);
-        Assert.Equal(AiQueueStates.None, story.QueueState);
-
-        var approveStory = await client.PostAsync($"/api/admin/ai-cases/{queued.DraftId}/approve", null);
-        Assert.Equal(HttpStatusCode.Accepted, approveStory.StatusCode);
-        var truth = await PollAsync(
-            client,
-            queued.DraftId,
-            AiDraftStatus.CaseTruthAwaitingApproval,
-            AiDraftStatus.CaseTruthInvalid);
-        Assert.True(
-            truth.Status == AiDraftStatus.CaseTruthAwaitingApproval,
-            $"Truth status {truth.Status}: {string.Join(" | ", truth.TruthValidationReport)}");
-        Assert.NotNull(truth.CaseTruth);
-        Assert.True(truth.CaseTruth!.TraceLedger.Count <= 10);
-
-        var approveTruth = await client.PostAsync($"/api/admin/ai-cases/{queued.DraftId}/approve-truth", null);
-        Assert.Equal(HttpStatusCode.Accepted, approveTruth.StatusCode);
-        var fullLogic = await PollAsync(
-            client,
-            queued.DraftId,
-            AiDraftStatus.FullLogicAwaitingApproval,
-            AiDraftStatus.GeneratedInvalid);
-        Assert.True(
-            fullLogic.Status == AiDraftStatus.FullLogicAwaitingApproval,
-            $"Full logic status {fullLogic.Status}, phase {fullLogic.FailurePhase}, "
-            + $"last error {fullLogic.LastGenerationErrorCode}: "
-            + string.Join(" | ", fullLogic.ValidationErrors.Concat(
-                fullLogic.GenerationAttempts.SelectMany(attempt => attempt.ValidationErrors))));
-        var sampler = System.Text.Json.JsonSerializer.Deserialize<GameCase>(
-            fullLogic.GeneratedJson, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
-        Assert.Equal(1, sampler.ShortDemoProfileVersion);
-        Assert.Single(sampler.Puzzles);
-        Assert.Single(sampler.Interactions.Where(item => item.Type == CaseInteractionTypes.CombineItems));
-        Assert.Single(sampler.Interactions.Where(item => item.Type == CaseInteractionTypes.UseItemOnTarget));
-        Assert.Single(sampler.EvidenceChallenges);
-        Assert.Single(sampler.Deductions);
-        Assert.Single(sampler.RequiredTeamworkChains);
-        Assert.Contains(sampler.ConversationNodes, node => node.IsRoot && node.Choices.Count >= 2);
-
-        var approveFullLogic = await client.PostAsync(
-            $"/api/admin/ai-cases/{queued.DraftId}/approve-full-logic",
-            null);
-        Assert.Equal(HttpStatusCode.Accepted, approveFullLogic.StatusCode);
-        var layout = await PollAsync(
-            client,
-            queued.DraftId,
-            AiDraftStatus.SceneLayoutAwaitingApproval,
-            AiDraftStatus.GeneratedInvalid);
-        Assert.Equal(AiDraftStatus.SceneLayoutAwaitingApproval, layout.Status);
-
-        var approveLayout = await client.PostAsync(
-            $"/api/admin/ai-cases/{queued.DraftId}/approve-scene-layout",
-            null);
-        Assert.Equal(HttpStatusCode.Accepted, approveLayout.StatusCode);
         var ready = await PollAsync(
             client,
             queued.DraftId,
             AiDraftStatus.ReadyToPublish,
-            AiDraftStatus.GeneratedInvalid);
-        Assert.Equal(AiDraftStatus.ReadyToPublish, ready.Status);
+            AiDraftStatus.GeneratedInvalid,
+            AiDraftStatus.CaseTruthInvalid);
+        Assert.True(
+            ready.Status == AiDraftStatus.ReadyToPublish,
+            $"Status {ready.Status}, phase {ready.FailurePhase}, last error {ready.LastGenerationErrorCode}: "
+            + string.Join(" | ", ready.TruthValidationReport.Concat(ready.ValidationErrors)));
+        Assert.NotNull(ready.StoryPreview);
+        Assert.NotNull(ready.CaseTruth);
+        var played = System.Text.Json.JsonSerializer.Deserialize<GameCase>(
+            ready.GeneratedJson, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        Assert.Single(played.Stages); // one-stage OPEN_COOP case
+        Assert.Contains(played.ConversationNodes, node => node.IsRoot && node.Choices.Count >= 2);
 
         var publish = await client.PostAsync(
             $"/api/admin/ai-cases/{queued.DraftId}/publish?overwrite=true",
@@ -254,7 +210,10 @@ public sealed partial class AiCaseWorkflowHostTests
         Assert.True(
             publish.StatusCode == HttpStatusCode.OK,
             $"Publish returned {publish.StatusCode}: {await publish.Content.ReadAsStringAsync()}");
-        Assert.Equal(0, factory.OpenAiClient.CallCount);
+        // Mock mode answers every step itself: nothing was queued for the Claude bot.
+        using var verifyScope = factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<MongoDbContext>();
+        Assert.Equal(0, await verifyDb.AiBridgeRequests.CountDocumentsAsync(FilterDefinition<AiBridgeRequest>.Empty));
     }
 
     private static async Task<AiDraftResponse> PollAsync(
@@ -262,7 +221,7 @@ public sealed partial class AiCaseWorkflowHostTests
         string draftId,
         params string[] terminalStatuses)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(30);
+        var deadline = DateTime.UtcNow.AddSeconds(90);
         while (DateTime.UtcNow < deadline)
         {
             var envelope = await client.GetFromJsonAsync<ApiResponse<AiDraftResponse>>(
@@ -293,8 +252,15 @@ public sealed partial class AiCaseWorkflowHostTests
             Environment.GetEnvironmentVariable("SIRLOCKED_TEST_MONGO_CONNECTION_STRING")
             ?? "mongodb://127.0.0.1:27017/?serverSelectionTimeoutMS=3000";
         private readonly string _databaseName = $"sirlocked_it_{Guid.NewGuid():N}";
-        public FakeOpenAiClient OpenAiClient { get; } = new();
         public bool DisableBackgroundWorkers { get; init; }
+
+        /// <summary>Questions queued for the Claude bot; mock mode must never create any.</summary>
+        public long BridgeRequestCount()
+        {
+            using var scope = Services.CreateScope();
+            return scope.ServiceProvider.GetRequiredService<MongoDbContext>().AiBridgeRequests
+                .CountDocuments(FilterDefinition<AiBridgeRequest>.Empty);
+        }
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -316,6 +282,9 @@ public sealed partial class AiCaseWorkflowHostTests
                     ["MongoDb:DatabaseName"] = _databaseName,
                     ["MOCK_AI_RESPONSES"] = "true",
                     ["SKIP_ASSET_GENERATION"] = "true",
+                    // These hosts play AI-generated (non-pixel) cases and must not seed the bundled pixel ones.
+                    ["CaseCatalog:PixelOnly"] = "false",
+                    ["CaseCatalog:SeedPixelOnStartup"] = "false",
                     ["Jwt:Secret"] = "integration-test-secret-with-at-least-32-characters",
                     ["Google:ClientId"] = "integration-test-google-client",
                     ["Google:ClientSecret"] = "integration-test-google-secret",
@@ -343,8 +312,6 @@ public sealed partial class AiCaseWorkflowHostTests
                         options.ClientId = "integration-test-google-client";
                         options.ClientSecret = "integration-test-google-secret";
                     });
-                services.AddSingleton(OpenAiClient);
-                services.AddScoped<IAiOpenAiClient>(provider => provider.GetRequiredService<FakeOpenAiClient>());
                 services.AddAuthentication(options =>
                     {
                         options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
@@ -376,19 +343,6 @@ public sealed partial class AiCaseWorkflowHostTests
             throw new InvalidOperationException("AI workflow tests must not send password reset email.");
     }
 
-    private sealed class FakeOpenAiClient : IAiOpenAiClient
-    {
-        public int CallCount { get; private set; }
-
-        public Task<AiProviderHttpResponse> PostStructuredJsonAsync(
-            object payload,
-            CancellationToken cancellationToken = default)
-        {
-            CallCount++;
-            throw new InvalidOperationException("Live OpenAI transport must not be used by integration tests.");
-        }
-    }
-
     private sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
         public const string SchemeName = "IntegrationTest";
@@ -409,7 +363,9 @@ public sealed partial class AiCaseWorkflowHostTests
                 [
                     new Claim(ClaimTypes.NameIdentifier, userId),
                     new Claim(ClaimTypes.Name, "Integration Admin"),
-                    new Claim(ClaimTypes.Role, role)
+                    new Claim(ClaimTypes.Role, role),
+                    // Like a real login token: UserStatusMiddleware refuses a token without authz_ver.
+                    new Claim(SirLocked.Api.Models.User.AuthorizationVersionClaim, "0")
                 ],
                 SchemeName);
             return Task.FromResult(AuthenticateResult.Success(

@@ -4,6 +4,10 @@ import { expect, request as playwrightRequest, test, type APIRequestContext, typ
  * Investigation-only harness: walks the player journey and writes a screenshot per screen so a
  * UI audit can be based on the rendered result rather than on reading CSS. It asserts nothing about
  * design and is skipped unless SIRLOCKED_RUN_UI_AUDIT is set, so it never runs in CI.
+ *
+ * NOTE: these specs play the bundled older (non-pixel) cases. Since the pixel catalogue became the main game
+ * the API hides them from players, so start the API with CaseCatalog__PixelOnly=false (and
+ * CaseCatalog__SeedPixelOnStartup=false if you want a database without the pixel cases).
  */
 const enabled = process.env.SIRLOCKED_RUN_UI_AUDIT === 'true';
 const password = process.env.SIRLOCKED_TEST_PASSWORD ?? '';
@@ -40,7 +44,7 @@ test.describe('UI audit capture', () => {
     // 1. Login — the only screen an anonymous visitor sees.
     const anon = await browser.newContext({ viewport: desktop });
     const anonPage = await anon.newPage();
-    await anonPage.goto('/#/login');
+    await anonPage.goto('/login');
     await anonPage.waitForTimeout(1200);
     await shot(anonPage, '01-login');
     await anon.close();
@@ -50,37 +54,37 @@ test.describe('UI audit capture', () => {
     const page = await ctx.newPage();
     await seedSession(page, investigator);
 
-    await page.goto('/#/cases');
+    await page.goto('/cases');
     await page.waitForTimeout(1800);
     await shot(page, '02-cases');
 
-    const firstCase = page.locator('.case-card a, .case-card button, [href^="#/cases/"]').first();
+    const firstCase = page.locator('.case-card a, .case-card button, [href^="/cases/"]').first();
     if (await firstCase.count()) {
       await firstCase.click();
       await page.waitForTimeout(1500);
       await shot(page, '03-case-detail');
     }
 
-    await page.goto('/#/create-room');
+    await page.goto('/create-room');
     await page.waitForTimeout(1200);
     await shot(page, '04-create-room');
 
-    await page.goto('/#/join');
+    await page.goto('/join');
     await page.waitForTimeout(1000);
     await shot(page, '05-join-room');
 
-    await page.goto('/#/detective');
+    await page.goto('/detective');
     await page.waitForTimeout(1500);
     await shot(page, '06-profile');
 
-    await page.goto('/#/workshop');
+    await page.goto('/workshop');
     await page.waitForTimeout(1500);
     await shot(page, '07-workshop');
 
     // Lobby needs a real room.
     const room = await call<{ roomId: string; roomCode: string }>(
       api, 'POST', '/api/rooms', investigator.token, { caseId: 'case-v3-broken-seal-en' });
-    await page.goto(`/#/lobby/${room.roomId}`);
+    await page.goto(`/lobby/${room.roomId}`);
     await page.waitForTimeout(1800);
     await shot(page, '08-lobby');
 
@@ -95,7 +99,7 @@ test.describe('UI audit capture', () => {
     await page.addInitScript((roomId) => {
       window.sessionStorage.setItem(`sirlocked.intro.${roomId}`, '1');
     }, room.roomId);
-    await page.goto(`/#/game/${room.roomId}`);
+    await page.goto(`/game/${room.roomId}`);
     await expect(page.locator('#case-file-btn')).toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(2500);
     await shot(page, '09-game-hud');

@@ -46,7 +46,7 @@ public sealed class GoogleAuthenticationFlowTests
         using var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Equal($"{Frontend}/#/login?error=google_failed", response.Headers.Location!.ToString());
+        Assert.Equal($"{Frontend}/login?error=google_failed", response.Headers.Location!.ToString());
         Assert.Equal(0, transport.Calls);
         AssertNoExternalSignIn(response);
         Assert.DoesNotContain("test-code", await response.Content.ReadAsStringAsync());
@@ -93,7 +93,7 @@ public sealed class GoogleAuthenticationFlowTests
         using var response = await client.SendAsync(callback);
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Equal($"{Frontend}/#/login?error=google_cancelled", response.Headers.Location!.ToString());
+        Assert.Equal($"{Frontend}/login?error=google_cancelled", response.Headers.Location!.ToString());
         Assert.Equal(0, transport.Calls);
         AssertNoExternalSignIn(response);
     }
