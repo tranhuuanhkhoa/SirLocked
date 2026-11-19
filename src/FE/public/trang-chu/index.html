@@ -303,7 +303,6 @@ html:not(.js) .iris, .no-iris .iris { display: none; }
 .verdict.bad { border-color: var(--rust); color: #f0c2ae; }
 .verdict.good { border-color: var(--gold); color: var(--paper); }
 .lie-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; margin-top: 8px; }
-.lie-note { margin: 0; font-size: 16px; color: var(--fg-3); }
 .lie-string { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 3; }
 .lie-string path { fill: none; stroke: var(--string); stroke-width: 2.2; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .6s var(--ease-lens); }
 .lie-string path.draw { stroke-dashoffset: 0; }
@@ -645,7 +644,6 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
           <p class="verdict" id="verdict" aria-live="polite"></p>
           <div class="lie-foot">
             <button class="btn btn-ghost sm" type="button" id="replay" hidden>Chơi lại</button>
-            <p class="lie-note">Lượt chơi mẫu trích từ vụ «Con Dấu Bị Phá».</p>
           </div>
         </div>
         <svg class="lie-string" id="lie-string" aria-hidden="true"><path pathLength="1" d=""/><circle r="6"/><circle r="6"/></svg>
@@ -949,7 +947,6 @@ html.calm .fireworks, html.calm .rain, html.calm .iris, html.calm .smoke, html.c
     'Cặp này chưa tạo ra mâu thuẫn trực tiếp. Hãy kiểm tra lại dấu vết thực sự chứng minh được điều gì.': 'That pair does not establish a direct contradiction. Recheck what the trace can actually prove.',
     'Hai lớp sáp chồng lên nhau chứng minh gói tài liệu đã bị mở rồi niêm phong lại sau khi con dấu gốc bị phá.': 'The overlapping wax layers prove the packet was opened and resealed after the original seal was broken.',
     'Chơi lại': 'Play again',
-    'Lượt chơi mẫu trích từ vụ «Con Dấu Bị Phá».': 'A sample round from the case “The Broken Seal”.',
     'Hồ sơ đang mở': 'Open cases',
     'Mỗi vụ là một khu phố vẽ bằng pixel, với nhiều hiện trường, nhân chứng và hàng chục manh mối giấu trong đồ vật.': 'Each case is a pixel-art neighbourhood with several scenes, witnesses and dozens of clues hidden in everyday objects.',
     'Lọ thuốc thứ Năm': 'The Thursday Vial',
