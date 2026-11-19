@@ -161,8 +161,7 @@ public sealed partial class MongoCaseCatalogTests
         Assert.Equal(0, (await c.PixelOnly.Leaderboard.GetCaseLeaderboardAsync(DraftCase, LeaderboardMetrics.TopScore)).TotalRanked);
 
         // Matchmaking: with every published case taken down, the (pixel) draft is still not offered.
-        await c.Open.Cases.UnpublishAsync(PixelIds[0]);
-        await c.Open.Cases.UnpublishAsync(PixelIds[1]);
+        foreach (var id in PixelIds) await c.Open.Cases.UnpublishAsync(id);
         await c.Db.Rooms.DeleteManyAsync(room => room.Id == ordinary.RoomId);
         foreach (var side in new[] { c.Open, c.PixelOnly })
         {

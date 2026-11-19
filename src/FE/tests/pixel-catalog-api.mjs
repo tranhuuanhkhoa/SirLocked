@@ -13,7 +13,8 @@ async function raw(method, path, token, data) {
 }
 const fails = [];
 const check = (ok, label) => { console.log(`${ok ? 'OK  ' : 'FAIL'} ${label}`); if (!ok) fails.push(label); };
-const PIXEL = ['case-pixel-lo-thuoc-thu-nam-vi', 'case-pixel-tram-hong-ngoc-vi'];
+const PIXEL = ['case-pixel-lo-thuoc-thu-nam-vi', 'case-pixel-tram-hong-ngoc-vi', 'case-pixel-chuoi-ngoc-vi',
+  'case-pixel-chen-tra-vi', 'case-pixel-dem-tuyet-vi'];
 const OLD = 'case-v3-broken-seal-vi';
 const pw = 'PixelTest12345';
 async function user(n) {
@@ -29,12 +30,12 @@ await raw('POST', '/api/admin/cases/seed-crack-demo', admin.token);
 await raw('POST', '/api/admin/cases/seed-point-click-demo', admin.token);
 
 const published = (await raw('GET', '/api/cases/published', a.token)).data;
-check(published.length === 2 && PIXEL.every((id) => published.some((c) => c.caseId === id)), `players list only the pixel cases (${published.map((c) => c.caseId).join(', ')})`);
+check(published.length === PIXEL.length && PIXEL.every((id) => published.some((c) => c.caseId === id)), `players list only the pixel cases (${published.map((c) => c.caseId).join(', ')})`);
 check(published.every((c) => c.isPixel === true), 'every listed case says isPixel');
 
 // Older cases are hidden from the admin list by default and come back with ?includeLegacy=true
 const adminDefault = (await raw('GET', '/api/admin/cases', admin.token)).data;
-check(adminDefault.length === 2 && adminDefault.every((c) => c.isPixel === true), `the admin list shows only the pixel cases by default (${adminDefault.map((c) => c.caseId).join(', ')})`);
+check(adminDefault.length === PIXEL.length && adminDefault.every((c) => c.isPixel === true), `the admin list shows only the pixel cases by default (${adminDefault.map((c) => c.caseId).join(', ')})`);
 const adminList = (await raw('GET', '/api/admin/cases?includeLegacy=true', admin.token)).data;
 check(adminList.length >= 6, `?includeLegacy=true shows every case again (${adminList.length})`);
 const old = adminList.filter((c) => !c.isPixel && c.status === 'PUBLISHED');
@@ -82,6 +83,6 @@ check((await raw('GET', '/api/workshop/weekly/case-of-week', a.token)).data?.cas
 
 // the admin button refreshes the pixel cases even while a room is playing one of them
 const refresh = await raw('POST', '/api/admin/cases/seed-pixel-demo', admin.token);
-check(refresh.status === 200 && refresh.data.length === 2, 'the admin "create / refresh pixel cases" button works');
+check(refresh.status === 200 && refresh.data.length === PIXEL.length, 'the admin "create / refresh pixel cases" button works');
 console.log(fails.length ? `\n${fails.length} FAILED` : '\nALL CHECKS PASSED');
 process.exit(fails.length ? 1 : 0);
