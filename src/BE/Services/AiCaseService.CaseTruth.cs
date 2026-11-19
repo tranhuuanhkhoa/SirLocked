@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using SirLocked.Api.Configurations;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.DTOs.Case;
@@ -1252,11 +1253,18 @@ public partial class AiCaseService
         return review;
     }
 
+    /// <summary>
+    /// The AI blind detective always runs for an autopilot order: it stands in for the person who read the logic at the
+    /// LOGIC gate, and the autopilot does not pass a logic it could not solve. Other orders follow the setting.
+    /// </summary>
+    internal static bool BlindReviewEnabled(AiGenerationSettings settings, AiCaseDraft draft) =>
+        settings.EnableBlindSolvabilityReview || draft.Order?.ReviewMode == AiCaseReviewModes.Auto;
+
     private async Task<BlindSolvabilityReview> ReviewBlindSolvabilityAsync(
         AiCaseDraft draft,
         GameCase gameCase)
     {
-        if (!_settings.EnableBlindSolvabilityReview)
+        if (!BlindReviewEnabled(_settings, draft))
         {
             _logger.LogInformation(
                 "Blind-solvability review is disabled by configuration for draft {DraftId}.",
@@ -1701,11 +1709,12 @@ public partial class AiCaseService
     }
 
     private CaseValidationResult ValidateGeneratedBlindReview(
+        AiCaseDraft draft,
         CaseTruthPackage truth,
         GameCase gameCase,
         BlindSolvabilityReview review)
     {
-        if (!_settings.EnableBlindSolvabilityReview)
+        if (!BlindReviewEnabled(_settings, draft))
             return new CaseValidationResult();
 
         var result = _truthService.ValidateBlindReview(truth, gameCase, review);
@@ -1729,7 +1738,7 @@ public partial class AiCaseService
             ValidatorVersion = "blind-review-validator-v1"
         };
 
-        if (!_settings.EnableBlindSolvabilityReview)
+        if (!BlindReviewEnabled(_settings, draft))
         {
             assessment.Status = BlindReviewAssessmentStatuses.Disabled;
             return assessment;
@@ -1744,7 +1753,7 @@ public partial class AiCaseService
             return assessment;
         }
 
-        var validation = ValidateGeneratedBlindReview(draft.CaseTruth!, gameCase, review);
+        var validation = ValidateGeneratedBlindReview(draft, draft.CaseTruth!, gameCase, review);
         assessment.ValidationErrors = validation.Errors.Select(error => new BlindReviewValidationError
         {
             Code = error.Code,

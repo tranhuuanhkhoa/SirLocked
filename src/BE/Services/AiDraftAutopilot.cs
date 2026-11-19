@@ -71,8 +71,20 @@ public sealed class AiDraftAutopilot(
     {
         if (!Steerable(draft)) return null;
         if (draft.TruthRepairStatus == AiRepairStatus.CandidateReady || draft.RepairStatus == AiRepairStatus.CandidateReady) return null;
+        // The AI truth reviewer decides the TRUTH gate a person used to decide: a truth it failed is repaired, never passed.
+        if (draft.Status == AiDraftStatus.CaseTruthAwaitingApproval && TruthReviewFailed(draft)) return null;
+        // Likewise the AI blind detective decides the LOGIC gate: a logic it could not solve is repaired, never passed.
+        if (draft.Status == AiDraftStatus.FullLogicAwaitingApproval && BlindReviewFailed(draft)) return null;
         return Gates.TryGetValue(draft.Status, out var gate) ? gate : null;
     }
+
+    /// <summary>The blind detective named the wrong culprit or found more than one fit (not run or unavailable cannot judge).</summary>
+    private static bool BlindReviewFailed(AiCaseDraft draft) =>
+        draft.BlindReviewAssessment?.Status is BlindReviewAssessmentStatuses.Failed or BlindReviewAssessmentStatuses.Ambiguous;
+
+    /// <summary>The independent AI review of the truth found a blocking defect (NOT_RUN means the reviewer could not run; the deterministic rules still passed).</summary>
+    private static bool TruthReviewFailed(AiCaseDraft draft) =>
+        draft.TruthReviewerResult?.Status is CaseTruthReviewStatuses.Failed or CaseTruthReviewStatuses.Ambiguous;
 
     /// <summary>The next step for an autopilot draft, or null when there is none (or the repair budget is spent).</summary>
     public static AutopilotStep? NextStep(AiCaseDraft draft)
@@ -87,6 +99,10 @@ public sealed class AiDraftAutopilot(
         {
             AiDraftStatus.CaseTruthInvalid => new AutopilotStep(
                 draft.TruthRepairStatus == AiRepairStatus.CandidateInvalid ? RepairTruthCandidate : RepairTruth, true),
+            // The repair prompt carries the reviewer's findings, and the repaired truth is reviewed again.
+            AiDraftStatus.CaseTruthAwaitingApproval when TruthReviewFailed(draft) => new AutopilotStep(RepairTruth, true),
+            // A causal case's logic is projected from its truth, so an unsolvable logic is repaired in the truth.
+            AiDraftStatus.FullLogicAwaitingApproval when BlindReviewFailed(draft) => new AutopilotStep(RepairTruth, true),
             AiDraftStatus.GeneratedInvalid when draft.AutopilotJsonRetries < MaxJsonRetries => new AutopilotStep(RetryJson, true),
             _ => null
         };
@@ -110,7 +126,7 @@ public sealed class AiDraftAutopilot(
                 _ => await cases.RepairTruthAsync(AutopilotUser, draft.Id, new RepairCaseTruthRequest
                 {
                     UseRepairCandidate = step.Name == RepairTruthCandidate,
-                    RepairInstructions = RepairInstructions
+                    RepairInstructions = RepairInstructionsFor(draft)
                 })
             };
             return step.Name;
@@ -120,6 +136,18 @@ public sealed class AiDraftAutopilot(
             refused?.Invoke(step.Name, exception);
             return null;
         }
+    }
+
+    /// <summary>
+    /// The repair's direction. A truth the validators or the truth reviewer failed already carries its findings into the
+    /// repair prompt; a logic the blind detective could not solve carries the detective's findings here (at most 2,000
+    /// characters, the request's limit).
+    /// </summary>
+    private static string RepairInstructionsFor(AiCaseDraft draft)
+    {
+        if (draft.Status != AiDraftStatus.FullLogicAwaitingApproval || !BlindReviewFailed(draft)) return RepairInstructions;
+        var text = $"{RepairInstructions} The blind detective could not solve the case from the player's view; make exactly one suspect fit every claim through clues the players can find.\n{AiCaseService.BuildBlindReviewFeedback(draft.BlindSolvabilityReview)}";
+        return text.Length <= 2000 ? text : text[..2000];
     }
 
     public async Task AdvanceAsync(string draftId, CancellationToken ct)

@@ -1,4 +1,5 @@
 using System.Reflection;
+using SirLocked.Api.Configurations;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.Models;
@@ -143,6 +144,91 @@ public sealed class AiDraftAutopilotTests
     [InlineData(AiDraftStatus.GeneratedInvalid, AiRepairStatus.None, AiDraftAutopilot.RetryJson)]
     public void AFailedStep_IsRepairedOnAutopilot(string status, string truthRepair, string step) =>
         Assert.Equal(step, AiDraftAutopilot.NextStep(Failed(status, truthRepair))?.Name);
+
+    // ------------------------------------------------------------ the AI truth reviewer decides the TRUTH gate
+
+    private static AiCaseDraft TruthReviewed(string reviewStatus, int repairs = 0)
+    {
+        var draft = Failed(AiDraftStatus.CaseTruthAwaitingApproval, repairs: repairs);
+        draft.TruthReviewerResult = new CaseTruthFeasibilityReview { Status = reviewStatus };
+        return draft;
+    }
+
+    [Theory]
+    [InlineData(CaseTruthReviewStatuses.Passed)]
+    [InlineData(CaseTruthReviewStatuses.NotRun)]
+    public void ATruthTheAiReviewerPassed_GoesThroughTheTruthGate(string status)
+    {
+        Assert.Equal(BridgeGates.Truth, AiDraftAutopilot.GateToPass(TruthReviewed(status)));
+        Assert.Equal(BridgeGates.Truth, AiDraftAutopilot.NextStep(TruthReviewed(status))?.Name);
+    }
+
+    [Theory]
+    [InlineData(CaseTruthReviewStatuses.Failed)]
+    [InlineData(CaseTruthReviewStatuses.Ambiguous)]
+    public void ATruthTheAiReviewerFailed_IsSentBackForRepair_NotPassed(string status)
+    {
+        Assert.Null(AiDraftAutopilot.GateToPass(TruthReviewed(status)));
+        var step = AiDraftAutopilot.NextStep(TruthReviewed(status));
+        Assert.Equal(AiDraftAutopilot.RepairTruth, step?.Name);
+        Assert.True(step!.CostsRepair);
+    }
+
+    [Fact]
+    public void ATruthStillFailingTheAiReviewerAfterTheBudget_StopsForAPerson()
+    {
+        var draft = TruthReviewed(CaseTruthReviewStatuses.Failed, AiDraftAutopilot.MaxRepairs);
+        Assert.Null(AiDraftAutopilot.GateToPass(draft));
+        Assert.Null(AiDraftAutopilot.NextStep(draft));
+    }
+
+    // ------------------------------------------------------------ the AI blind detective decides the LOGIC gate
+
+    private static AiCaseDraft BlindReviewed(string assessment, int repairs = 0)
+    {
+        var draft = Failed(AiDraftStatus.FullLogicAwaitingApproval, repairs: repairs);
+        draft.BlindReviewAssessment = new BlindReviewAssessment { Status = assessment };
+        draft.BlindSolvabilityReview = new BlindSolvabilityReview
+        {
+            Status = assessment, CulpritId = "char-wrong", UniqueSolution = false,
+            Findings = { new CaseTruthReviewFinding { FindingId = "f1", Code = "AMBIGUOUS_CULPRIT", Message = "Two suspects fit the clues.", RelatedIds = { "char-a", "char-b" } } }
+        };
+        return draft;
+    }
+
+    [Theory]
+    [InlineData(BlindReviewAssessmentStatuses.Passed)]
+    [InlineData(BlindReviewAssessmentStatuses.NotRun)]
+    [InlineData(BlindReviewAssessmentStatuses.Unavailable)]
+    public void ALogicTheBlindDetectiveSolved_GoesThroughTheLogicGate(string status) =>
+        Assert.Equal(BridgeGates.Logic, AiDraftAutopilot.NextStep(BlindReviewed(status))?.Name);
+
+    [Theory]
+    [InlineData(BlindReviewAssessmentStatuses.Failed)]
+    [InlineData(BlindReviewAssessmentStatuses.Ambiguous)]
+    public void ALogicTheBlindDetectiveCouldNotSolve_IsSentBackForATruthRepair(string status)
+    {
+        Assert.Null(AiDraftAutopilot.GateToPass(BlindReviewed(status)));
+        Assert.Equal(AiDraftAutopilot.RepairTruth, AiDraftAutopilot.NextStep(BlindReviewed(status))?.Name);
+    }
+
+    [Fact]
+    public async Task ABlindDetectiveRepair_CarriesItsFindings()
+    {
+        var cases = RecordingCases.Create();
+        await AiDraftAutopilot.AdvanceAsync(BlindReviewed(BlindReviewAssessmentStatuses.Failed), cases);
+        var request = Assert.IsType<RepairCaseTruthRequest>(((RecordingCases)(object)cases).Requests.Single());
+        Assert.Contains("Two suspects fit the clues.", request.RepairInstructions);
+        Assert.True(request.RepairInstructions!.Length <= 2000);
+    }
+
+    [Fact]
+    public void EveryAutopilotOrder_RunsTheBlindDetective_WhateverTheSetting()
+    {
+        var settings = new AiGenerationSettings { EnableBlindSolvabilityReview = false };
+        Assert.True(AiCaseService.BlindReviewEnabled(settings, Draft(AiDraftStatus.GeneratingFullCase)));
+        Assert.False(AiCaseService.BlindReviewEnabled(settings, Draft(AiDraftStatus.GeneratingFullCase, AiCaseReviewModes.Full)));
+    }
 
     [Fact]
     public void Repairs_StopAfterTheBudget()
