@@ -31,8 +31,10 @@ public static class V3KnowledgeProjector
             .GroupBy(clue => clue.ClueId)
             .ToDictionary(group => group.Key, group => group.First().PhotoUrl);
 
+        // Open co-op shares one notebook: both detectives see everything either of them found.
+        var shared = CaseRuleSets.IsOpenCoop(gameCase);
         response.PrivateEvidence = state.ClueDiscoveries
-            .Where(discovery => discovery.DiscoveredByUserId == userId)
+            .Where(discovery => shared || discovery.DiscoveredByUserId == userId)
             .Select(discovery => discovery.ClueId)
             .Distinct()
             .Select(clueId => gameCase.Clues.FirstOrDefault(clue => clue.ClueId == clueId))
@@ -41,7 +43,7 @@ public static class V3KnowledgeProjector
             .ToList();
 
         response.PrivateTestimonies = state.TestimonyDiscoveries
-            .Where(discovery => discovery.DiscoveredByUserId == userId)
+            .Where(discovery => shared || discovery.DiscoveredByUserId == userId)
             .Select(discovery => discovery.TestimonyFragmentId)
             .Distinct()
             .Select(fragmentId => gameCase.TestimonyFragments.FirstOrDefault(fragment => fragment.Id == fragmentId))
@@ -49,8 +51,37 @@ public static class V3KnowledgeProjector
             .Select(fragment => BuildTestimony(fragment!, gameCase))
             .ToList();
 
+        if (shared)
+        {
+            foreach (var evidence in response.PrivateEvidence)
+            {
+                var first = state.ClueDiscoveries.FirstOrDefault(discovery => discovery.ClueId == evidence.ClueId);
+                if (first is null) continue;
+                evidence.FoundByUserId = first.DiscoveredByUserId;
+                evidence.FoundByRole = first.DiscoveredByRole;
+                evidence.FoundAt = first.DiscoveredAt;
+            }
+            foreach (var testimony in response.PrivateTestimonies)
+            {
+                testimony.CanChallenge = gameCase.EvidenceChallenges.Any(challenge => challenge.CandidateTestimonyFragmentIds.Count > 0
+                    ? challenge.CandidateTestimonyFragmentIds.Contains(testimony.TestimonyFragmentId, StringComparer.Ordinal)
+                    : challenge.DialogueId == testimony.DialogueId);
+                var first = state.TestimonyDiscoveries.FirstOrDefault(discovery => discovery.TestimonyFragmentId == testimony.TestimonyFragmentId);
+                if (first is null) continue;
+                testimony.FoundByUserId = first.DiscoveredByUserId;
+                testimony.FoundAt = first.DiscoveredAt;
+            }
+        }
         response.SharedKnowledge = BuildSharedKnowledge(state, gameCase, photoUrls);
         response.ActiveConfrontation = BuildActiveView(state.ActiveConfrontation, room, gameCase, player, photoUrls);
+        if (shared && response.ActiveConfrontation is { } view && state.ActiveConfrontation is { } activeState)
+        {
+            // Both see the whole draft (statement and evidence) while they discuss it.
+            var evidence = gameCase.Clues.FirstOrDefault(clue => clue.ClueId == activeState.EvidenceId);
+            var testimony = gameCase.TestimonyFragments.FirstOrDefault(fragment => fragment.Id == activeState.TestimonyFragmentId);
+            view.Evidence ??= evidence is null ? null : BuildEvidence(evidence, photoUrls);
+            view.Testimony ??= testimony is null ? null : BuildTestimony(testimony, gameCase);
+        }
         response.IsCaseComplete = room.Status == RoomStatus.Completed;
         var knownClueIds = ProjectV2Knowledge(response, state, gameCase, player);
         ProjectActiveAccusation(response, knownClueIds);
@@ -273,6 +304,11 @@ public static class V3KnowledgeProjector
         GameCase gameCase,
         RoomPlayer player)
     {
+        if (CaseRuleSets.IsOpenCoop(gameCase))
+        {
+            response.Testimonies = new List<TestimonyDto>();
+            return state.UnlockedClueIds.ToHashSet(StringComparer.Ordinal);
+        }
         var knownClueIds = state.ClueDiscoveries
             .Where(discovery => discovery.DiscoveredByUserId == player.UserId
                 || discovery.SourceAction is ClueDiscoverySources.Challenge or ClueDiscoverySources.Deduction)

@@ -44,4 +44,12 @@ public class ApiException : Exception
         new(403, message, new ApiErrorDetails(code, messageKey));
 }
 
-public sealed record ApiErrorDetails(string Code, string MessageKey);
+public sealed record ApiErrorDetails(string Code, string MessageKey)
+{
+    /// <summary>
+    /// The request field the error is about, as a camelCase JSON path (for example <c>order.suspectCount</c>), so a form
+    /// can show the message next to that field. Left out of the JSON when the error is not about one field.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? Field { get; init; }
+}

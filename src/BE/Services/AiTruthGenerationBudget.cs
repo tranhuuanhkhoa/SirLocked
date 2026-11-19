@@ -20,10 +20,39 @@ public sealed record AiTruthGenerationBudget(
     int MaxDescriptionLength)
 {
     public static AiTruthGenerationBudget For(AiDraftSettings settings)
-        => For(settings.GenerationPreset, settings.StageCount);
+        => AiPipelineVersions.IsOpenCoop(settings)
+            ? ForLevel(AiDifficultyProfiles.For(settings.Difficulty))
+            : For(settings.GenerationPreset, settings.StageCount);
+
+    /// <summary>
+    /// An OPEN_COOP_1 draft: exactly the level's suspects, up to its most scenes as locations, its red herrings; the
+    /// statement and timeline room of a balanced case of that many scenes, and its trace room plus one trace per
+    /// optional puzzle.
+    /// </summary>
+    public static AiTruthGenerationBudget ForLevel(AiDifficultyProfile profile)
+    {
+        var scenes = profile.Scenes.Max;
+        var room = ForProjection(new AiDraftSettings
+        {
+            GenerationPreset = AiGenerationPresets.NormalRandom,
+            StageCount = Math.Min(6, scenes),
+            IncludeCrackTheLie = true,
+            MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation
+        });
+        return room with
+        {
+            // Room for one corroborating trace per optional puzzle on top of the proofs and confrontations.
+            MaxTraces = room.MaxTraces + profile.Puzzles.Max,
+            MaxSuspects = profile.Suspects,
+            MaxLocations = scenes,
+            MaxRedHerrings = profile.RedHerrings.Max,
+            MaxTimelineEvents = Math.Min(28, scenes * 4 + 4)
+        };
+    }
 
     public static AiTruthGenerationBudget ForProjection(AiDraftSettings settings)
     {
+        if (AiPipelineVersions.IsOpenCoop(settings)) return ForLevel(AiDifficultyProfiles.For(settings.Difficulty));
         var normalizedPreset = AiGenerationPresets.Normalize(settings.GenerationPreset);
         var effectivePreset = normalizedPreset == AiGenerationPresets.CrackTheLieV3
             ? AiGenerationPresets.ShortDemo

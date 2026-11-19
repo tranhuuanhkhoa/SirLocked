@@ -9,7 +9,9 @@ public sealed record PlayerCosmeticsDto(
     string? AvatarUrl,
     string? FrameDefId,
     string TitleDefId,
-    string EntranceDefId);
+    string EntranceDefId,
+    // The detective outfits ("skin") this player wears, Sherlock's first; empty for the normal look.
+    IReadOnlyList<string>? SkinDefIds = null);
 
 public sealed record ExchangeableItemDto(string ItemId, ItemDefDto Def, long Xp);
 

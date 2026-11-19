@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using SirLocked.Api.DTOs.Investigation;
+using SirLocked.Api.DTOs.Market;
 using SirLocked.Api.DTOs.Room;
 using SirLocked.Api.DTOs.Submission;
 using SirLocked.Api.Services.Interfaces;
@@ -29,6 +30,9 @@ public class GameNotifier : IGameNotifier
 
     public Task GameStarted(string roomId, RoomResponse room) =>
         Group(roomId).SendAsync("GameStarted", new { roomId, room });
+
+    public Task PlayerEntrance(string roomId, PlayerEntranceDto entrance) =>
+        Group(roomId).SendAsync("PlayerEntrance", entrance);
 
     public Task GameStateUpdated(string roomId, long version) =>
         Group(roomId).SendAsync("GameStateUpdated", BuildGameStateUpdatedPayload(roomId, version));

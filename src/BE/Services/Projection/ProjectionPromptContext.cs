@@ -59,7 +59,9 @@ public static class ProjectionPromptContext
                 puzzles = plan.Skeleton.Puzzles.Select(item => new
                 {
                     item.PuzzleId, item.Type, item.BasedOnTruthIds, item.Options, item.CorrectCode, item.CorrectSequence,
-                    item.Prompt, item.InvestigationPurpose, item.RequiredClueIds, item.UnlockClueIds
+                    item.Prompt, item.InvestigationPurpose, item.RequiredClueIds, item.UnlockClueIds,
+                    progressionRole = string.IsNullOrEmpty(item.ProgressionRole) ? null : item.ProgressionRole,
+                    offeredKinds = plan.Puzzles.TryGetValue(item.PuzzleId, out var slot) ? slot.OfferedKinds : null
                 }),
                 mechanicItems = plan.Skeleton.Items.Where(item => !string.IsNullOrWhiteSpace(item.Name))
                     .Select(item => new { item.ItemId, item.Name, item.Description, item.InteractionReason }),

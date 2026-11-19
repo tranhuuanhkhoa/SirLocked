@@ -1,12 +1,111 @@
+using System.Text.Json;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.Models;
+using SirLocked.Api.Services.Interfaces;
 
 namespace SirLocked.Api.Services;
 
+public static class AiAssetPhases
+{
+    public const string SceneLayout = "SCENE_LAYOUT";
+    public const string FinalAssets = "FINAL_ASSETS";
+}
+
+public static class AiAssetSlotKinds
+{
+    public const string Cover = "cover";
+    public const string Background = "background";
+    public const string CharacterSprite = "character-sprite";
+    public const string CharacterPortrait = "character-portrait";
+    public const string Item = "item";
+}
+
+/// <summary>One picture a draft needs, with the art direction the image model used to receive.</summary>
+public sealed record AiAssetSlot(
+    string SlotId,
+    string Kind,
+    string TargetId,
+    string Name,
+    string Phase,
+    string ArtDirection,
+    int Width,
+    int Height,
+    bool Transparent,
+    bool Required,
+    string CurrentUrl);
+
 public partial class AiCaseService
 {
-    // ----- Phase 3-7 asset and runtime generation -----
+    // ----- Phase 3-7: images uploaded by Claude, layout and runtime built by the server -----
+    public const string ClaudeUploadPipelineVersion = "claude-upload-v1";
+
+    internal static string SlotId(string kind, string targetId) => $"{kind}:{targetId}";
+
+    /// <summary>Every image slot of one asset phase, with its art direction, target size and current picture.</summary>
+    internal static List<AiAssetSlot> BuildAssetSlots(AiCaseDraft draft, GameCase gameCase, string phase)
+    {
+        if (PixelCasePipeline.IsPixel(draft)) return BuildPixelAssetSlots(draft, gameCase, phase);
+        var uploads = LatestUploads(draft);
+        string Current(string slotId, string fallback) =>
+            uploads.TryGetValue(slotId, out var upload) ? upload.Url : fallback ?? string.Empty;
+
+        var slots = new List<AiAssetSlot>();
+        if (phase == AiAssetPhases.SceneLayout)
+        {
+            var coverId = SlotId(AiAssetSlotKinds.Cover, gameCase.CaseId);
+            slots.Add(new AiAssetSlot(coverId, AiAssetSlotKinds.Cover, gameCase.CaseId, gameCase.Title, phase,
+                BuildCoverImagePrompt(draft, gameCase), 1024, 1024, false, true, Current(coverId, gameCase.CoverImageUrl)));
+            foreach (var scene in OrderedScenes(gameCase))
+            {
+                var id = SlotId(AiAssetSlotKinds.Background, scene.SceneId);
+                slots.Add(new AiAssetSlot(id, AiAssetSlotKinds.Background, scene.SceneId, scene.Title, phase,
+                    BuildBackgroundImagePrompt(draft, gameCase, scene), RuntimeWidth, RuntimeHeight, false, true,
+                    Current(id, scene.BackgroundUrl)));
+            }
+            return slots;
+        }
+
+        foreach (var character in gameCase.Characters)
+        {
+            var spriteId = SlotId(AiAssetSlotKinds.CharacterSprite, character.CharacterId);
+            slots.Add(new AiAssetSlot(spriteId, AiAssetSlotKinds.CharacterSprite, character.CharacterId, character.Name, phase,
+                BuildCharacterMasterSpritePrompt(character), 1024, 1536, true, true, Current(spriteId, string.Empty)));
+            var portraitId = SlotId(AiAssetSlotKinds.CharacterPortrait, character.CharacterId);
+            slots.Add(new AiAssetSlot(portraitId, AiAssetSlotKinds.CharacterPortrait, character.CharacterId, character.Name, phase,
+                $"Dialogue portrait of {character.Name}: the same character as its sprite, head and shoulders, transparent background. Optional: the sprite is used when no portrait is uploaded.",
+                512, 512, true, false, Current(portraitId, character.ImageUrl)));
+        }
+        foreach (var scene in OrderedScenes(gameCase))
+        {
+            foreach (var item in scene.ItemIds
+                         .Select(itemId => gameCase.Items.FirstOrDefault(entry => entry.ItemId == itemId))
+                         .Where(item => item is not null && ShouldGenerateItemAsset(gameCase, item))
+                         .Select(item => item!))
+            {
+                var id = SlotId(AiAssetSlotKinds.Item, item.ItemId);
+                if (slots.Any(slot => slot.SlotId == id)) continue;
+                string art;
+                try
+                {
+                    var plan = scene.PlacementPlan ?? throw ApiException.BadGateway("no placement plan");
+                    art = BuildItemImagePrompt(draft, item, scene, FindPlannedPlacement(plan, "item", item.ItemId));
+                }
+                catch (ApiException)
+                {
+                    art = $"{item.Name}: {FirstNonBlank(item.VisualDescription, item.Description)}. Isolated cut-out on a transparent background, {AiVisualStyleDefaults.PixelArtContract}";
+                }
+                slots.Add(new AiAssetSlot(id, AiAssetSlotKinds.Item, item.ItemId, item.Name, phase, art,
+                    1024, 1024, true, true, Current(id, item.ImageUrl)));
+            }
+        }
+        return slots;
+    }
+
+    internal static Dictionary<string, AiBridgeAssetUpload> LatestUploads(AiCaseDraft draft) =>
+        draft.BridgeAssets
+            .GroupBy(upload => upload.SlotId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.OrderBy(upload => upload.UploadedAt).Last(), StringComparer.Ordinal);
 
     private async Task<AiAssetManifest> GenerateAssetsAndRuntimeAsync(
         AiCaseDraft draft,
@@ -15,311 +114,228 @@ public partial class AiCaseService
         bool includeFinalAssets,
         IReadOnlySet<string>? forceAssetIds = null)
     {
-        bool ForceTarget(string targetId) => forceRegenerate
-            && (forceAssetIds is null || forceAssetIds.Count == 0 || forceAssetIds.Contains(targetId));
-        var assetsRoot = FindUpwards("src/FE/public/assets")
-            ?? throw ApiException.BadRequest("Frontend public assets folder was not found. Expected src/FE/public/assets.");
-
-        var caseSlug = ResolveAssetSlug(draft, gameCase, assetsRoot);
-        var caseAssetsRoot = Path.Combine(assetsRoot, "ai-generated", AssetPipelineVersion, caseSlug);
-        Directory.CreateDirectory(caseAssetsRoot);
-        Directory.CreateDirectory(Path.Combine(caseAssetsRoot, "cases"));
-        Directory.CreateDirectory(Path.Combine(caseAssetsRoot, "scenes"));
-        Directory.CreateDirectory(Path.Combine(caseAssetsRoot, "characters"));
-        Directory.CreateDirectory(Path.Combine(caseAssetsRoot, "items"));
-        Directory.CreateDirectory(Path.Combine(caseAssetsRoot, "references"));
-        var characterStyleReferences = ResolveCharacterStyleReferences(assetsRoot);
-
-        var manifest = new AiAssetManifest
+        if (PixelCasePipeline.IsPixel(draft))
+            return await GeneratePixelAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate, includeFinalAssets, forceAssetIds);
+        var phase = includeFinalAssets ? AiAssetPhases.FinalAssets : AiAssetPhases.SceneLayout;
+        var status = includeFinalAssets ? AiDraftStatus.GeneratingFinalAssets : AiDraftStatus.GeneratingSceneLayout;
+        var slots = BuildAssetSlots(draft, gameCase, phase);
+        HashSet<string>? forcedSlots = null;
+        if (forceRegenerate)
         {
-            AssetRootUrl = $"/assets/ai-generated/{AssetPipelineVersion}/{caseSlug}",
-            AssetRootPath = caseAssetsRoot,
-            AssetPipelineVersion = AssetPipelineVersion,
-            LogicModel = _settings.LogicModel,
-            ImageModel = _settings.ImageModel,
-            GeneratedAt = DateTime.UtcNow
-        };
+            forcedSlots = slots
+                .Where(slot => forceAssetIds is null || forceAssetIds.Count == 0
+                               || forceAssetIds.Contains(slot.TargetId) || forceAssetIds.Contains(slot.SlotId))
+                .Select(slot => slot.SlotId)
+                .ToHashSet(StringComparer.Ordinal);
+        }
+        var uploads = await RequireClaudeAssetsAsync(draft, phase, slots, forcedSlots);
 
-        var coverPrompt = BuildCoverImagePrompt(draft, gameCase);
-        var coverPath = Path.Combine(caseAssetsRoot, "cases", "cover.png");
-        await GenerateImageFileAsync(draft.Id, "GenerateCoverImage", coverPrompt, "1024x1024", coverPath, forceRegenerate: ForceTarget(gameCase.CaseId));
-        var coverInfo = await GeneratedImageProcessor.AnalyzeAsync(coverPath);
-        gameCase.CoverImageUrl = $"{manifest.AssetRootUrl}/cases/cover.png";
-        manifest.Assets.Add(NewAsset("cover", gameCase.CaseId, gameCase.CoverImageUrl, coverPath, coverPrompt, coverInfo));
-        await SaveAssetCheckpointAsync(draft, gameCase, manifest);
+        var manifest = draft.AssetManifest ?? new AiAssetManifest();
+        manifest.AssetPipelineVersion = ClaudeUploadPipelineVersion;
+        manifest.LogicModel = ProviderName;
+        manifest.ImageModel = "claude-upload";
+        manifest.AssetRootPath = string.Empty;
+        manifest.GeneratedAt = DateTime.UtcNow;
+        ApplyUploadedAssets(gameCase, manifest, slots, uploads);
+        await SaveAssetCheckpointAsync(draft, gameCase, manifest, status);
 
         var orderedScenes = OrderedScenes(gameCase).ToList();
-        var backgroundPrompts = orderedScenes.ToDictionary(
-            scene => scene.SceneId,
-            scene =>
-            {
-                var basePrompt = BuildBackgroundImagePrompt(draft, gameCase, scene);
-                var previous = draft.AssetManifest.Assets.FirstOrDefault(asset =>
-                    asset.AssetType == "background"
-                    && asset.TargetId == scene.SceneId
-                    && asset.QaPassed
-                    && !string.IsNullOrWhiteSpace(asset.Prompt));
-                var path = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
-                return previous is not null && CanReusePassedBackground(path, previous.Prompt)
-                    ? previous.Prompt
-                    : basePrompt;
-            },
-            StringComparer.Ordinal);
-        var scenesRequiringBackgroundQa = orderedScenes
-            .Where(scene =>
-            {
-                var prompt = backgroundPrompts[scene.SceneId];
-                var path = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
-                return ForceTarget(scene.SceneId)
-                       || !CanReusePassedBackground(path, prompt);
-            })
-            .Select(scene => scene.SceneId)
-            .ToHashSet(StringComparer.Ordinal);
-        var backgroundAssets = await RunBoundedAsync(
-            orderedScenes,
-            _settings.MaxConcurrentImageRequests,
-            async scene =>
-            {
-                var backgroundPrompt = backgroundPrompts[scene.SceneId];
-                var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
-                await GenerateImageFileAsync(
-                    draft.Id,
-                    $"GenerateBackground:{scene.SceneId}",
-                    backgroundPrompt,
-                    $"{RuntimeWidth}x{GeneratedImageProcessor.SceneRequestHeight}",
-                    backgroundPath,
-                    forceRegenerate: scenesRequiringBackgroundQa.Contains(scene.SceneId));
-                var backgroundInfo = await GeneratedImageProcessor.NormalizeBackgroundAsync(backgroundPath);
-                scene.BackgroundUrl = $"{manifest.AssetRootUrl}/scenes/{Slugify(scene.SceneId)}.png";
-                return NewAsset("background", scene.SceneId, scene.BackgroundUrl, backgroundPath, backgroundPrompt, backgroundInfo);
-            });
-
-        foreach (var backgroundAsset in backgroundAssets)
+        if (!includeFinalAssets)
         {
-            manifest.Assets.Add(backgroundAsset);
-            await SaveAssetCheckpointAsync(draft, gameCase, manifest);
-        }
-
-        var scenesNeedingPlan = orderedScenes
-            .Select((scene, index) => (Scene: scene, Index: index))
-            .Where(entry => scenesRequiringBackgroundQa.Contains(entry.Scene.SceneId) || !HasUsablePlacementPlan(entry.Scene))
-            .ToList();
-        var plannedScenes = await RunBoundedAsync(
-            scenesNeedingPlan,
-            _settings.MaxConcurrentVisionRequests,
-            async entry =>
+            var scenesToPlan = orderedScenes
+                .Select((scene, index) => (Scene: scene, Index: index))
+                .Where(entry => forcedSlots?.Contains(SlotId(AiAssetSlotKinds.Background, entry.Scene.SceneId)) == true
+                                || !HasUsablePlacementPlan(entry.Scene))
+                .ToList();
+            await ForEachAwaitingClaudeAsync(scenesToPlan, async entry =>
             {
                 var scene = entry.Scene;
-                var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
                 var previous = PreviousScene(orderedScenes, entry.Index);
                 var next = NextScene(orderedScenes, entry.Index);
                 var planPrompt = BuildPlacementPlanPrompt(gameCase, scene, previous, next);
-                BackgroundQaResult? lastQaResult = null;
-                for (var attempt = 1; attempt <= 2; attempt++)
+                var background = new SceneImageReference($"BACKGROUND {scene.SceneId}: {scene.Title}", scene.BackgroundUrl);
+                var planJson = await GenerateVisionJsonAsync(draft, $"PlanScenePlacement:{scene.SceneId}", planPrompt, [background], 5000,
+                    () => BuildMockPlacementPlanJson(gameCase, scene));
+                var qa = ParseBackgroundQa(planJson);
+                if (!qa.Passed)
                 {
-                    if (attempt > 1)
+                    // One bounded retry, as with the image model: Claude uploads a corrected background.
+                    var retrySlot = SlotId(AiAssetSlotKinds.Background, scene.SceneId);
+                    var retryUploads = await RequireClaudeAssetsAsync(draft, phase, slots,
+                        new HashSet<string>(StringComparer.Ordinal) { retrySlot },
+                        $"RetryVisualQa:{scene.SceneId}",
+                        BuildBackgroundRetryPrompt(draft, gameCase, scene, qa));
+                    ApplyUploadedAssets(gameCase, manifest, slots, retryUploads);
+                    background = new SceneImageReference($"BACKGROUND {scene.SceneId}: {scene.Title}", scene.BackgroundUrl);
+                    planJson = await GenerateVisionJsonAsync(draft, $"PlanScenePlacement:{scene.SceneId}:RetryVisualQa", planPrompt, [background], 5000,
+                        () => BuildMockPlacementPlanJson(gameCase, scene));
+                    qa = ParseBackgroundQa(planJson);
+                    if (!qa.Passed)
                     {
-                        var retryPrompt = BuildBackgroundRetryPrompt(
-                            draft,
-                            gameCase,
-                            scene,
-                            lastQaResult ?? new BackgroundQaResult(
-                                false, false, false, false, false, false, string.Empty,
-                                "Visual QA did not return a result."));
-                        await GenerateImageFileAsync(
-                            draft.Id,
-                            $"GenerateBackground:{scene.SceneId}:RetryVisualQa",
-                            retryPrompt,
-                            $"{RuntimeWidth}x{GeneratedImageProcessor.SceneRequestHeight}",
-                            backgroundPath,
-                            forceRegenerate: true);
-                        await GeneratedImageProcessor.NormalizeBackgroundAsync(backgroundPath);
-                        var asset = manifest.Assets.FirstOrDefault(candidate => candidate.AssetType == "background" && candidate.TargetId == scene.SceneId);
-                        if (asset is not null)
-                        {
-                            asset.Prompt = retryPrompt;
-                            asset.PromptSha256 = Sha256(retryPrompt);
-                        }
+                        var failure = $"Scene {scene.SceneId} failed visual QA after one retry: {qa.FailureSummary}";
+                        await MarkDraftFailedAsync(draft, failure, AiFailurePhases.VisualQa, new[] { scene.SceneId });
+                        throw ApiException.BadGateway(failure);
                     }
-
-                    var planJson = await GenerateJsonWithOpenAiVisionAsync(
-                        draft.Id,
-                        attempt == 1 ? $"PlanScenePlacement:{scene.SceneId}" : $"PlanScenePlacement:{scene.SceneId}:RetryVisualQa",
-                        planPrompt,
-                        new[] { new VisionImageInput($"BACKGROUND {scene.SceneId}: {scene.Title}", backgroundPath) },
-                        maxOutputTokens: 5000);
-                    var qaResult = ParseBackgroundQa(planJson);
-                    if (qaResult.Passed)
-                    {
-                        scene.PlacementPlan = ParseAndSanitizePlacementPlan(planJson, gameCase, scene, previous, next);
-                        var backgroundAsset = manifest.Assets
-                            .First(asset => asset.AssetType == "background" && asset.TargetId == scene.SceneId);
-                        backgroundAsset.QaPassed = true;
-                        backgroundAsset.PromptSha256 = Sha256(backgroundAsset.Prompt);
-                        await File.WriteAllTextAsync(
-                            BackgroundQaMarkerPath(backgroundPath),
-                            backgroundAsset.PromptSha256,
-                            _operationCancellationToken);
-                        return scene;
-                    }
-
-                    lastQaResult = qaResult;
                 }
-
-                var failure = $"Scene {scene.SceneId} failed visual QA after one retry: {lastQaResult?.FailureSummary ?? "Visual QA returned no result."}";
-                await MarkDraftFailedAsync(draft, failure, AiFailurePhases.VisualQa, new[] { scene.SceneId });
-                throw ApiException.BadGateway(failure);
+                scene.PlacementPlan = ParseAndSanitizePlacementPlan(planJson, gameCase, scene, previous, next);
+                var backgroundAsset = manifest.Assets.FirstOrDefault(asset =>
+                    asset.AssetType == AiAssetSlotKinds.Background && asset.TargetId == scene.SceneId);
+                if (backgroundAsset is not null) backgroundAsset.QaPassed = true;
             });
-
-        foreach (var _ in plannedScenes)
-        {
-            await SaveAssetCheckpointAsync(draft, gameCase, manifest);
-        }
-
-        if (!includeFinalAssets)
-        {
             foreach (var scene in orderedScenes)
-            {
-                scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase);
-                await SaveAssetCheckpointAsync(draft, gameCase, manifest);
-            }
-
+                scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase, SpriteUrls(slots, uploads));
+            await SaveAssetCheckpointAsync(draft, gameCase, manifest, status);
             return manifest;
         }
 
-        var characterAssets = await RunBoundedAsync(
-            gameCase.Characters,
-            _settings.MaxConcurrentImageRequests,
-            async character =>
-            {
-                var spritePrompt = BuildCharacterMasterSpritePrompt(character);
-                var spritePath = CharacterSpritePath(caseAssetsRoot, character.CharacterId);
-                var spriteInfo = await GenerateCutoutFileAsync(
-                    draft.Id,
-                    $"GenerateCharacterSprite:{character.CharacterId}",
-                    spritePrompt,
-                    "1024x1536",
-                    spritePath,
-                    references: characterStyleReferences,
-                    forceRegenerate: forceRegenerate,
-                    quality: NormalizeImageQuality(_settings.CharacterImageQuality));
-                var spriteUrl = CharacterSpriteUrl(manifest.AssetRootUrl, character.CharacterId);
-
-                var portraitPath = Path.Combine(caseAssetsRoot, "characters", CharacterAssetStyleVersion, $"{Slugify(character.CharacterId)}-portrait.png");
-                var portraitInfo = await GeneratedImageProcessor.CreateCharacterPortraitAsync(spritePath, portraitPath);
-                character.ImageUrl = $"{manifest.AssetRootUrl}/characters/{CharacterAssetStyleVersion}/{Slugify(character.CharacterId)}-portrait.png";
-                var portraitPrompt = $"Derived locally from canonical sprite {spriteUrl}.";
-
-                return new[]
-                {
-                    NewAsset("character-sprite", character.CharacterId, spriteUrl, spritePath, spritePrompt, spriteInfo, CutoutImageModel),
-                    NewAsset("character-portrait", character.CharacterId, character.ImageUrl, portraitPath, portraitPrompt, portraitInfo, CutoutImageModel)
-                };
-            });
-
-        foreach (var assetGroup in characterAssets)
-        {
-            manifest.Assets.AddRange(assetGroup);
-            await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
-        }
-
-        var itemJobs = orderedScenes
-            .SelectMany(scene =>
-            {
-                var plan = scene.PlacementPlan ?? throw ApiException.BadGateway($"Scene {scene.SceneId} has no placement plan.");
-                var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
-                return scene.ItemIds
-                    .Select(itemId => gameCase.Items.First(item => item.ItemId == itemId))
-                    .Where(item => ShouldGenerateItemAsset(gameCase, item))
-                    .Select(item => (Scene: scene, Plan: plan, BackgroundPath: backgroundPath, Item: item));
-            })
-            .GroupBy(job => job.Item.ItemId, StringComparer.Ordinal)
-            .Select(group => group.First())
-            .ToList();
-        var itemAssets = await RunBoundedAsync(
-            itemJobs,
-            _settings.MaxConcurrentImageRequests,
-            async job =>
-            {
-                var placement = FindPlannedPlacement(job.Plan, "item", job.Item.ItemId);
-                var contextPath = await CreatePlacementContextAsync(caseAssetsRoot, job.BackgroundPath, job.Scene, placement);
-                var itemPrompt = BuildItemImagePrompt(draft, job.Item, job.Scene, placement);
-                var itemPath = Path.Combine(caseAssetsRoot, "items", $"{Slugify(job.Item.ItemId)}.png");
-                var itemInfo = await GenerateCutoutFileAsync(
-                    draft.Id,
-                    $"GenerateItem:{job.Scene.SceneId}:{job.Item.ItemId}",
-                    itemPrompt,
-                    "1024x1024",
-                    itemPath,
-                    BuildAssetReferenceInputs(job.Scene, placement, job.BackgroundPath, contextPath),
-                    forceRegenerate);
-                job.Item.ImageUrl = $"{manifest.AssetRootUrl}/items/{Slugify(job.Item.ItemId)}.png";
-                return NewAsset("item", job.Item.ItemId, job.Item.ImageUrl, itemPath, itemPrompt, itemInfo, CutoutImageModel);
-            });
-
-        foreach (var itemAsset in itemAssets)
-        {
-            manifest.Assets.Add(itemAsset);
-            await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
-        }
-
-        // Final asset verification must always run after the actual cutouts exist. Reusing the
-        // pre-asset runtime would skip style/identity/scale QA entirely.
-        var scenesNeedingVerification = orderedScenes.ToList();
+        var sprites = SpriteUrls(slots, uploads);
         foreach (var scene in orderedScenes)
-        {
-            scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase);
-        }
+            scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase, sprites);
 
-        var verifiedScenes = await RunBoundedAsync(
-            scenesNeedingVerification,
-            1,
-            async scene =>
+        // Final verification always runs on the real cut-outs; skipping it would skip style, identity and scale QA.
+        await ForEachAwaitingClaudeAsync(orderedScenes.Select((scene, index) => (Scene: scene, Index: index)).ToList(), async entry =>
+        {
+            var scene = entry.Scene;
+            var verificationPrompt = BuildPlacementVerificationPrompt(scene);
+            var effectiveSprites = sprites;
+            var verificationJson = await GenerateVisionJsonAsync(draft, $"VerifyScenePlacement:{scene.SceneId}",
+                verificationPrompt, BuildLayoutImageReferences(scene, gameCase, sprites), 3500,
+                () => BuildMockPlacementVerificationJson(scene));
+            var failures = ReadPlacementQaFailures(verificationJson, gameCase);
+            if (failures.Count > 0)
             {
-                var backgroundPath = Path.Combine(caseAssetsRoot, "scenes", $"{Slugify(scene.SceneId)}.png");
-                var verificationPrompt = BuildPlacementVerificationPrompt(scene);
-                for (var attempt = 1; attempt <= 2; attempt++)
+                var retrySlots = failures
+                    .Select(failure => failure.Type.Contains("item", StringComparison.OrdinalIgnoreCase)
+                        ? SlotId(AiAssetSlotKinds.Item, failure.Id)
+                        : SlotId(AiAssetSlotKinds.CharacterSprite, failure.Id))
+                    .Where(slotId => slots.Any(slot => slot.SlotId == slotId))
+                    .ToHashSet(StringComparer.Ordinal);
+                var summary = string.Join("; ", failures.Select(failure => $"{failure.Type}:{failure.Id} {failure.Reason}"));
+                if (retrySlots.Count > 0)
                 {
-                    var visionImages = BuildLayoutVisionInputs(scene, gameCase, caseAssetsRoot, backgroundPath);
-                    var verificationJson = await GenerateJsonWithOpenAiVisionAsync(
-                        draft.Id,
-                        attempt == 1 ? $"VerifyScenePlacement:{scene.SceneId}" : $"VerifyScenePlacement:{scene.SceneId}:RetryVisualQa",
-                        verificationPrompt,
-                        visionImages,
-                        maxOutputTokens: 3500);
-                    var failures = ReadPlacementQaFailures(verificationJson, gameCase);
-                    if (failures.Count == 0)
-                    {
-                        scene.PlacementPlan = ApplyPlacementVerification(scene.PlacementPlan!, verificationJson);
-                        scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase);
-                        return scene;
-                    }
-
-                    if (attempt == 2)
-                    {
-                        throw ApiException.BadGateway($"Scene {scene.SceneId} asset QA failed after one retry: {string.Join("; ", failures.Select(failure => $"{failure.Type}:{failure.Id} {failure.Reason}"))}");
-                    }
-
-                    await RegenerateFailedCutoutsAsync(
-                        draft,
-                        gameCase,
-                        scene,
-                        caseAssetsRoot,
-                        backgroundPath,
-                        characterStyleReferences,
-                        manifest,
-                        failures);
+                    var retryUploads = await RequireClaudeAssetsAsync(draft, phase, slots, retrySlots,
+                        $"RetryVisualQa:{scene.SceneId}", $"Placement QA failed: {summary}");
+                    ApplyUploadedAssets(gameCase, manifest, slots, retryUploads);
+                    effectiveSprites = SpriteUrls(slots, retryUploads);
+                    scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase, effectiveSprites);
+                    verificationJson = await GenerateVisionJsonAsync(draft, $"VerifyScenePlacement:{scene.SceneId}:RetryVisualQa",
+                        verificationPrompt, BuildLayoutImageReferences(scene, gameCase, effectiveSprites), 3500,
+                        () => BuildMockPlacementVerificationJson(scene));
+                    failures = ReadPlacementQaFailures(verificationJson, gameCase);
+                    summary = string.Join("; ", failures.Select(failure => $"{failure.Type}:{failure.Id} {failure.Reason}"));
                 }
-
-                throw ApiException.BadGateway($"Scene {scene.SceneId} asset QA did not complete.");
-            });
-
-        foreach (var _ in verifiedScenes)
-        {
-            await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
-        }
-
-        await UploadAssetsToCloudinaryAsync(draft, gameCase, manifest, caseSlug);
+                if (failures.Count > 0)
+                {
+                    var message = $"Scene {scene.SceneId} asset QA failed after one retry: {summary}";
+                    await MarkDraftFailedAsync(draft, message, AiFailurePhases.FinalAssets,
+                        failures.Select(failure => failure.Id).Append(scene.SceneId));
+                    throw ApiException.BadGateway(message);
+                }
+            }
+            scene.PlacementPlan = ApplyPlacementVerification(scene.PlacementPlan!, verificationJson);
+            scene.Runtime = BuildRuntimeFromPlacementPlan(scene, gameCase, effectiveSprites);
+        });
+        await SaveAssetCheckpointAsync(draft, gameCase, manifest, status);
         return manifest;
+    }
+
+    /// <summary>
+    /// Runs independent steps so the bot sees every open question at once; parks after all of them were asked.
+    /// </summary>
+    private static async Task ForEachAwaitingClaudeAsync<T>(IReadOnlyList<T> entries, Func<T, Task> step)
+    {
+        AiAwaitingClaudeException? firstWait = null;
+        foreach (var entry in entries)
+        {
+            try { await step(entry); }
+            catch (AiAwaitingClaudeException wait) { firstWait ??= wait; }
+        }
+        if (firstWait is not null) throw firstWait;
+    }
+
+    private static Dictionary<string, string> SpriteUrls(IReadOnlyList<AiAssetSlot> slots, IReadOnlyDictionary<string, AiBridgeAssetUpload> uploads) =>
+        slots.Where(slot => slot.Kind == AiAssetSlotKinds.CharacterSprite)
+            .Select(slot => (slot.TargetId, Url: uploads.TryGetValue(slot.SlotId, out var upload) ? upload.Url : slot.CurrentUrl))
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.Url))
+            .ToDictionary(entry => entry.TargetId, entry => entry.Url, StringComparer.Ordinal);
+
+    /// <summary>Writes the uploaded URLs into the case and the asset manifest.</summary>
+    private static void ApplyUploadedAssets(
+        GameCase gameCase,
+        AiAssetManifest manifest,
+        IReadOnlyList<AiAssetSlot> slots,
+        IReadOnlyDictionary<string, AiBridgeAssetUpload> uploads)
+    {
+        foreach (var slot in slots)
+        {
+            if (!uploads.TryGetValue(slot.SlotId, out var upload)) continue;
+            switch (slot.Kind)
+            {
+                case AiAssetSlotKinds.Cover:
+                    gameCase.CoverImageUrl = upload.Url;
+                    break;
+                case AiAssetSlotKinds.Background:
+                    var scene = gameCase.Stages.SelectMany(stage => stage.Scenes).FirstOrDefault(entry => entry.SceneId == slot.TargetId);
+                    if (scene is not null) scene.BackgroundUrl = upload.Url;
+                    break;
+                case AiAssetSlotKinds.CharacterSprite:
+                case AiAssetSlotKinds.CharacterPortrait:
+                    var character = gameCase.Characters.FirstOrDefault(entry => entry.CharacterId == slot.TargetId);
+                    // The portrait wins; a character without one speaks with its sprite.
+                    if (character is not null
+                        && (slot.Kind == AiAssetSlotKinds.CharacterPortrait
+                            || !uploads.ContainsKey(SlotId(AiAssetSlotKinds.CharacterPortrait, slot.TargetId))))
+                        character.ImageUrl = upload.Url;
+                    break;
+                case AiAssetSlotKinds.Item:
+                    var item = gameCase.Items.FirstOrDefault(entry => entry.ItemId == slot.TargetId);
+                    if (item is not null) item.ImageUrl = upload.Url;
+                    break;
+            }
+            RecordUploadedAsset(manifest, slot, upload, ClaudeUploadPipelineVersion);
+        }
+    }
+
+    private static void RecordUploadedAsset(AiAssetManifest manifest, AiAssetSlot slot, AiBridgeAssetUpload upload, string pipelineVersion)
+    {
+        manifest.Assets.RemoveAll(asset => asset.AssetType == slot.Kind && asset.TargetId == slot.TargetId);
+        manifest.Assets.Add(new AiGeneratedAsset
+        {
+            AssetType = slot.Kind,
+            TargetId = slot.TargetId,
+            Url = upload.Url,
+            SecureUrl = upload.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ? upload.Url : string.Empty,
+            Prompt = slot.ArtDirection,
+            PromptSha256 = Sha256(slot.ArtDirection),
+            Model = "claude-upload",
+            PipelineVersion = pipelineVersion,
+            SourceWidth = upload.Width,
+            SourceHeight = upload.Height,
+            NormalizedWidth = upload.Width,
+            NormalizedHeight = upload.Height,
+            HasAlpha = upload.HasAlpha,
+            ProcessingStatus = "UPLOADED",
+            CloudinaryPublicId = upload.StorageId
+        });
+    }
+
+    private static List<SceneImageReference> BuildLayoutImageReferences(
+        CaseScene scene,
+        GameCase gameCase,
+        IReadOnlyDictionary<string, string> sprites)
+    {
+        var images = new List<SceneImageReference>
+        {
+            new($"BACKGROUND {scene.SceneId}: {scene.Title} (runtime space {RuntimeWidth}x{RuntimeHeight})", scene.BackgroundUrl)
+        };
+        foreach (var item in gameCase.Items.Where(item => scene.ItemIds.Contains(item.ItemId)
+                     && ShouldGenerateItemAsset(gameCase, item) && !string.IsNullOrWhiteSpace(item.ImageUrl)))
+            images.Add(new($"ITEM {item.ItemId}: {item.Name}. Use this exact cutout aspect when placing it.", item.ImageUrl));
+        foreach (var character in gameCase.Characters.Where(character => scene.CharacterIds.Contains(character.CharacterId)))
+        {
+            if (sprites.TryGetValue(character.CharacterId, out var sprite))
+                images.Add(new($"NPC {character.CharacterId}: {character.Name}. Full-body sprite, feet should sit on the floor.", sprite));
+        }
+        return images;
     }
 }

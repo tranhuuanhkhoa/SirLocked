@@ -42,11 +42,12 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
     {
+        AuthValidator.Register(request);
         var email = NormalizeEmail(request.Email);
         var existing = await _db.Users.Find(u => u.Email == email).FirstOrDefaultAsync();
         if (existing is not null)
         {
-            throw ApiException.Conflict("An account with this email already exists.");
+            throw ApiException.Conflict("Email này đã được đăng ký.", new Dictionary<string, string[]> { ["email"] = ["Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác."] });
         }
 
         // Development-only: skips the inbox round trip so API smoke tests can reach gameplay.
@@ -72,7 +73,7 @@ public class AuthService : IAuthService
         }
         catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
         {
-            throw ApiException.Conflict("An account with this email already exists.");
+            throw ApiException.Conflict("Email này đã được đăng ký.", new Dictionary<string, string[]> { ["email"] = ["Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác."] });
         }
 
         // Do not issue a successful onboarding response when the verification
@@ -113,8 +114,25 @@ public class AuthService : IAuthService
         return await BuildAuthResponseAndSaveRefreshToken(user);
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    public async Task<AuthResponse> LoginAsync(LoginRequest request) =>
+        await BuildAuthResponseAndSaveRefreshToken(await VerifyCredentialsAsync(request));
+
+    public async Task<AuthResponse> AdminLoginAsync(LoginRequest request)
     {
+        var user = await VerifyCredentialsAsync(request);
+
+        // Checked before any token exists: an account has one refresh token, so issuing one would end the session a player already has.
+        if (user.Role != UserRole.Admin)
+        {
+            throw ApiException.Forbidden("This account does not have admin access.");
+        }
+
+        return await BuildAuthResponseAndSaveRefreshToken(user);
+    }
+
+    private async Task<User> VerifyCredentialsAsync(LoginRequest request)
+    {
+        AuthValidator.Login(request);
         var email = NormalizeEmail(request.Email);
         var user = await _db.Users.Find(u => u.Email == email).FirstOrDefaultAsync();
 
@@ -135,7 +153,7 @@ public class AuthService : IAuthService
             throw ApiException.Forbidden("This account is locked or deleted.");
         }
 
-        return await BuildAuthResponseAndSaveRefreshToken(user);
+        return user;
     }
 
     public async Task<UserResponse> GetMeAsync(string userId)
@@ -147,6 +165,7 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
     {
+        AuthValidator.Refresh(request);
         var tokenHash = HashRefreshToken(request.RefreshToken);
         var user = await _db.Users.Find(u => u.RefreshTokenHash == tokenHash || u.RefreshToken == request.RefreshToken).FirstOrDefaultAsync()
             ?? throw ApiException.Unauthorized("Invalid refresh token.");
@@ -208,17 +227,19 @@ public class AuthService : IAuthService
 
     public async Task LogoutAsync(string userId)
     {
-        // Thu hồi refresh token để token cũ không thể dùng tiếp sau khi đăng xuất
+        // Invalidate both the refresh token and all JWTs issued before logout.
         var update = Builders<User>.Update
             .Set(u => u.RefreshToken, null)
             .Set(u => u.RefreshTokenExpiry, null)
             .Set(u => u.RefreshTokenHash, null)
+            .Inc(u => u.AuthorizationVersion, 1)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
     }
 
     public async Task<object> ForgotPasswordAsync(ForgotPasswordRequest request)
     {
+        AuthValidator.ForgotPassword(request);
         var email = NormalizeEmail(request.Email);
         var user = await _db.Users.Find(u => u.Email == email).FirstOrDefaultAsync();
 
@@ -254,6 +275,7 @@ public class AuthService : IAuthService
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request)
     {
+        AuthValidator.ResetPassword(request);
         var now = DateTime.UtcNow;
         var filters = Builders<User>.Filter;
         var tokenHash = HashOneTimeToken(request.Token);
@@ -264,7 +286,19 @@ public class AuthService : IAuthService
             | legacyTokenFilter;
         var filter = filters.And(
             tokenFilter,
-            filters.Gt(u => u.ResetPasswordTokenExpiry, now));
+            filters.Gt(u => u.ResetPasswordTokenExpiry, now),
+            filters.Eq(u => u.Status, UserStatus.Active));
+
+        var account = await _db.Users.Find(filter).FirstOrDefaultAsync();
+        if (account is null)
+            throw ApiException.BadRequest("Invalid or expired reset token.");
+        if (!string.IsNullOrEmpty(account.PasswordHash)
+            && BCrypt.Net.BCrypt.Verify(request.NewPassword, account.PasswordHash))
+            throw ApiException.BadRequest("New password must be different from current password.",
+                new Dictionary<string, string[]> { ["newPassword"] = ["New password must be different from current password."] });
+
+        // Protect against a password change between comparison and the reset write.
+        filter &= filters.Eq(u => u.PasswordHash, account.PasswordHash);
 
         var update = Builders<User>.Update
             .Set(u => u.PasswordHash, BCrypt.Net.BCrypt.HashPassword(request.NewPassword))
@@ -316,6 +350,7 @@ public class AuthService : IAuthService
 
     public async Task VerifyEmailAsync(VerifyEmailRequest request)
     {
+        AuthValidator.VerifyEmail(request);
         var filters = Builders<User>.Filter;
         var tokenHash = HashOneTimeToken(request.Token);
         var legacyTokenFilter = filters.Eq(u => u.EmailVerificationToken, request.Token)
@@ -339,6 +374,7 @@ public class AuthService : IAuthService
 
     public async Task ChangePasswordAsync(string userId, ChangePasswordRequest request)
     {
+        AuthValidator.ChangePassword(request);
         var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("User not found.");
 

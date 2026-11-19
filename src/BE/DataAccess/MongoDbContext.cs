@@ -12,6 +12,7 @@ public partial class MongoDbContext
     public const string PlaytestSessionTimestampIndexName = "ix_playtestEvents_session_timestamp";
     public const string PlaytestTypeTimestampIndexName = "ix_playtestEvents_type_timestamp";
     public const string PlaytestTtlIndexName = "ttl_playtestEvents_timestamp";
+    public const string WeeklyFeatureWeekIndexName = "ux_weeklyFeatures_type_weekKey";
 
     static MongoDbContext()
     {
@@ -181,6 +182,7 @@ public partial class MongoDbContext
 
         // The retired USD ledger (aiUsageEvents, aiBudgetLedger) keeps its data but is no longer read or written.
         await EnsureBridgeIndexesAsync(ct);
+        await EnsureCaseEditorIndexesAsync(ct);
 
         await EvidencePhotos.Indexes.CreateOneAsync(
             new CreateIndexModel<EvidencePhoto>(
@@ -199,16 +201,30 @@ public partial class MongoDbContext
                 Builders<CaseReview>.IndexKeys.Ascending(r => r.CaseId).Descending(r => r.CreatedAt))
         }, ct);
 
-        await WeeklyFeatures.Indexes.CreateOneAsync(
+        await WeeklyFeatures.Indexes.CreateManyAsync(new[]
+        {
             new CreateIndexModel<WeeklyFeature>(
                 Builders<WeeklyFeature>.IndexKeys
                     .Ascending(w => w.Type)
                     .Ascending(w => w.IsActive),
                 new CreateIndexOptions { Name = "ix_weeklyFeatures_type_isActive" }),
-            cancellationToken: ct);
+            // One challenge per week, however many requests pick at once. Partial, so the documents written
+            // before weeks had keys (no weekKey) never collide with each other.
+            new CreateIndexModel<WeeklyFeature>(
+                Builders<WeeklyFeature>.IndexKeys
+                    .Ascending(w => w.Type)
+                    .Ascending(w => w.WeekKey),
+                new CreateIndexOptions<WeeklyFeature>
+                {
+                    Unique = true,
+                    Name = WeeklyFeatureWeekIndexName,
+                    PartialFilterExpression = Builders<WeeklyFeature>.Filter.Type(w => w.WeekKey, BsonType.String),
+                }),
+        }, ct);
 
         await EnsureLobbyIndexesAsync(ct);
         await EnsurePlaytestEventIndexesAsync(ct);
+        await EnsureTeamChatIndexesAsync(ct);
     }
 
     /// <summary>

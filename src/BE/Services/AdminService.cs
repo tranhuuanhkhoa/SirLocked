@@ -2,6 +2,7 @@ using MongoDB.Driver;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Auth;
+using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
 
@@ -10,18 +11,28 @@ namespace SirLocked.Api.Services;
 public class AdminService : IAdminService
 {
     private readonly MongoDbContext _db;
+    private readonly LegacyCaseCatalog? _legacy;
 
-    public AdminService(MongoDbContext db) => _db = db;
+    public AdminService(MongoDbContext db, LegacyCaseCatalog? legacy = null)
+    {
+        _db = db;
+        _legacy = legacy;
+    }
 
     public async Task<object> GetDashboardAsync()
     {
         var totalUsers = await _db.Users.CountDocumentsAsync(_ => true);
-        var totalCases = await _db.Cases.CountDocumentsAsync(_ => true);
-        var publishedCases = await _db.Cases.CountDocumentsAsync(c => c.Status == CaseStatus.Published);
-        var totalRooms = await _db.Rooms.CountDocumentsAsync(_ => true);
-        var activeRooms = await _db.Rooms.CountDocumentsAsync(r => r.Status == RoomStatus.InProgress);
-        var totalResults = await _db.GameResults.CountDocumentsAsync(_ => true);
-        var wins = await _db.GameResults.CountDocumentsAsync(r => r.Success);
+        // Cases, rooms and results of hidden (legacy) cases are left out of the counters too.
+        var hidden = _legacy is null ? [] : await _legacy.GetHiddenCaseIdsAsync();
+        var casesFilter = hidden.Count == 0 ? Builders<GameCase>.Filter.Empty : Builders<GameCase>.Filter.Nin(c => c.CaseId, hidden);
+        var roomsFilter = hidden.Count == 0 ? Builders<GameRoom>.Filter.Empty : Builders<GameRoom>.Filter.Nin(r => r.CaseId, hidden);
+        var resultsFilter = hidden.Count == 0 ? Builders<GameResult>.Filter.Empty : Builders<GameResult>.Filter.Nin(r => r.CaseId, hidden);
+        var totalCases = await _db.Cases.CountDocumentsAsync(casesFilter);
+        var publishedCases = await _db.Cases.CountDocumentsAsync(casesFilter & Builders<GameCase>.Filter.Eq(c => c.Status, CaseStatus.Published));
+        var totalRooms = await _db.Rooms.CountDocumentsAsync(roomsFilter);
+        var activeRooms = await _db.Rooms.CountDocumentsAsync(roomsFilter & Builders<GameRoom>.Filter.Eq(r => r.Status, RoomStatus.InProgress));
+        var totalResults = await _db.GameResults.CountDocumentsAsync(resultsFilter);
+        var wins = await _db.GameResults.CountDocumentsAsync(resultsFilter & Builders<GameResult>.Filter.Eq(r => r.Success, true));
         var totalDrafts = await _db.AiCaseDrafts.CountDocumentsAsync(_ => true);
 
         return new
@@ -34,7 +45,9 @@ public class AdminService : IAdminService
             totalResults,
             wins,
             losses = totalResults - wins,
-            totalAiDrafts = totalDrafts
+            totalAiDrafts = totalDrafts,
+            // True while older (non-pixel) cases are hidden; the dashboard then stops offering to create them.
+            legacyCasesHidden = _legacy?.Enabled ?? false
         };
     }
 

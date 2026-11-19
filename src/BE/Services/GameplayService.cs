@@ -10,6 +10,8 @@ using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
 
+using SirLocked.Api.Services.PuzzleKinds;
+
 namespace SirLocked.Api.Services;
 
 public partial class GameplayService : IGameplayService, IAccusationResolver
@@ -35,8 +37,10 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         IGameResultStore gameResults,
         IPlaytestEventSink playtestEvents,
         IOptions<AccusationSettings> accusationSettings,
-        ILogger<GameplayService> logger)
+        ILogger<GameplayService> logger,
+        SirLocked.Api.Services.Vip.HintPaymentService? hintPayments = null)
     {
+        _hintPayments = hintPayments;
         _db = db;
         _contextLoader = contextLoader;
         _statePersistence = statePersistence;
@@ -47,6 +51,18 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         _playtestEvents = playtestEvents;
         _accusationSettings = accusationSettings.Value;
         _logger = logger;
+    }
+
+    /// <summary>VUAN-7 paid hints. Null where the service is built by hand: every hint is then free, as before.</summary>
+    private readonly SirLocked.Api.Services.Vip.HintPaymentService? _hintPayments;
+
+    private async Task<HintUsageRecord> AuthorizeHintAsync(
+        CurrentUser user, GameRoom room, string hintKey, int tier, string? payWith, string? adTicketId)
+    {
+        if (_hintPayments is null)
+            return new HintUsageRecord { HintKey = hintKey, Tier = tier, PaidWith = HintPaidWith.Free, UserId = user.Id, At = DateTime.UtcNow };
+        return await _hintPayments.AuthorizeAsync(user, room, hintKey, tier,
+            new SirLocked.Api.Services.Vip.HintPayment(payWith, adTicketId));
     }
 
     // ----- Read -----
@@ -66,7 +82,15 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
     public async Task<GameResultResponse> GetResultAsync(string userId, string roomId)
     {
         var (room, gameCase, _) = await LoadContextAsync(userId, roomId, requireInProgress: false);
-        var result = await _gameResults.FindByRoomIdAsync(roomId);
+        if (room.Playtest is not null)
+        {
+            // A playtest never stored a result: rebuild it from the room's own final snapshot.
+            if (room.Status != RoomStatus.Completed) throw ApiException.NotFound("No result for this room yet.");
+            var snapshot = room.GameplayState?.FinalAccusationSnapshot
+                ?? throw ApiException.Conflict("This completed room has no recoverable final accusation snapshot.");
+            return ToPlaytestAware(ToResultResponse(GameResultFactory.CreateResult(room.Id, snapshot), gameCase), room);
+        }
+        var result = await ResultsFor(room).FindByRoomIdAsync(roomId);
         if (result is null)
         {
             if (room.Status == RoomStatus.Completed && room.GameplayState?.FinalAccusationSnapshot is null)
@@ -76,7 +100,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                     room.Id,
                     room.CaseId);
             }
-            result = await GameResultPersistenceCoordinator.MaterializeFromCompletedRoomAsync(room, _gameResults);
+            result = await GameResultPersistenceCoordinator.MaterializeFromCompletedRoomAsync(room, ResultsFor(room));
         }
         return ToResultResponse(result, gameCase);
     }
@@ -455,11 +479,13 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         {
             var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
             var state = room.GameplayState!;
-            RequireRole(player, PlayerRole.Investigator, "Only the investigator can operate scene puzzles.");
-
-            var scene = CurrentScene(gameCase, state, user.Id);
             var puzzle = gameCase.Puzzles.FirstOrDefault(p => p.PuzzleId == puzzleId)
                 ?? throw ApiException.NotFound("This puzzle does not exist in the case.");
+            // Open-coop cases and hands-on puzzles can be solved by either detective.
+            if (!CaseRuleSets.IsOpenCoop(gameCase) && !PuzzleKindRegistry.IsInteractive(puzzle))
+                RequireRole(player, PlayerRole.Investigator, "Only the investigator can operate scene puzzles.");
+
+            var scene = CurrentScene(gameCase, state, user.Id);
             if (!IsTargetAvailableInScene(scene, puzzle.TargetId))
                 throw ApiException.BadRequest("This puzzle target is not available in the current scene.");
 
@@ -483,9 +509,12 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                 };
             }
 
-            if (!IsPuzzleAnswerCorrect(puzzle, request))
+            PuzzleVerdict? verdict = PuzzleKindRegistry.IsInteractive(puzzle)
+                ? InteractivePuzzles.Check(puzzle, request.Answer, state)
+                : null;
+            if (verdict is { Solved: false } || (verdict is null && !IsPuzzleAnswerCorrect(puzzle, request)))
             {
-                state.WrongPuzzleCount++;
+                if (verdict is null || verdict.CountsAsMistake) state.WrongPuzzleCount++;
                 if (!await TrySaveStateAsync(room, gameCase))
                 {
                     if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
@@ -502,8 +531,10 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                     State = failedState,
                     Changed = true,
                     PuzzleId = puzzle.PuzzleId,
-                    Message = string.IsNullOrWhiteSpace(puzzle.FailureMessage) ? "That answer does not work." : puzzle.FailureMessage,
-                    Detail = puzzle.FailureMessage
+                    Message = verdict?.Message is { Length: > 0 } verdictMessage ? verdictMessage
+                        : string.IsNullOrWhiteSpace(puzzle.FailureMessage) ? "That answer does not work." : puzzle.FailureMessage,
+                    Detail = puzzle.FailureMessage,
+                    PuzzleFeedback = verdict?.Feedback?.ToJsonString() ?? string.Empty
                 };
             }
 
@@ -549,7 +580,285 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                 UnlockedItemIds = effects.NewItemIds,
                 UnlockedSceneIds = effects.NewSceneIds,
                 Message = string.IsNullOrWhiteSpace(puzzle.SuccessMessage) ? "Puzzle solved." : puzzle.SuccessMessage,
-                Detail = puzzle.SuccessMessage
+                Detail = puzzle.SuccessMessage,
+                PuzzleFeedback = verdict?.Feedback?.ToJsonString() ?? string.Empty
+            };
+        }
+    }
+
+    /// <summary>Open co-op "what's left?" hint (each one costs a little score).</summary>
+    public async Task<LeadHintResponse> RequestLeadHintAsync(CurrentUser user, string roomId, LeadHintRequest request)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            if (!CaseRuleSets.IsOpenCoop(gameCase)) throw ApiException.BadRequest("Lead hints are only available in open co-op cases.");
+            var state = room.GameplayState!;
+            var (text, level, remaining) = LeadHintRules.Next(gameCase, state, player.Role ?? string.Empty, request.Level);
+            if (remaining > 0) state.LeadHintCount++;
+            if (remaining > 0 && !await TrySaveStateAsync(room, gameCase))
+            {
+                if (attempt >= 2) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+            await LogAsync(gameCase, roomId, user.Id, "LEAD_HINT", $"{user.FullName} asked for a hint.", new { level });
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            if (remaining > 0) await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            return new LeadHintResponse { State = stateResponse, Text = text, Level = level, OpenLeads = remaining };
+        }
+    }
+
+    /// <summary>
+    /// Open co-op case wall: either detective pins a found statement on the person who said it, or a
+    /// piece of evidence on the person it points to. A wrong person costs nothing — the card simply
+    /// goes back to the envelope — so the wall stays a thinking aid, not a quiz.
+    /// </summary>
+    public async Task<GameActionResponse> PinBoardItemAsync(CurrentUser user, string roomId, PinBoardItemRequest request)
+    {
+        var itemId = request.ItemId?.Trim() ?? string.Empty;
+        var targetId = request.TargetId?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(itemId) || string.IsNullOrWhiteSpace(targetId))
+            throw ApiException.BadRequest("itemId and targetId are required.");
+
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            if (!CaseRuleSets.IsOpenCoop(gameCase)) throw ApiException.BadRequest("The case wall is only used in open co-op cases.");
+            var state = room.GameplayState!;
+            if (CaseBoardRules.KindOf(gameCase, itemId) is null) throw ApiException.NotFound("This card does not exist.");
+            if (!CaseBoardRules.IsTarget(gameCase, targetId)) throw ApiException.NotFound("This person is not on the wall.");
+            if (!CaseBoardRules.IsFound(gameCase, state, itemId)) throw ApiException.BadRequest("Your team has not found this card yet.");
+            if (state.BoardPins.TryGetValue(itemId, out var pinnedOn))
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = "Already pinned.",
+                    PuzzleFeedback = $"{{\"correct\":{(pinnedOn == targetId ? "true" : "false")},\"pinned\":true}}"
+                };
+            }
+
+            var correct = CaseBoardRules.IsCorrect(gameCase, itemId, targetId);
+            if (correct) state.BoardPins[itemId] = targetId;
+            else state.WrongBoardPinCount++;
+            if (!await TrySaveStateAsync(room, gameCase))
+            {
+                if (attempt >= 2) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+
+            if (correct)
+            {
+                await LogAsync(gameCase, roomId, user.Id, "BOARD_PINNED", $"{user.FullName} pinned a card on the case wall.", new { itemId, targetId });
+            }
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                Message = correct ? "Pinned." : "Not this person.",
+                PuzzleFeedback = correct ? "{\"correct\":true}" : "{\"correct\":false}"
+            };
+        }
+    }
+
+    /// <summary>Points at the right person for one card still in the envelope (costs like a lead hint).</summary>
+    public async Task<GameActionResponse> BoardHintAsync(CurrentUser user, string roomId)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            if (!CaseRuleSets.IsOpenCoop(gameCase)) throw ApiException.BadRequest("The case wall is only used in open co-op cases.");
+            var state = room.GameplayState!;
+            var next = CaseBoardRules.NextHint(gameCase, state);
+            if (next is null)
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = "Nothing left to pin.",
+                    PuzzleFeedback = "{}"
+                };
+            }
+            state.LeadHintCount++;
+            if (!await TrySaveStateAsync(room, gameCase))
+            {
+                if (attempt >= 2) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+            await LogAsync(gameCase, roomId, user.Id, "LEAD_HINT", $"{user.FullName} asked for a hint on the case wall.", new { next.Value.ItemId });
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            var feedback = new System.Text.Json.Nodes.JsonObject { ["itemId"] = next.Value.ItemId, ["targetId"] = next.Value.TargetId };
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                Message = "Hint.",
+                PuzzleFeedback = feedback.ToJsonString()
+            };
+        }
+    }
+
+    /// <summary>
+    /// Open co-op timeline: either detective drops a known card between two placed events. A correct
+    /// spot locks the card in and may reveal a conclusion; a wrong one costs score and says
+    /// whether the card belongs earlier or later.
+    /// </summary>
+    public async Task<GameActionResponse> PlaceTimelineEventAsync(CurrentUser user, string roomId, PlaceTimelineEventRequest request)
+    {
+        var eventId = request.EventId?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(eventId)) throw ApiException.BadRequest("eventId is required.");
+
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var state = room.GameplayState!;
+            var timeline = gameCase.Timeline ?? throw ApiException.BadRequest("This case has no timeline.");
+            var timelineEvent = timeline.Events.FirstOrDefault(item => item.EventId == eventId)
+                ?? throw ApiException.NotFound("This timeline card does not exist.");
+            if (timelineEvent.IsFixed) throw ApiException.BadRequest("This card already has a fixed time.");
+            if (!TimelineRules.IsKnown(timelineEvent, state)) throw ApiException.BadRequest("Your team has not found this card yet.");
+            if (state.PlacedTimelineEventIds.Contains(eventId))
+            {
+                return new GameActionResponse
+                {
+                    State = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id),
+                    Changed = false,
+                    Message = "Already on the timeline."
+                };
+            }
+
+            var outcome = TimelineRules.Judge(timeline, state, timelineEvent, request.AfterEventId);
+            AppliedMechanicEffects? effects = null;
+            if (outcome == TimelineRules.PlacementOutcome.Correct)
+            {
+                state.PlacedTimelineEventIds.Add(eventId);
+                effects = ApplyMechanicEffects(state, timelineEvent.RevealClueIds, Enumerable.Empty<string>(), Enumerable.Empty<string>(),
+                    Enumerable.Empty<string>(), user.Id, player.Role, ClueDiscoverySources.Timeline);
+            }
+            else
+            {
+                state.WrongTimelineCount++;
+            }
+
+            if (!await TrySaveStateAsync(room, gameCase))
+            {
+                if (attempt >= 2) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+
+            var correct = outcome == TimelineRules.PlacementOutcome.Correct;
+            await LogAsync(gameCase, roomId, user.Id, correct ? "TIMELINE_PLACED" : "TIMELINE_MISPLACED",
+                correct ? $"{user.FullName} placed \"{timelineEvent.Label}\" on the timeline." : $"{user.FullName} misplaced a timeline card.",
+                new { eventId, request.AfterEventId });
+            if (effects is not null)
+            {
+                foreach (var clueId in effects.NewClueIds)
+                {
+                    var clue = gameCase.Clues.First(c => c.ClueId == clueId);
+                    await LogAsync(gameCase, roomId, user.Id, "CLUE_UNLOCKED", $"New clue: {clue.Title}.", new { clueId, eventId });
+                }
+                var scene = CurrentScene(gameCase, state, user.Id);
+                await NotifyNewCluesAndDialoguesAsync(roomId, gameCase, state, user, player, scene.SceneId, effects.NewClueIds, eventId);
+            }
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                UnlockedClueIds = effects?.NewClueIds ?? new List<string>(),
+                Message = correct ? $"{timelineEvent.TimeLabel} — {timelineEvent.Label}".Trim(' ', '—')
+                    : outcome == TimelineRules.PlacementOutcome.TooEarly ? "Not there — this happened later." : "Not there — this happened earlier.",
+                PuzzleFeedback = correct ? "{\"correct\":true}"
+                    : outcome == TimelineRules.PlacementOutcome.TooEarly ? "{\"correct\":false,\"direction\":\"later\"}" : "{\"correct\":false,\"direction\":\"earlier\"}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Mid-puzzle server query for interactive puzzles (a weighing, a binding-pin check, or the next
+    /// hint). Updates the shared run so both detectives see the same tokens and hints.
+    /// </summary>
+    /// <summary>A probe asking for the next puzzle hint (<c>$hint: true</c>), with its payment choice (<c>$pay</c>, <c>$adTicket</c>).</summary>
+    private static (string? PayWith, string? AdTicketId)? PuzzleHintRequest(string? payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload)) return null;
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(payload);
+            var root = document.RootElement;
+            if (root.ValueKind != System.Text.Json.JsonValueKind.Object
+                || !root.TryGetProperty("$hint", out var flag) || flag.ValueKind != System.Text.Json.JsonValueKind.True)
+                return null;
+            string? Read(string name) => root.TryGetProperty(name, out var value) && value.ValueKind == System.Text.Json.JsonValueKind.String
+                ? value.GetString() : null;
+            return (Read("$pay"), Read("$adTicket"));
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
+    public async Task<GameActionResponse> ProbePuzzleAsync(CurrentUser user, string roomId, ProbePuzzleRequest request)
+    {
+        var puzzleId = request.PuzzleId.Trim();
+        if (string.IsNullOrWhiteSpace(puzzleId)) throw ApiException.BadRequest("puzzleId is required.");
+        if ((request.Payload?.Length ?? 0) > 4096) throw ApiException.BadRequest("Puzzle payload is too large.");
+
+        for (var attempt = 0; ; attempt++)
+        {
+            var (room, gameCase, _) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
+            var state = room.GameplayState!;
+            var puzzle = gameCase.Puzzles.FirstOrDefault(p => p.PuzzleId == puzzleId)
+                ?? throw ApiException.NotFound("This puzzle does not exist in the case.");
+            if (!PuzzleKindRegistry.IsInteractive(puzzle)) throw ApiException.BadRequest("Only interactive puzzles accept probes.");
+            var scene = CurrentScene(gameCase, state, user.Id);
+            if (!IsTargetAvailableInScene(scene, puzzle.TargetId))
+                throw ApiException.BadRequest("This puzzle target is not available in the current scene.");
+            var missingItems = puzzle.RequiredItemIds.Where(id => !state.CollectedItemIds.Contains(id)).ToList();
+            var missingClues = puzzle.RequiredClueIds.Where(id => !state.UnlockedClueIds.Contains(id)).ToList();
+            if (missingItems.Count > 0 || missingClues.Count > 0)
+                throw DependencyUnavailable(gameCase,
+                    "This puzzle is not available yet.", new { missingItemIds = missingItems, missingClueIds = missingClues });
+            if (state.SolvedPuzzleIds.Contains(puzzle.PuzzleId))
+                throw ApiException.Conflict("This puzzle has already been solved.");
+
+            // VUAN-7: a puzzle hint is a hint too: level 2 and 3 are paid and take a share of the score.
+            var puzzleHint = PuzzleHintRequest(request.Payload);
+            if (puzzleHint is not null)
+            {
+                var run = InteractivePuzzles.RunFor(state, puzzle.PuzzleId);
+                var available = InteractivePuzzles.Hints(PuzzleKindRegistry.Context(puzzle)).Count;
+                var used = InteractivePuzzles.HintsUsed(run);
+                if (used < available)
+                {
+                    var usage = await AuthorizeHintAsync(user, room, $"puzzle:{puzzle.PuzzleId}:{used + 1}", used + 1,
+                        puzzleHint.Value.PayWith, puzzleHint.Value.AdTicketId);
+                    state.HintUsages.RemoveAll(item => item.HintKey == usage.HintKey);
+                    state.HintUsages.Add(usage);
+                }
+            }
+            var verdict = InteractivePuzzles.Probe(puzzle, request.Payload ?? "{}", state);
+            if (!await TrySaveStateAsync(room, gameCase))
+            {
+                if (attempt >= 2) throw ApiException.Conflict("The game state changed; please retry.");
+                continue;
+            }
+            var stateResponse = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, stateResponse.Version);
+            return new GameActionResponse
+            {
+                State = stateResponse,
+                Changed = true,
+                PuzzleId = puzzle.PuzzleId,
+                Message = verdict.Message ?? string.Empty,
+                PuzzleFeedback = verdict.Feedback?.ToJsonString() ?? string.Empty
             };
         }
     }
@@ -1062,6 +1371,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
 
     public async Task<HintResponse> RequestHintAsync(CurrentUser user, string roomId, HintRequest request)
     {
+        HintUsageRecord? lastUsage = null;
         for (var attempt = 0; ; attempt++)
         {
             var (room, gameCase, player) = await LoadContextAsync(user.Id, roomId, requireInProgress: true);
@@ -1135,12 +1445,17 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                 };
             }
 
+            // VUAN-7: level 2 and 3 are paid (ad or coins) and take a share of the score. Replays never pay twice.
+            var usage = await AuthorizeHintAsync(user, room, selected.HintId, hintTier, request.PayWith, request.AdTicketId);
             state.UsedHintIds.Add(selected.HintId);
+            state.HintUsages.RemoveAll(item => item.HintKey == usage.HintKey);
+            state.HintUsages.Add(usage);
             if (!await TrySaveStateAsync(room, gameCase))
             {
                 if (attempt >= 1) throw ApiException.Conflict("The game state changed; please retry.");
                 continue;
             }
+            lastUsage = usage;
 
             await LogAsync(gameCase, roomId, user.Id, "HINT_USED", $"{user.FullName} requested an investigation hint.",
                 new { selected.HintId, context, request.TargetId });
@@ -1173,7 +1488,11 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                 ContextType = context,
                 TargetId = request.TargetId,
                 Message = selected.Text,
-                IsNew = true
+                IsNew = true,
+                Tier = hintTier,
+                PaidWith = lastUsage?.PaidWith ?? HintPaidWith.Free,
+                PriceXu = lastUsage?.PriceXu ?? 0,
+                PenaltyPercent = lastUsage?.PenaltyPercent ?? 0
             };
         }
     }
@@ -1502,22 +1821,26 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             throw ApiException.BadRequest("The final accusation is not available yet. Reach the final scene and gather all required evidence first.");
         }
 
-        return await ResolveAccusationCoreAsync(room, gameCase, user, request);
+        return await ResolveAccusationCoreAsync(room, gameCase, user, request)
+            ?? throw ApiException.Conflict(NotConvincingMessage, NotConvincingCode, "game.accusation.notConvincing");
     }
+
+    public const string NotConvincingCode = "ACCUSATION_NOT_CONVINCING";
+    public const string NotConvincingMessage = "The accusation is not convincing yet. You have one more attempt.";
 
     /// <summary>
     /// Closes the case for an accusation whose right to be made has already been established, and is
     /// the only place that does so: the unilateral route and the two-player consensus route share it
     /// verbatim, so both produce byte-identical results and exactly one persisted <see cref="GameResult"/>.
     /// </summary>
-    public Task<GameResultResponse> ResolveAccusationAsync(
+    public Task<GameResultResponse?> ResolveAccusationAsync(
         GameRoom room,
         GameCase gameCase,
         CurrentUser actor,
         AccuseRequest request) =>
         ResolveAccusationCoreAsync(room, gameCase, actor, request);
 
-    private async Task<GameResultResponse> ResolveAccusationCoreAsync(
+    private async Task<GameResultResponse?> ResolveAccusationCoreAsync(
         GameRoom room,
         GameCase gameCase,
         CurrentUser user,
@@ -1551,6 +1874,23 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
                 && gameCase.FinalLogic.RequiredEvidenceIds.All(submittedEvidenceIds.Contains);
         }
 
+        // Open co-op: the first wrong accusation only costs score; the second one closes the case.
+        if (!success && CaseRuleSets.IsOpenCoop(gameCase)
+            && state.WrongAccusationCount + 1 < CaseRuleSets.AccusationAttempts)
+        {
+            state.WrongAccusationCount++;
+            state.ActiveAccusation = null;
+            if (!await TrySaveStateAsync(room, gameCase))
+                throw ApiException.Conflict("The game state changed; please retry.");
+            var accused = gameCase.Characters.First(c => c.CharacterId == request.CulpritId).Name;
+            await LogAsync(gameCase, roomId, user.Id, "ACCUSE_REJECTED",
+                $"{user.FullName} accused {accused} — not convincing yet.",
+                new { request.CulpritId, request.MotiveId, request.MethodId, EvidenceIds = submittedEvidenceIds });
+            var continuing = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
+            await _notifier.GameStateUpdated(roomId, continuing.Version);
+            return null;
+        }
+
         var completedAt = DateTime.UtcNow;
         var snapshot = GameResultFactory.CreateSnapshot(
             room,
@@ -1570,14 +1910,22 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             throw ApiException.Conflict("The game state changed; please retry.");
         }
 
-        var result = await GameResultPersistenceCoordinator.MaterializeAsync(roomId, snapshot, _gameResults);
+        // Màn tân thủ: the account is marked as having finished it (won or lost), and no result is stored, so the
+        // tutorial gives no XP, coins, leaderboard rows, badges or reviews.
+        if (TutorialRules.IsTutorialRoom(room))
+            await TutorialService.MarkCompletedAsync(_db, room.Players.Select(player => player.UserId), completedAt);
+        // A playtest of an unpublished draft writes no GameResult, so no leaderboard, reward, achievement, profile or
+        // review ever counts it; the result lives only in the room's final snapshot.
+        var result = room.Playtest is not null
+            ? GameResultFactory.CreateResult(roomId, snapshot)
+            : await GameResultPersistenceCoordinator.MaterializeAsync(roomId, snapshot, ResultsFor(room));
 
         var accusedName = gameCase.Characters.First(c => c.CharacterId == request.CulpritId).Name;
         await LogAsync(gameCase, roomId, user.Id, "ACCUSE",
             success ? $"{user.FullName} accused {accusedName} — the case is solved!" : $"{user.FullName} accused {accusedName} — the accusation failed.",
             new { request.CulpritId, request.MotiveId, request.MethodId, EvidenceIds = submittedEvidenceIds });
 
-        var resultResponse = ToResultResponse(result, gameCase);
+        var resultResponse = ToPlaytestAware(ToResultResponse(result, gameCase), room);
         if (ShouldBroadcastDetailedEvents(gameCase))
             await _notifier.GameCompleted(roomId, resultResponse);
         var completedState = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
@@ -1586,6 +1934,10 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
     }
 
     // ----- Helpers -----
+
+    /// <summary>The tutorial room keeps its result in memory only (see <see cref="TutorialResultStore"/>).</summary>
+    private IGameResultStore ResultsFor(GameRoom room) =>
+        TutorialRules.IsTutorialRoom(room) ? TutorialResultStore.Instance : _gameResults;
 
     private async Task<(GameRoom Room, GameCase Case, RoomPlayer Player)> LoadContextAsync(string userId, string roomId, bool requireInProgress)
     {
@@ -1860,6 +2212,12 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             ? ApiException.BadRequest(message)
             : ApiException.BadRequest(message, details);
 
+    private static GameResultResponse ToPlaytestAware(GameResultResponse response, GameRoom room)
+    {
+        response.IsPlaytest = room.Playtest is not null;
+        return response;
+    }
+
     internal static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase)
     {
         // New results carry the definition used when the accusation was committed. Older
@@ -1877,14 +2235,17 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             {
                 var selected = result.SelectedEvidenceLinks.FirstOrDefault(link =>
                     link.ClaimType.Equals(required.ClaimType, StringComparison.OrdinalIgnoreCase));
+                var accepted = required.Accepts(selected?.EvidenceId);
+                // An accepted alternative is this team's correct evidence; otherwise show the authored one.
+                var correctId = accepted ? selected!.EvidenceId : required.EvidenceId;
                 return new EvidenceClaimResult
                 {
                     ClaimType = required.ClaimType,
                     SelectedEvidenceId = selected?.EvidenceId ?? string.Empty,
                     SelectedEvidenceTitle = selected is null ? string.Empty : ClueTitle(selected.EvidenceId),
-                    CorrectEvidenceId = required.EvidenceId,
-                    CorrectEvidenceTitle = ClueTitle(required.EvidenceId),
-                    IsCorrect = selected?.EvidenceId == required.EvidenceId
+                    CorrectEvidenceId = correctId,
+                    CorrectEvidenceTitle = ClueTitle(correctId),
+                    IsCorrect = accepted
                 };
             }).ToList()
             : new List<EvidenceClaimResult>();

@@ -15,19 +15,35 @@ public static class V3SceneProjectionPolicy
         var investigator = player.Role == PlayerRole.Investigator;
         var interrogator = player.Role == PlayerRole.Interrogator;
         var sourceRuntime = response.VisibleScene.Runtime;
+        // Màn tân thủ: one player plays both detectives and switches by hand, so each role still sees every object and
+        // person. Touching the other detective's thing explains whose job it is (gamePage onHotspot) instead of the
+        // click falling through to the floor. Acting on it stays role-checked on the server; the camera stays Watson's.
+        var tutorial = response.IsTutorial;
 
         response.VisibleScene.Runtime = sourceRuntime is null
             ? null
-            : CloneRuntime(sourceRuntime, investigator);
+            : CloneRuntime(sourceRuntime, investigator, seesObjects: investigator || tutorial);
+        // Open co-op: the Investigator also sees the people (to call the partner over) and the
+        // Interrogator also sees puzzle objects (both detectives solve puzzles).
+        var openCoop = CaseRuleSets.IsOpenCoop(gameCase);
+        var puzzleTargets = openCoop
+            ? response.VisibleScene.Puzzles.Select(puzzle => puzzle.TargetId).ToHashSet(StringComparer.Ordinal)
+            : new HashSet<string>(StringComparer.Ordinal);
         response.VisibleScene.Hotspots = response.VisibleScene.Hotspots
-            .Where(hotspot => investigator
-                ? !hotspot.Type.Equals("CHARACTER", StringComparison.OrdinalIgnoreCase)
-                : interrogator && hotspot.Type.Equals("CHARACTER", StringComparison.OrdinalIgnoreCase))
+            .Where(hotspot =>
+            {
+                if (tutorial) return true;
+                var character = hotspot.Type.Equals("CHARACTER", StringComparison.OrdinalIgnoreCase);
+                if (openCoop) return investigator || (interrogator && (character || puzzleTargets.Contains(hotspot.TargetId)));
+                return investigator ? !character : interrogator && character;
+            })
             .Select(SanitizeHotspot)
             .ToList();
-        response.VisibleScene.Items = investigator
+        response.VisibleScene.Items = investigator || tutorial
             ? response.VisibleScene.Items
-            : new List<SceneItemDto>();
+            : openCoop
+                ? response.VisibleScene.Items.Where(item => puzzleTargets.Contains(item.ItemId)).ToList()
+                : new List<SceneItemDto>();
         response.VisibleScene.AvailableDialogues = interrogator
             ? response.VisibleScene.AvailableDialogues.Select(SanitizeDialogue).ToList()
             : new List<SceneDialogueDto>();
@@ -37,7 +53,7 @@ public static class V3SceneProjectionPolicy
         response.VisibleScene.ConversationTranscript = interrogator
             ? response.VisibleScene.ConversationTranscript
             : new List<ConversationTranscriptEntryDto>();
-        response.VisibleScene.Puzzles = investigator
+        response.VisibleScene.Puzzles = investigator || openCoop
             ? response.VisibleScene.Puzzles
             : new List<ScenePuzzleDto>();
 
@@ -62,7 +78,7 @@ public static class V3SceneProjectionPolicy
         response.UsedInteractionIds = investigator
             ? response.UsedInteractionIds.Where(interactionIds.Contains).ToList()
             : new List<string>();
-        response.SolvedPuzzleIds = investigator
+        response.SolvedPuzzleIds = investigator || openCoop
             ? response.SolvedPuzzleIds.Where(puzzleIds.Contains).ToList()
             : new List<string>();
         response.SelectedEvidenceIds = new List<string>();
@@ -107,7 +123,7 @@ public static class V3SceneProjectionPolicy
         EvidenceChallenges = new List<EvidenceChallengeDto>()
     };
 
-    private static SceneRuntime CloneRuntime(SceneRuntime source, bool investigator) => new()
+    private static SceneRuntime CloneRuntime(SceneRuntime source, bool investigator, bool seesObjects) => new()
     {
         Width = source.Width,
         Height = source.Height,
@@ -117,8 +133,26 @@ public static class V3SceneProjectionPolicy
         Audio = source.Audio is not { } audio ? null : new SceneAudioConfig
         {
             AmbienceUrl = audio.AmbienceUrl,
-            Cues = new Dictionary<string, string>(audio.Cues, StringComparer.Ordinal)
+            Cues = new Dictionary<string, string>(audio.Cues, StringComparer.Ordinal),
+            Music = audio.Music is not { } music ? null : new SceneMusic
+            {
+                Url = music.Url,
+                FallbackUrl = music.FallbackUrl,
+                Title = music.Title,
+                Source = music.Source,
+                License = music.License,
+                LoopStartSec = music.LoopStartSec,
+                LoopEndSec = music.LoopEndSec,
+                Volume = music.Volume
+            }
         },
+        Weather = source.Weather is not { } weather ? null : new SceneWeather
+        {
+            Type = weather.Type,
+            Intensity = weather.Intensity
+        },
+        Indoor = source.Indoor,
+        TimeOfDay = source.TimeOfDay,
         SpawnPoints = source.SpawnPoints.ToDictionary(
             pair => pair.Key,
             pair => new SpawnPoint
@@ -128,7 +162,7 @@ public static class V3SceneProjectionPolicy
                 Anchor = pair.Value.Anchor,
                 Direction = pair.Value.Direction
             }),
-        ItemPlacements = investigator ? source.ItemPlacements.Select(Clone).ToList() : new List<ItemPlacement>(),
+        ItemPlacements = seesObjects ? source.ItemPlacements.Select(Clone).ToList() : new List<ItemPlacement>(),
         CharacterPlacements = source.CharacterPlacements.Select(Clone).ToList(),
         ClueZones = investigator ? source.ClueZones.Select(Clone).ToList() : new List<ClueZone>(),
         CameraRules = investigator
@@ -141,7 +175,39 @@ public static class V3SceneProjectionPolicy
                 RequireCaptureCenterInside = source.CameraRules.RequireCaptureCenterInside
             }
             : new CameraRules(),
-        Transitions = source.Transitions.Select(Clone).ToList()
+        Transitions = source.Transitions.Select(Clone).ToList(),
+        Render = Clone(source.Render)
+    };
+
+    private static SceneRenderSettings? Clone(SceneRenderSettings? value) => value is null ? null : new()
+    {
+        Mode = value.Mode,
+        Projection = value.Projection,
+        NativeWidth = value.NativeWidth,
+        NativeHeight = value.NativeHeight,
+        PixelScale = value.PixelScale,
+        CameraZoom = value.CameraZoom,
+        ActorScale = value.ActorScale,
+        WalkSpeed = value.WalkSpeed,
+        InteractRadius = value.InteractRadius,
+        BackdropColor = value.BackdropColor,
+        WalkGrid = value.WalkGrid is not { } grid ? null : new SceneWalkGrid
+        {
+            CellSize = grid.CellSize,
+            Cols = grid.Cols,
+            Rows = grid.Rows,
+            Data = grid.Data.ToList()
+        },
+        Foreground = value.Foreground.Select(layer => new SceneForegroundLayer
+        {
+            Id = layer.Id,
+            Url = layer.Url,
+            X = layer.X,
+            Y = layer.Y,
+            Width = layer.Width,
+            Height = layer.Height,
+            BaseY = layer.BaseY
+        }).ToList()
     };
 
     private static ItemPlacement Clone(ItemPlacement value) => new()

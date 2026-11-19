@@ -44,6 +44,10 @@ public class CreatorStatsDto
 {
     public int CasesCreated { get; set; }
     public int TotalPlays { get; set; }
+    /// <summary>VUAN-7 "Tác giả" badge: AUTHOR, SILVER or GOLD.</summary>
+    public string AuthorTier { get; set; } = string.Empty;
+    public int BestCompletions { get; set; }
+    public int BestRatingPercent { get; set; }
 }
 
 public class DetectiveProfileDto

@@ -13,6 +13,7 @@ using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
+using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Interfaces;
 using SirLocked.Api.Services.Projection;
 
@@ -20,18 +21,16 @@ namespace SirLocked.Api.Services;
 
 public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiAssetPipeline
 {
-    public const string OpenAiHttpClientName = "openai";
     public const string AssetPipelineVersion = "v3-placement-first";
     private const string CharacterAssetStyleVersion = "canonical-pixel-chibi";
 
-    private const string ProviderName = "OpenAI";
+    private const string ProviderName = ClaudeBridgeTextProvider.ProviderName;
     private const int RuntimeWidth = GeneratedImageProcessor.SceneWidth;
     private const int RuntimeHeight = GeneratedImageProcessor.SceneHeight;
     private const double TopUiReservedBottom = 112;
     private const double BottomUiReservedTop = 790;
     private static readonly JsonSerializerOptions PrettyJson = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     private static readonly JsonSerializerOptions CompactJson = new(JsonSerializerDefaults.Web);
-    private sealed record VisionImageInput(string Label, string Path);
     private sealed record PlacementQaFailure(string Type, string Id, string Reason);
     internal sealed record SceneVisualCameraEvidence(
         string ClueId,
@@ -78,27 +77,25 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         public string FailureSummary => ParseError ??
             $"pixelArtMatch={PixelArtMatch}; prohibitedTextFound={ProhibitedTextFound}; prohibitedUiFound={ProhibitedUiFound}; duplicateEmbeddedTargetFound={DuplicateEmbeddedTargetFound}; unexpectedForegroundContentFound={UnexpectedForegroundContentFound}; unexpectedCutoutItemIds=[{string.Join(',', UnexpectedCutoutItemIds ?? [])}]; sceneMatch={SceneMatch}; {Notes}".Trim();
     }
-    private string CutoutImageModel => string.IsNullOrWhiteSpace(_settings.CutoutImageModel)
-        ? _settings.ImageModel
-        : _settings.CutoutImageModel.Trim();
-
     private readonly MongoDbContext _db;
     private readonly IAiDraftWorkflowCoordinator _workflow;
     private readonly ICaseService _caseService;
     private readonly ICaseValidationService _validator;
     private readonly ICaseTruthService _truthService;
     private readonly IGameplayProjectionPlanner _projectionPlanner;
+    private readonly TruthStageRules _stageRules;
     private readonly IProjectionContentSchemaFactory _projectionSchemaFactory;
     private readonly IGameCaseProjectionCompiler _projectionCompiler;
     private readonly IProjectionGraphValidator _projectionGraphValidator;
-    private readonly IAiOpenAiClient _openAiClient;
-    private readonly IAiUsageAccounting? _usageAccounting;
+    private readonly IAiTextProvider _textProvider;
+    private readonly Services.Cutscene.IAiIntroCutsceneStarter? _introCutsceneStarter;
     private readonly PresentationService? _presentationService;
     private readonly IAiCaseExportService _exportService;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly OpenAiSettings _settings;
+    private readonly AiGenerationSettings _settings;
+    private readonly BridgeSettings _bridgeSettings;
+    private readonly IBridgeNotifier? _bridgeNotifier;
     private readonly AiQuotaSettings _quota;
-    private readonly AiUsageSettings _usageSettings;
     private readonly CloudinarySettings _cloudinary;
     private readonly AiCaseV3PresetSettings _v3PresetSettings;
     private readonly GameplayV3Settings _gameplayV3Settings;
@@ -116,37 +113,42 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         IProjectionContentSchemaFactory projectionSchemaFactory,
         IGameCaseProjectionCompiler projectionCompiler,
         IProjectionGraphValidator projectionGraphValidator,
-        IAiOpenAiClient openAiClient,
+        IAiTextProvider textProvider,
         IAiCaseExportService exportService,
         IHttpClientFactory httpClientFactory,
-        IOptions<OpenAiSettings> settings,
+        IOptions<AiGenerationSettings> settings,
         IOptions<AiQuotaSettings> quota,
         IOptions<CloudinarySettings> cloudinary,
         IOptions<AiCaseV3PresetSettings> v3PresetSettings,
         IOptions<GameplayV3Settings> gameplayV3Settings,
         IWebHostEnvironment env,
         ILogger<AiCaseService> logger,
-        IAiUsageAccounting? usageAccounting = null,
         PresentationService? presentationService = null,
-        IOptions<AiUsageSettings>? usageSettings = null)
+        IOptions<BridgeSettings>? bridgeSettings = null,
+        IBridgeNotifier? bridgeNotifier = null,
+        SirLocked.Api.Services.Vip.VipBillingService? vipBilling = null,
+        Services.Cutscene.IAiIntroCutsceneStarter? introCutsceneStarter = null)
     {
+        _vipBilling = vipBilling;
+        _introCutsceneStarter = introCutsceneStarter;
         _db = db;
         _workflow = workflow;
         _caseService = caseService;
         _validator = validator;
         _truthService = truthService;
         _projectionPlanner = projectionPlanner;
+        _stageRules = new TruthStageRules(truthService, projectionPlanner);
         _projectionSchemaFactory = projectionSchemaFactory;
         _projectionCompiler = projectionCompiler;
         _projectionGraphValidator = projectionGraphValidator;
-        _openAiClient = openAiClient;
-        _usageAccounting = usageAccounting;
+        _textProvider = textProvider;
         _presentationService = presentationService;
         _exportService = exportService;
         _httpClientFactory = httpClientFactory;
         _settings = settings.Value;
         _quota = quota.Value;
-        _usageSettings = usageSettings?.Value ?? new AiUsageSettings();
+        _bridgeSettings = bridgeSettings?.Value ?? new BridgeSettings();
+        _bridgeNotifier = bridgeNotifier;
         _cloudinary = cloudinary.Value;
         _v3PresetSettings = v3PresetSettings.Value;
         _gameplayV3Settings = gameplayV3Settings.Value;
@@ -154,8 +156,12 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         _logger = logger;
     }
 
+    /// <summary>Coins of paid VIP orders (VUAN-7). Null only where the service is built by hand without DI.</summary>
+    private readonly SirLocked.Api.Services.Vip.VipBillingService? _vipBilling;
+
     public AiCaseCapabilitiesResponse GetCapabilities() => new()
     {
+        DifficultyProfiles = AiDifficultyProfiles.All.Select(AiDifficultyProfileResponse.From).ToList(),
         CreationBlockers = GetCreationBlockers(),
         V3CreationBlockers = GetCreationBlockers(includeSemanticReview: true),
         AiCaseV3PresetEnabled = _v3PresetSettings.Enabled,
@@ -205,7 +211,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     public async Task<AiDraftResponse> CreatePreviewAsync(CurrentUser user, GenerateAiCaseRequest request, string? idempotencyKey = null)
     {
         var draftSettings = CreateNewDraftSettings(request);
-        if (request.IncludeCrackTheLie)
+        if (draftSettings.IncludeCrackTheLie)
         {
             if (!_v3PresetSettings.Enabled)
                 throw ApiException.Conflict(
@@ -227,7 +233,23 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var existingByKey = await FindIdempotentDraftAsync(user.Id, normalizedIdempotencyKey, request.CreativeConstraints);
         if (existingByKey is not null) return AiDraftResponse.From(existingByKey, includeJson: false);
 
-        EnsureCreationReady(request.IncludeCrackTheLie);
+        EnsureCreationReady(draftSettings.IncludeCrackTheLie);
+        var isVipOrder = !string.Equals(user.Role, UserRole.Admin, StringComparison.OrdinalIgnoreCase);
+        // VUAN-7: with the VIP API lane open (Anthropic__ApiKey set) a VIP order is paid in coins and written through the
+        // Claude API. With the lane closed a VIP order runs free on the bridge bot, like an ADMIN order.
+        var paidVipOrder = isVipOrder && _vipBilling is { LaneConfigured: true };
+        var vipPricing = paidVipOrder ? await new SirLocked.Api.Services.Vip.VipSettingsStore(_db).GetPricingAsync() : null;
+        var order = AiCaseOrderPolicy.Normalize(request.Order, user.Role,
+            AiDifficultyProfiles.For(draftSettings.Difficulty), vipPricing?.VipMaxPixelLabCap);
+        if (!string.IsNullOrWhiteSpace(request.CreativeConstraints.SettingId)
+            && order.World != AiCaseWorlds.HangDuongVictorian)
+            throw ApiException.BadRequest(
+                "The setting lock belongs to the Victorian world. Pick locations from the chosen world instead.",
+                new ApiErrorDetails("AI_CREATIVE_CONSTRAINT_WORLD_MISMATCH", "ai.creativeConstraints.worldMismatch")
+                {
+                    Field = "creativeConstraints.settingId"
+                });
+        var isAdmin = string.Equals(user.Role, UserRole.Admin, StringComparison.OrdinalIgnoreCase);
         var creatorPrompt = request.Prompt?.Trim() ?? string.Empty;
         var draftId = ObjectId.GenerateNewId().ToString();
         var recentHistory = await LoadRecentStoryHistoryAsync(
@@ -236,7 +258,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var storyDiversity = AiStoryDiversityPolicy.CreateDistinct(
             request.CaseType,
             draftId,
-            recentHistory.Select(item => item.Diversity));
+            recentHistory.Select(item => item.Diversity),
+            order.World);
         AiStoryDiversityPolicy.ApplyCreativeConstraints(storyDiversity, request.CreativeConstraints);
         var structuralDuplicate = AiStoryDiversityPolicy.FindStructuralDuplicate(
             storyDiversity,
@@ -248,18 +271,41 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 new { similarity = AiStoryDiversityPolicy.StructuralSimilarity(storyDiversity, structuralDuplicate) });
         }
         var plannedTargetKind = CaseTargetAllocationPolicy.ForCaseType(storyDiversity.CaseType);
-        decimal reservedBudget;
-        try { reservedBudget = await ReserveAiAdmissionAsync(user, normalizedIdempotencyKey); }
+        try { await EnsureAiAdmissionAsync(user); }
         catch (ApiException ex) when (ex.Errors is ApiErrorDetails details
             && details.Code is "AI_ACTIVE_DRAFT_LIMIT" or "AI_DAILY_LIMIT")
         {
             // Another copy of this request can win after the initial lookup but
-            // before admission observes its quota. No reservation was acquired.
+            // before admission observes its quota.
             var winner = await FindIdempotentDraftAsync(user.Id, normalizedIdempotencyKey, request.CreativeConstraints);
             if (winner is null) throw;
             return AiDraftResponse.From(winner, includeJson: false);
         }
 
+        var now = DateTime.UtcNow;
+        var quotaWeek = VietnamQuotaWeek(now);
+        var weeklyLimit = 0;
+        if (!isAdmin)
+        {
+            weeklyLimit = (await new AiCaseSettingsStore(_db).GetAsync()).VipWeeklyOrderLimit;
+            var usedThisWeek = await _db.AiCaseDrafts.CountDocumentsAsync(item => item.CreatedByUserId == user.Id
+                && item.QuotaWeek == quotaWeek && item.WeeklyQuotaKey != null);
+            if (usedThisWeek >= weeklyLimit)
+            {
+                var winner = await FindIdempotentDraftAsync(user.Id, normalizedIdempotencyKey, request.CreativeConstraints);
+                if (winner is not null) return AiDraftResponse.From(winner, includeJson: false);
+                throw WeeklyLimitReached(weeklyLimit);
+            }
+        }
+
+        // VUAN-7: a paid VIP order is refused here, before anything is held, when the VIP cannot pay.
+        AiVipBilling? vipBilling = null;
+        if (paidVipOrder)
+            vipBilling = await _vipBilling!.PrepareAsync(user.Id, request.GenerationPreset, order);
+
+        // ADMIN and free VIP orders go straight to Claude on the bridge; the VIP weekly limit above is the only
+        // difference. A paid VIP order waits for an admin first; no API call or bridge request exists until then.
+        var orderStatus = paidVipOrder ? AiOrderStatuses.AwaitingOwnerApproval : AiOrderStatuses.QueuedForClaude;
         var draft = new AiCaseDraft
         {
             Id = draftId,
@@ -274,44 +320,99 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
             WorkflowVersion = 1,
             QueuedOperation = AiQueuedOperations.StoryPreview,
-            QueueState = AiQueueStates.Pending,
+            QueueState = paidVipOrder ? AiQueueStates.None : AiQueueStates.Pending,
             IdempotencyKey = string.IsNullOrWhiteSpace(normalizedIdempotencyKey) ? null : normalizedIdempotencyKey,
-            QuotaDay = VietnamQuotaDay(DateTime.UtcNow),
-            ReservedBudgetUsd = reservedBudget,
+            QuotaDay = VietnamQuotaDay(now),
+            QuotaWeek = quotaWeek,
+            WeeklyQuotaKey = isAdmin ? null : WeeklyQuotaKey(user.Id, quotaWeek, 1),
             ActiveQuotaKey = !_settings.BlocksAiCalls && _quota.Enabled ? user.Id : null,
-            DailyQuotaKey = !_settings.BlocksAiCalls && _quota.Enabled ? $"{user.Id}:{VietnamQuotaDay(DateTime.UtcNow)}" : null,
+            DailyQuotaKey = !_settings.BlocksAiCalls && _quota.Enabled ? $"{user.Id}:{VietnamQuotaDay(now)}" : null,
+            Order = order,
+            // VUAN-6B: every new order makes a pixel case (PixelLab pictures in the shape of "Tram hong ngoc").
+            VisualPipeline = AiVisualPipelines.PixelV1,
+            OrderStatus = orderStatus,
+            OrderStatusHistory = [new AiOrderStatusChange { Status = orderStatus, At = now, ByUserId = user.Id }],
+            Lane = paidVipOrder ? AiDraftLanes.VipApi : AiDraftLanes.Bridge,
+            VipBilling = vipBilling,
+            StoryHistorySnapshot = recentHistory.Select(item => new AiStoryHistorySnapshotEntry
+            {
+                Preview = item.Preview,
+                Diversity = item.Diversity,
+                StoryFingerprint = item.StoryFingerprint
+            }).ToList(),
             GenerationPhase = "STORY_PREVIEW",
             GenerationInputHash = Sha256(JsonSerializer.Serialize(new
             {
                 creatorPrompt,
-                request.StageCount,
-                request.Difficulty,
-                request.GenerationPreset,
-                draftSettings.ShortDemoProfileVersion,
+                draftSettings.PipelineVersion,
+                draftSettings.Difficulty,
+                draftSettings.Leaning,
                 request.Language,
                 request.CaseType,
                 request.CreativeConstraints,
-                storyDiversity
+                storyDiversity,
+                order
             }, CompactJson)),
-            NextAttemptAt = DateTime.UtcNow
+            NextAttemptAt = paidVipOrder ? null : now,
+            CreatedAt = now,
+            UpdatedAt = now
         };
         var savedDraft = await AiDraftQuotaSlots.InsertAsync(draft,
             !_settings.BlocksAiCalls && _quota.Enabled ? _quota.MaxActiveDraftsPerUser : 0,
             async candidate =>
             {
-                try
+                var weeklySlot = 1;
+                while (true)
                 {
-                    await _db.AiCaseDrafts.InsertOneAsync(candidate);
-                    return AiDraftInsertCollision.None;
-                }
-                catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
-                {
-                    return AiDraftQuotaSlots.ClassifyDuplicate(ex.WriteError.Details, ex.WriteError.Message);
+                    try
+                    {
+                        await _db.AiCaseDrafts.InsertOneAsync(candidate);
+                        return AiDraftInsertCollision.None;
+                    }
+                    catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey
+                        && candidate.WeeklyQuotaKey is not null
+                        && AiDraftQuotaSlots.IsWeeklyDuplicate(ex.WriteError.Details, ex.WriteError.Message))
+                    {
+                        // Slot numbers are claimed through a unique index, so two orders sent at once cannot both
+                        // take the last free slot of the week.
+                        weeklySlot++;
+                        if (weeklySlot > weeklyLimit) throw WeeklyLimitReached(weeklyLimit);
+                        candidate.WeeklyQuotaKey = WeeklyQuotaKey(user.Id, quotaWeek, weeklySlot);
+                    }
+                    catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+                    {
+                        return AiDraftQuotaSlots.ClassifyDuplicate(ex.WriteError.Details, ex.WriteError.Message);
+                    }
                 }
             },
             () => FindIdempotentDraftAsync(user.Id, normalizedIdempotencyKey, request.CreativeConstraints),
-            () => ReleaseAiReservationAsync(reservedBudget));
+            () => Task.CompletedTask);
+        if (savedDraft.VipBilling is { State: AiVipBillingStates.Holding } && _vipBilling is not null)
+        {
+            // Hold the price now that the order exists. Lost to a concurrent spend: the order is closed, nothing held.
+            if (!await _vipBilling.HoldAsync(savedDraft))
+                throw SirLocked.Api.Services.Vip.VipBillingService.Insufficient(savedDraft.VipBilling.PriceXu,
+                    (await _vipBilling.QuoteAsync(user.Id, savedDraft.VipBilling.Preset, savedDraft.VipBilling.Speed,
+                        savedDraft.VipBilling.PixelLabCap)).Balance);
+            savedDraft = await _db.AiCaseDrafts.Find(item => item.Id == savedDraft.Id).FirstOrDefaultAsync() ?? savedDraft;
+        }
         return AiDraftResponse.From(savedDraft, includeJson: false);
+    }
+
+    internal static string WeeklyQuotaKey(string userId, string week, int slot) => $"{userId}:week:{week}:{slot}";
+
+    internal static ApiException WeeklyLimitReached(int limit) => ApiException.Conflict(
+        $"You have used all {limit} AI case orders of this week. A new week starts on Monday (Vietnam time).",
+        "AI_WEEKLY_LIMIT", "ai.quota.weeklyLimit");
+
+    /// <summary>The Monday (Vietnam time) that starts the quota week of <paramref name="utc"/>, as yyyy-MM-dd.</summary>
+    internal static string VietnamQuotaWeek(DateTime utc)
+    {
+        var zone = TimeZoneInfo.FindSystemTimeZoneById(
+            OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Ho_Chi_Minh");
+        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), zone).Date;
+        var monday = local.AddDays(-(((int)local.DayOfWeek + 6) % 7));
+        return monday.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private async Task<AiCaseDraft?> FindIdempotentDraftAsync(
@@ -330,6 +431,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         AiCaseDraft draft,
         CancellationToken cancellationToken)
     {
+        // VUAN-7: a paid VIP order starts with its brief and content check (light model).
+        await EnsureVipBriefAsync(draft);
         var request = new GenerateAiCaseRequest
         {
             Prompt = draft.Prompt,
@@ -341,9 +444,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             CaseType = draft.Settings.CaseType,
             CreativeConstraints = draft.Settings.CreativeConstraints
         };
-        var recentHistory = await LoadRecentStoryHistoryAsync(
-            draft.CreatedByUserId,
-            draft.Settings.Language);
+        var recentHistory = draft.StoryHistorySnapshot is { } snapshot
+            ? snapshot.Select(item => new AiStoryHistoryEntry
+            {
+                Preview = item.Preview,
+                Diversity = item.Diversity,
+                StoryFingerprint = item.StoryFingerprint
+            }).ToList()
+            : await LoadRecentStoryHistoryAsync(draft.CreatedByUserId, draft.Settings.Language, draft.CreatedAt);
         var storyDiversity = draft.StoryDiversity;
         AiStoryDiversityProfile? structuralDuplicate;
         try
@@ -355,7 +463,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             {
                 try
                 {
-                    return await GenerateJsonWithOpenAiAsync(
+                    return await GenerateJsonAsync(
                         draft.Id, step, activePrompt, maxOutputTokens: 2500,
                         AiGenerationSchemaVersions.StoryPreview, AiStrictSchemaProvider.StoryPreviewSchema(),
                         attemptNumber: nextAttemptNumber++, generationRunId: draft.GenerationRunId);
@@ -364,7 +472,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 {
                     var failedDraft = await _db.AiCaseDrafts.Find(d => d.Id == draft.Id).FirstAsync();
                     if (failedDraft.GenerationAttempts.LastOrDefault()?.FailureCategory != AiFailureCategories.Incomplete) throw;
-                    return await GenerateJsonWithOpenAiAsync(
+                    return await GenerateJsonAsync(
                         draft.Id, $"{step}:RetryIncomplete", activePrompt, maxOutputTokens: 2500,
                         AiGenerationSchemaVersions.StoryPreview, AiStrictSchemaProvider.StoryPreviewSchema(),
                         attemptNumber: nextAttemptNumber++, generationRunId: draft.GenerationRunId);
@@ -382,7 +490,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 storyDiversity = AiStoryDiversityPolicy.CreateDistinct(
                     request.CaseType,
                     $"{draft.Id}:duplicate-retry",
-                    profilesToAvoid);
+                    profilesToAvoid,
+                    draft.Order?.World);
                 AiStoryDiversityPolicy.ApplyCreativeConstraints(storyDiversity, draft.Settings.CreativeConstraints);
                 structuralDuplicate = AiStoryDiversityPolicy.FindStructuralDuplicate(
                     storyDiversity,
@@ -496,60 +605,35 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
     }
 
+    /// <summary>
+    /// Every new order is an OPEN_COOP_1 draft whose size comes from its difficulty level. The old client fields
+    /// (stage count, preset, Crack toggle) are ignored, so no field can change another.
+    /// </summary>
     internal static AiDraftSettings CreateNewDraftSettings(GenerateAiCaseRequest request)
     {
-        request.GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset);
-        if (AiV3GenerationProfile.IsV3Preset(request.GenerationPreset))
-        {
-            // Retired client requests become new sampler drafts. Existing
-            // persisted drafts never enter this creation-only path.
-            request.GenerationPreset = AiGenerationPresets.ShortDemo;
-            request.IncludeCrackTheLie = true;
-        }
-        ApplyPresetDefaults(request);
-        return new AiDraftSettings
-        {
-            StageCount = request.StageCount,
-            Difficulty = request.Difficulty,
-            VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
-            GenerationMode = CaseGenerationModes.CameraEmbedded,
-            GenerationPreset = request.GenerationPreset,
-            ShortDemoProfileVersion = request.GenerationPreset == AiGenerationPresets.ShortDemo
-                ? AiGenerationContract.CurrentShortDemoProfileVersion : 0,
-            Language = request.Language,
-            MechanicsVersion = request.IncludeCrackTheLie
-                ? CaseMechanicsVersions.InvestigationV3PairedConfrontation
-                : CaseMechanicsVersions.InvestigationV2,
-            IncludeCrackTheLie = request.IncludeCrackTheLie,
-            CaseType = request.CaseType,
-            CreativeConstraints = request.CreativeConstraints
-        };
-    }
-
-    private static void ApplyPresetDefaults(GenerateAiCaseRequest request)
-    {
-        request.GenerationPreset = AiGenerationPresets.Normalize(request.GenerationPreset);
+        var profile = AiDifficultyProfiles.For(request.Difficulty);
+        var leaning = AiCaseLeanings.Normalize(request.Leaning);
+        request.Difficulty = profile.Difficulty;
+        request.Leaning = leaning;
         request.Language = CaseLanguages.Normalize(request.Language);
         request.CaseType = AiCaseTypes.Normalize(request.CaseType);
-        request.Difficulty = string.IsNullOrWhiteSpace(request.Difficulty) ? "medium" : request.Difficulty.Trim().ToLowerInvariant();
-
-        request.StageCount = request.GenerationPreset switch
+        request.StageCount = 1;
+        request.GenerationPreset = AiGenerationPresets.NormalRandom;
+        request.IncludeCrackTheLie = true;
+        return new AiDraftSettings
         {
-            AiGenerationPresets.FullFeature => 6,
-            AiGenerationPresets.ShortDemo => 2,
-            AiGenerationPresets.PuzzleHeavy => Math.Max(request.StageCount, 5),
-            AiGenerationPresets.DialogueHeavy => Math.Max(request.StageCount, 5),
-            _ => Math.Clamp(request.StageCount, 2, 6)
-        };
-
-        request.Difficulty = request.GenerationPreset switch
-        {
-            AiGenerationPresets.CrackTheLieV3 => "medium",
-            AiGenerationPresets.FullFeature => "hard",
-            AiGenerationPresets.ShortDemo => "easy",
-            AiGenerationPresets.PuzzleHeavy => "hard",
-            AiGenerationPresets.DialogueHeavy when request.Difficulty == "easy" => "medium",
-            _ => request.Difficulty
+            PipelineVersion = AiPipelineVersions.OpenCoop1,
+            Difficulty = profile.Difficulty,
+            Leaning = leaning,
+            StageCount = 1,
+            VisualStyle = AiVisualStyleDefaults.PixelDetectiveTheme,
+            GenerationMode = CaseGenerationModes.CameraEmbedded,
+            GenerationPreset = AiGenerationPresets.NormalRandom,
+            Language = request.Language,
+            MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation,
+            IncludeCrackTheLie = true,
+            CaseType = request.CaseType,
+            CreativeConstraints = request.CreativeConstraints
         };
     }
 
@@ -560,12 +644,17 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     private async Task<List<AiStoryHistoryEntry>> LoadRecentStoryHistoryAsync(
         string creatorUserId,
-        string language)
+        string language,
+        DateTime? createdBefore = null)
     {
+        // Legacy drafts without a frozen snapshot only look at drafts older than themselves, which keeps a
+        // resumed run's preview prompt stable while newer drafts are created.
+        var before = createdBefore ?? DateTime.MaxValue;
         return await _db.AiCaseDrafts
             .Find(item => item.CreatedByUserId == creatorUserId
                           && item.Settings.Language == language
-                          && item.StoryPreview.Title != string.Empty)
+                          && item.StoryPreview.Title != string.Empty
+                          && item.CreatedAt < before)
             .SortByDescending(item => item.CreatedAt)
             .Limit(50)
             .Project(item => new AiStoryHistoryEntry
@@ -579,8 +668,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     public async Task<AiDraftResponse> ApproveDraftAsync(CurrentUser user, string draftId)
     {
-        EnsureOpenAiConfigured();
-
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
@@ -616,8 +703,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     public async Task<AiDraftResponse> ApproveFullLogicAsync(CurrentUser user, string draftId)
     {
-        EnsureOpenAiConfigured();
-
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
@@ -677,8 +762,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     public async Task<AiDraftResponse> ContinueDraftAsync(CurrentUser user, string draftId)
     {
-        EnsureOpenAiConfigured();
-
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
@@ -688,8 +771,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             return AiDraftResponse.From(draft);
         }
 
-        if (draft.QueueState is AiQueueStates.Pending or AiQueueStates.Running or AiQueueStates.RetryScheduled)
+        if (draft.QueueState is AiQueueStates.Pending or AiQueueStates.Running or AiQueueStates.RetryScheduled
+            or AiQueueStates.AwaitingClaude)
             return AiDraftResponse.From(draft);
+        EnsureOrderApproved(draft);
 
         if (draft.Status == AiDraftStatus.GeneratingStory)
         {
@@ -844,7 +929,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             fixes.Add("No item-based final evidence needed camera repair.");
         }
 
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         var candidateJson = JsonSerializer.Serialize(gameCase, PrettyJson);
@@ -893,7 +978,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 "AI_REPAIR_NOT_AVAILABLE_FOR_V3",
                 "ai.v3Preset.cameraRepairUnavailable");
         gameCase.GenerationMode = CaseGenerationModes.CameraEmbedded;
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         if (!validation.IsValid)
@@ -971,7 +1056,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 draft = prepared;
             }
 
-            var rawJson = await GenerateJsonWithOpenAiAsync(
+            var rawJson = await GenerateJsonAsync(
                 draft.Id,
                 "GenerateFullCaseJson",
                 BuildFullLogicRequestPrompt(draft),
@@ -989,7 +1074,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 var feedback = draft.CaseTruth is not null
                     ? BuildProjectionRepairFeedback(draft.CaseTruth, gameCase, validation)
                     : FormatValidation(validation);
-                var retryJson = await GenerateJsonWithOpenAiAsync(
+                var retryJson = await GenerateJsonAsync(
                     draft.Id,
                     "RepairFullCaseJson",
                     BuildFullLogicRequestPrompt(draft,
@@ -1213,7 +1298,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 """;
             }
             var attempt = await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.CaseBlueprintV3Crack);
-            rawBlueprint = await GenerateJsonWithOpenAiAsync(
+            rawBlueprint = await GenerateJsonAsync(
                 draft.Id,
                 forceRepair ? "RepairCaseBlueprint" : "GenerateCaseBlueprint",
                 AiCaseBlueprintPolicy.BuildPrompt(draft, correction, forceRepair ? rawBlueprint : null),
@@ -1254,7 +1339,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         {
             var failedIds = FailedSemanticChallengeIds(reviewCase, review);
             var repairAttempt = await NextGenerationAttemptNumberAsync(draft.Id, AiGenerationSchemaVersions.CaseBlueprintV3Crack);
-            var repairedRaw = await GenerateJsonWithOpenAiAsync(
+            var repairedRaw = await GenerateJsonAsync(
                 draft.Id,
                 "RepairV3CrackBlueprint",
                 AiCaseBlueprintPolicy.BuildPrompt(
@@ -1417,7 +1502,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     {
         await ApplyCaseAutoRepairAsync(draft, gameCase);
         var preAssetJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-        var fullLogicValidation = _validator.ValidateFullLogic(gameCase);
+        var fullLogicValidation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         fullLogicValidation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         if (draft.CaseBlueprint is not null)
@@ -1443,7 +1528,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             {
                 ApplyDeterministicMockSceneLayout(gameCase);
                 preAssetJson = JsonSerializer.Serialize(gameCase, PrettyJson);
-                var mockLayoutValidation = _validator.ValidateSceneLayout(gameCase);
+                var mockLayoutValidation = ApplyHintRule(draft, _validator.ValidateSceneLayout(gameCase));
                 if (!mockLayoutValidation.IsValid)
                 {
                     var errors = ValidationMessages(mockLayoutValidation);
@@ -1500,7 +1585,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate, includeFinalAssets: false, forceAssetIds: forceAssetIds);
         draft.AssetManifest = assetManifest;
 
-        var validation = _validator.ValidateSceneLayout(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateSceneLayout(gameCase));
+        if (PixelCasePipeline.IsPixel(draft)) PixelDraftRules.ValidateLayout(gameCase, validation);
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         if (!validation.IsValid)
         {
@@ -1536,8 +1622,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     public async Task<AiDraftResponse> RegenerateAssetsAsync(CurrentUser user, string draftId)
     {
-        EnsureOpenAiConfigured();
-
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
@@ -1557,7 +1641,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     public async Task<AiDraftResponse> RegenerateFailedAssetsAsync(CurrentUser user, string draftId)
     {
-        EnsureOpenAiConfigured();
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
@@ -1589,7 +1672,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
 
         await ApplyCaseAutoRepairAsync(draft, gameCase);
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(
             draft.Settings.GenerationPreset,
             draft.Settings.StageCount).Validate(gameCase, draft.Settings).Errors);
@@ -1625,7 +1708,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     public async Task<AiDraftResponse> RetryJsonAsync(CurrentUser user, string draftId)
     {
-        EnsureOpenAiConfigured();
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
@@ -1792,7 +1874,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var schemaVersion = CaseLogicSchemaVersion(draft);
         var attemptNumber = draft.GenerationAttempts.Count(attempt =>
             attempt.SchemaVersion == schemaVersion) + 1;
-        var repairedJson = await GenerateJsonWithOpenAiAsync(
+        var repairedJson = await GenerateJsonAsync(
             draft.Id,
             "RetryFullCaseJson",
             BuildFullLogicRequestPrompt(draft,
@@ -1891,7 +1973,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         draft.V3SemanticReview = reScoredReview;
 
         await ApplyCaseAutoRepairAsync(draft, gameCase);
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         if (draft.CaseBlueprint is not null)
@@ -1970,7 +2052,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             "RetryFullCaseJson:DeterministicCheckpoint",
             "RESTORED",
             string.Empty,
-            "Re-scored the stored semantic review and applied server-owned fields without an OpenAI request.",
+            "Re-scored the stored semantic review and applied server-owned fields without asking Claude.",
             null);
         return AiDraftResponse.From(await _db.AiCaseDrafts.Find(item => item.Id == draft.Id).FirstAsync());
     }
@@ -2009,7 +2091,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         gameCase.CharacterStyle = AiVisualStyleDefaults.CharacterStyle;
         NormalizeVisualMetadata(gameCase);
 
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         if (draft.CaseBlueprint is not null)
@@ -2174,12 +2256,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
         var assetManifest = await GenerateAssetsAndRuntimeAsync(draft, gameCase, forceRegenerate: false, includeFinalAssets: true);
         draft.AssetManifest = assetManifest;
-        var validation = _validator.Validate(gameCase);
+        var validation = ApplyHintRule(draft, _validator.Validate(gameCase));
         if (draft.CaseTruth is not null)
             validation.Errors.AddRange(_truthService.ValidateProjection(draft.CaseTruth, gameCase).Errors);
         if (draft.CaseTruth is not null && draft.ProjectionPlan is not null)
             validation.Errors.AddRange(_projectionGraphValidator
                 .Validate(draft.CaseTruth, draft.ProjectionPlan, gameCase).Errors);
+        if (PixelCasePipeline.IsPixel(draft)) PixelDraftRules.ValidateFinal(gameCase, LatestUploads(draft), validation);
         validation.Deduplicate();
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         if (!validation.IsValid)
@@ -2253,11 +2336,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             return AiDraftResponse.From(draft, includeJson: false);
 
         var now = DateTime.UtcNow;
-        var reservedBudget = draft.ReservedBudgetUsd;
-        // A queued draft that has never been claimed has not made an upstream
-        // request. Once a worker has claimed it, keep the reservation as spent
-        // because cancellation cannot prove that no provider call was started.
-        var chargeReservation = draft.GenerationClaimedAt is not null || draft.GenerationAttempts.Count > 0;
         var cancelled = await _db.AiCaseDrafts.FindOneAndUpdateAsync(
             item => item.Id == draft.Id
                 && item.WorkflowVersion == draft.WorkflowVersion
@@ -2272,7 +2350,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 .Set(item => item.GenerationClaimedAt, null)
                 .Set(item => item.NextAttemptAt, null)
                 .Set(item => item.ActiveQuotaKey, null)
-                .Set(item => item.ReservedBudgetUsd, 0m)
+                .Set(item => item.ClaudeWait, null)
+                .Set(item => item.OperationRunId, string.Empty)
+                .Set(item => item.OrderStatus, AiOrderStatuses.Cancelled)
+                .Push(item => item.OrderStatusHistory, new AiOrderStatusChange
+                {
+                    Status = AiOrderStatuses.Cancelled, At = now, ByUserId = user.Id
+                })
                 .Set(item => item.CancelledAt, now)
                 .Set(item => item.CancelledByUserId, user.Id)
                 .Inc(item => item.WorkflowVersion, 1)
@@ -2280,8 +2364,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             new FindOneAndUpdateOptions<AiCaseDraft> { ReturnDocument = ReturnDocument.After });
         if (cancelled is null)
             throw ApiException.Conflict("The draft changed before cancellation could be committed.");
-        await SettleAiReservationAsync(reservedBudget, chargeReservation);
-        return AiDraftResponse.From(cancelled, includeJson: false);
+        await new AiBridgeRequestStore(_db, TimeProvider.System, _bridgeNotifier)
+            .CancelOwnerAsync(AiBridgeOwnerTypes.CaseDraft, cancelled.Id);
+        await AiDecisionService.CancelOpenAsync(_db, cancelled.Id);
+        if (cancelled.VipBilling is not null && _vipBilling is not null)
+            await _vipBilling.SettleAsync(cancelled.Id);
+        var latest = await _db.AiCaseDrafts.Find(item => item.Id == cancelled.Id).FirstOrDefaultAsync() ?? cancelled;
+        return AiDraftResponse.From(latest, includeJson: false);
     }
 
     public async Task<CaseSummaryResponse> ImportDraftAsync(CurrentUser user, string draftId, bool overwrite, bool publish)
@@ -2452,7 +2541,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             var summary = await _caseService.ImportJsonAsync(doc.RootElement, overwrite, preserveServerMetadata: true);
             if (publish) summary = await _caseService.PublishAsync(summary.CaseId);
 
-            var reservedBudget = draft.ReservedBudgetUsd;
             var completed = await _db.AiCaseDrafts.UpdateOneAsync(
                 d => d.Id == draftId
                     && d.WorkflowVersion == draft.WorkflowVersion
@@ -2468,12 +2556,12 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     .Set(d => d.GenerationInputHash, string.Empty)
                     .Set(d => d.GenerationClaimedAt, null)
                     .Set(d => d.ActiveQuotaKey, null)
-                    .Set(d => d.ReservedBudgetUsd, 0m)
+                    .Set(d => d.OrderStatus, AiOrderStatuses.Submitted)
                     .Inc(d => d.WorkflowVersion, 1)
                     .Set(d => d.UpdatedAt, DateTime.UtcNow));
             if (completed.MatchedCount == 0)
                 throw ApiException.Conflict("The draft changed before import completion could be committed.");
-            await SettleAiReservationAsync(reservedBudget, charge: true);
+            await QueueIntroCutsceneAsync(draft, summary.CaseId);
             return summary;
         }
         catch
@@ -2495,6 +2583,25 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
     }
 
+    /// <summary>
+    /// OPEN_COOP_1: queue the imported case's intro cutscene and record the outcome on the draft. Never fails the
+    /// import: a failure is recorded and the admin can still generate the cutscene by hand.
+    /// </summary>
+    private async Task QueueIntroCutsceneAsync(AiCaseDraft draft, string caseId)
+    {
+        if (_introCutsceneStarter is null || !AiPipelineVersions.IsOpenCoop(draft.Settings)) return;
+        var status = await _introCutsceneStarter.StartAsync(draft.Settings, caseId, _operationCancellationToken);
+        try
+        {
+            await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id,
+                Builders<AiCaseDraft>.Update.Set(d => d.IntroCutsceneStatus, status), cancellationToken: _operationCancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogWarning(exception, "Could not record the intro cutscene status of draft {DraftId}.", draft.Id);
+        }
+    }
+
     private static bool HasSavedStoryPreview(AiStoryPreview? preview) =>
         preview is not null
         && (!string.IsNullOrWhiteSpace(preview.Title)
@@ -2512,6 +2619,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             "AI_V3_SEMANTIC_REVIEW_REQUIRED",
             "ai.v3Preset.semanticReviewRequired");
     }
+
+    /// <summary>
+    /// AI drafts follow the hint rule strictly (<see cref="CaseHintRules"/>), except a draft whose persisted projection plan
+    /// predates it: that plan is immutable, so its missing hint levels stay warnings instead of failing the draft for ever.
+    /// </summary>
+    private static CaseValidationResult ApplyHintRule(AiCaseDraft draft, CaseValidationResult validation) =>
+        CaseHintRules.PlanPredatesRule(draft.ProjectionPlan) ? validation : validation.RequireHints();
 
     private static int MaxFullCaseOutputTokens(AiCaseDraft draft) =>
         AiGenerationPresets.Normalize(draft.Settings.GenerationPreset) == AiGenerationPresets.FullFeature
@@ -2540,6 +2654,20 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             ? AiStrictSchemaProvider.CaseLogicSchema(draft.Settings.MechanicsVersion, draft.CaseTruth)
             : AiStrictSchemaProvider.CaseLogicSchema(draft.Settings.MechanicsVersion);
 
+    /// <summary>OPEN_COOP_1 drafts: how to fill the optional interactive puzzle slots.</summary>
+    internal static string OpenCoopProjectionRequirements(AiDraftSettings settings) =>
+        AiPipelineVersions.IsOpenCoop(settings)
+            ? """
+              OPEN_COOP case (every place is open from the start; both detectives share one notebook):
+              - Every puzzle slot is an OPTIONAL interactive puzzle: solving it gives one corroborating clue; the case can be solved without it.
+              - For each puzzle pick a kind from its slot's offeredKinds that fits the story and the place. Never use the same kind twice in this case.
+              - Write only the player's words for it: prompt (what the detectives see and try), investigationPurpose, successMessage, failureMessage, and the kind's text fields in "authored" (see the schema description; use {} when the kind takes none).
+              - Never write a puzzle's answer, code, solution, sequence or mechanics: the server generates them.
+              - board is the case wall: centerKicker (short caps line such as the victim or the missing object), centerTitle, centerSubtitle, summary (what the team knows at the start), and at most 3 links between pinned evidence clues or testimony fragments. Never link a statement to the evidence that breaks it.
+              - timeline (when present): a title, a one-line prompt, and for each event a short label, a detail, a dayLabel and a timeLabel drawn from the truth's time of that event. Never reveal hidden causes in a label.
+              """
+            : string.Empty;
+
     internal static string BuildFullLogicRequestPrompt(
         AiCaseDraft draft,
         string? correction = null,
@@ -2562,9 +2690,12 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                         + "visualDescription in printable English/ASCII: it is art direction for the image "
                         + "pipeline, never shown to players.")
             .AppendLine(VisualArtDirectionRules)
+            .AppendLine("Each hint slot carries its contextType, targetId and order; write its text for that level.")
+            .AppendLine(HintLevelRequirement)
             .AppendLine($"Plan schema: {draft.ProjectionPlan.SchemaVersion}.")
             .AppendLine($"Plan hash: {draft.ProjectionPlan.PlanHash}.")
             .AppendLine(ShortDemoSamplerRequirements(draft.Settings))
+            .AppendLine(OpenCoopProjectionRequirements(draft.Settings))
             .AppendLine("Narrative facts and slots:")
             .AppendLine(ProjectionPromptContext.Build(draft, repairScope));
         if (repairScope is not null)
@@ -2619,7 +2750,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         };
     }
 
-    private static List<string> ValidateAcceptedV3CrackContent(
+    internal static List<string> ValidateAcceptedV3CrackContent(
         GameplayProjectionPlan plan,
         V3CrackContent content,
         GameCase? gameCase = null)
@@ -2700,8 +2831,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             if (node.NodeId != id)
                 errors.Add($"Reviewed conversation node '{id}' changed identity.");
             var compiled = gameCase?.ConversationNodes.FirstOrDefault(item => item.NodeId == id);
+            // A source-linked leaf quotes the approved ledger: the compiler replaces the model's prose with the ledger's
+            // line and its reviewed testimony fragments, so that quote, not the prose, is what review fixed for it.
+            var skeleton = plan.Skeleton.ConversationNodes.FirstOrDefault(item => item.NodeId == id);
+            var expectedLines = compiled is not null && !string.IsNullOrWhiteSpace(skeleton?.SourceDialogueId)
+                ? ProjectionConversationPresentation.SourceLines(skeleton, gameCase!.TestimonyFragments).Select(item => item.Text).ToList()
+                : node.Lines;
             if (compiled is not null
-                && (!compiled.Lines.Select(item => item.Text).SequenceEqual(node.Lines, StringComparer.Ordinal)
+                && (!compiled.Lines.Select(item => item.Text).SequenceEqual(expectedLines, StringComparer.Ordinal)
                     || compiled.Choices.Any(choice =>
                         !node.ChoiceLabels.TryGetValue(choice.ChoiceId, out var label)
                         || choice.Label != label)))
@@ -2757,7 +2894,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 var semanticRepairAttempt = await NextGenerationAttemptNumberAsync(
                     draft.Id,
                     CaseLogicSchemaVersion(draft));
-                var semanticRepairJson = await GenerateJsonWithOpenAiAsync(
+                var semanticRepairJson = await GenerateJsonAsync(
                     draft.Id,
                     "RepairV3SemanticLogic",
                     BuildFullLogicRequestPrompt(
@@ -2859,12 +2996,14 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     batchChallengeIds,
                     batchPrompt,
                     promptVersion = AiGenerationSchemaVersions.Prompt,
-                    model = _settings.EffectiveSemanticReviewModel,
+                    model = ProviderName,
                     schema = AiGenerationSchemaVersions.V3SemanticReview
                 }, CompactJson));
                 var checkpoint = draft.V3SemanticReview.BatchCheckpoints
                     .FirstOrDefault(item => item.BatchKey == batchKey);
-                if (checkpoint?.Status is "RUNNING" or "UNRESOLVED")
+                // Only the retired paid provider could leave a request whose cost is unknown. Bridge requests are
+                // idempotent by key, so the replay simply asks again.
+                if (checkpoint?.Status is "RUNNING" or "UNRESOLVED" && _settings.BlocksAiCalls)
                 {
                     _logger.LogWarning(
                         "V3 semantic batch {BatchKey} has an unresolved provider request for draft {DraftId}; no automatic duplicate request will be sent.",
@@ -2918,7 +3057,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     string raw;
                     try
                     {
-                        raw = await GenerateJsonWithOpenAiAsync(
+                        raw = await GenerateJsonAsync(
                             draft.Id,
                             batchAttempt == 0 ? "ReviewV3PairMatrix" : "RetryIncompleteV3PairBatch",
                             batchPrompt,
@@ -2927,8 +3066,15 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                             AiStrictSchemaProvider.V3SemanticReviewSchema(),
                             attemptNumber: attemptNumber,
                             mockResponseFactory: () => AiV3SemanticReviewPolicy.BuildMockResponse(gameCase, batchChallengeIds),
-                            modelOverride: _settings.EffectiveSemanticReviewModel,
                             generationRunId: draft.GenerationRunId);
+                    }
+                    catch (AiAwaitingClaudeException)
+                    {
+                        // Parked for Claude: the replay finds the answer under the same bridge request key.
+                        checkpoint.Status = AwaitingClaudeCheckpointStatus;
+                        checkpoint.UpdatedAt = DateTime.UtcNow;
+                        await SaveV3SemanticBatchCheckpointsAsync(draft);
+                        throw;
                     }
                     catch
                     {
@@ -2983,6 +3129,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             return AiV3GenerationProfile.EvaluateReview(gameCase, new AiV3SemanticReview());
         }
     }
+
+    internal const string AwaitingClaudeCheckpointStatus = "AWAITING_CLAUDE";
 
     internal static IReadOnlyList<IReadOnlyList<EvidenceChallenge>> BuildSemanticReviewBatches(GameCase gameCase) =>
         BuildSemanticReviewBatches(gameCase.EvidenceChallenges);
@@ -3105,6 +3253,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             }
             AiV3GenerationProfile.ApplyServerOwnedFields(draft, gameCase, resetGeneratedAssets: true);
             ApplyTruthServerOwnedFields(draft, gameCase);
+            // VUAN-6B part B: the server lays out the accusation claims, so it also lets each claim accept the other
+            // evidence proving the same conclusion (only what the validator confirms is found before the accusation).
+            if (compiledProjection)
+                AcceptedEvidencePolicy.Fill(gameCase, candidate => _validator.ValidateFullLogic(candidate));
             if (!compiledProjection && draft.CaseBlueprint is not null)
                 AiCaseBlueprintPolicy.ApplyLockedCrackContract(draft.CaseBlueprint, gameCase);
         }
@@ -3128,7 +3280,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
         if (string.IsNullOrWhiteSpace(gameCase.CaseId))
         {
-            gameCase.CaseId = $"case-ai-{DateTime.UtcNow:yyyyMMddHHmmss}";
+            gameCase.CaseId = DeterministicCaseId(draft);
         }
 
         NormalizeVisualMetadata(gameCase);
@@ -3148,7 +3300,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             fixes = CaseAutoRepair.Repair(gameCase);
         await LogCaseAutoRepairAsync(draft, fixes);
 
-        var validation = _validator.ValidateFullLogic(gameCase);
+        var validation = ApplyHintRule(draft, _validator.ValidateFullLogic(gameCase));
         validation.Errors.AddRange(AiGenerationContract.For(draft.Settings)
             .Validate(gameCase, draft.Settings).Errors);
         if (draft.CaseBlueprint is not null)
@@ -3161,6 +3313,9 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         validation.Deduplicate();
         return (gameCase, validation);
     }
+
+    private static string DeterministicCaseId(AiCaseDraft draft) =>
+        $"case-ai-{draft.CreatedAt:yyyyMMddHHmmss}-{(draft.Id.Length >= 6 ? draft.Id[^6..] : draft.Id)}";
 
     private async Task ApplyCaseAutoRepairAsync(AiCaseDraft draft, GameCase gameCase)
     {
@@ -3177,7 +3332,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         gameCase.CharacterStyle = AiVisualStyleDefaults.CharacterStyle;
         if (string.IsNullOrWhiteSpace(gameCase.CaseId))
         {
-            gameCase.CaseId = $"case-ai-{DateTime.UtcNow:yyyyMMddHHmmss}";
+            gameCase.CaseId = DeterministicCaseId(draft);
         }
 
         NormalizeVisualMetadata(gameCase);
@@ -3242,192 +3397,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     // ----- OpenAI -----
 
     private List<AiCreationBlockerResponse> GetCreationBlockers(bool includeSemanticReview = false) =>
-        AiCreationReadinessPolicy.Evaluate(_settings, _quota, _cloudinary, _usageSettings,
-            requiresUsagePrices: _usageAccounting is not null, includeSemanticReview: includeSemanticReview);
+        AiCreationReadinessPolicy.Evaluate(_settings, _bridgeSettings);
 
     private void EnsureCreationReady(bool includeSemanticReview = false)
     {
         var blocker = GetCreationBlockers(includeSemanticReview).FirstOrDefault();
         if (blocker is not null)
             throw ApiException.Conflict(blocker.Message, blocker.Code, blocker.MessageKey);
-    }
-
-    private void EnsureOpenAiConfigured()
-    {
-        if (_settings.BlocksAiCalls)
-        {
-            return;
-        }
-
-        if (!_settings.HasApiKey)
-        {
-            throw ApiException.BadRequest("OpenAI__ApiKey must be configured before generating AI cases.");
-        }
-    }
-
-    internal sealed record OpenAiTextEnvelope(
-        string ResponseId,
-        string Status,
-        string Content,
-        string Refusal,
-        string IncompleteReason,
-        int InputTokens,
-        int OutputTokens,
-        int CachedInputTokens = 0,
-        int ReasoningTokens = 0);
-
-    internal async Task<string> GenerateJsonWithOpenAiAsync(
-        string draftId,
-        string step,
-        string prompt,
-        int maxOutputTokens,
-        string schemaVersion,
-        JsonObject schema,
-        int attemptNumber,
-        Func<string>? mockResponseFactory = null,
-        string? modelOverride = null,
-        string? generationRunId = null,
-        object? payloadOverride = null,
-        string kind = "text")
-    {
-        var model = string.IsNullOrWhiteSpace(modelOverride) ? _settings.LogicModel : modelOverride.Trim();
-        var requestPayload = payloadOverride ?? new
-        {
-            model,
-            instructions = "You are a senior detective game designer. Return exactly one valid JSON object. Do not include markdown fences or commentary.",
-            input = prompt,
-            text = new
-            {
-                format = new
-                {
-                    type = "json_schema",
-                    name = schemaVersion.Replace('-', '_'),
-                    description = "Strict SirLocked AI case generation contract.",
-                    schema,
-                    strict = true
-                }
-            },
-            max_output_tokens = maxOutputTokens
-        };
-        if (kind == "text")
-            requestPayload = AiTextRequestBudgetPolicy.WithStandardServiceTier(requestPayload);
-        if (!_settings.BlocksAiCalls && kind == "text")
-            AiTextRequestBudgetPolicy.EnsureWithinLimit(requestPayload, _usageSettings);
-        var containsSpoilers = !step.Contains("StoryPreview", StringComparison.OrdinalIgnoreCase);
-        var loggedPrompt = containsSpoilers ? $"[REDACTED SPOILER PROMPT: {step}]" : prompt;
-        await HeartbeatGenerationAsync(draftId, generationRunId);
-        var promptVersion = schemaVersion is GameplayProjectionVersions.Content or ProjectionWireContract.CompactVersion
-            ? ProjectionWireContract.PromptVersion
-            : schemaVersion == AiGenerationSchemaVersions.CaseLogicV3Crack
-              || schemaVersion == AiGenerationSchemaVersions.V3SemanticReview
-                ? AiGenerationSchemaVersions.PromptV3Crack
-                : AiGenerationSchemaVersions.Prompt;
-        if (_settings.BlocksAiCalls)
-        {
-            var reason = _settings.MockAiResponses
-                ? "MOCK_AI_RESPONSES enabled"
-                : "AI_DRY_RUN enabled";
-            await RecordPlannedCallAsync(draftId, step, kind, wouldCallApi: false, reason, generationRunId);
-            await LogGenerationAsync(draftId, ProviderName, step, "MOCKED", loggedPrompt, reason, null);
-            return mockResponseFactory?.Invoke() ?? AiCaseMockFactory.MockJsonResponse(step, schemaVersion);
-        }
-
-        await RecordPlannedCallAsync(draftId, step, kind, wouldCallApi: true, "AI response call will run.", generationRunId);
-
-        var attemptRecorded = false;
-        try
-        {
-            var response = await AccountedResponseAsync(draftId, step, kind, model,
-                () => _openAiClient.PostStructuredJsonAsync(requestPayload, _operationCancellationToken));
-            await HeartbeatGenerationAsync(draftId, generationRunId);
-            var body = response.Body;
-            var rawPath = await SaveRawAttemptAsync(draftId, step, attemptNumber, body);
-            if (!response.IsSuccess)
-            {
-                await RecordGenerationAttemptAsync(draftId, new AiGenerationAttempt
-                {
-                    Step = step, AttemptNumber = attemptNumber, Model = model,
-                    PromptVersion = promptVersion, SchemaVersion = schemaVersion,
-                    Status = "FAILED", FailureCategory = AiFailureCategories.HttpError,
-                    ResponseSha256 = Sha256(body), RawResponsePath = rawPath,
-                    GenerationRunId = generationRunId ?? string.Empty
-                });
-                attemptRecorded = true;
-                await LogGenerationAsync(draftId, ProviderName, step, "FAILED", loggedPrompt,
-                    containsSpoilers ? "[REDACTED SPOILER RESPONSE]" : body, $"HTTP {response.StatusCode}");
-                // Client errors, refusals and schema failures are permanent for this
-                // input.  Preserve retryable upstream failures as 502 so the durable
-                // worker can retry them according to its backoff policy.
-                if (response.StatusCode is >= 400 and < 500 && response.StatusCode is not 408 and not 429)
-                    throw ApiException.Unprocessable($"OpenAI rejected the request with HTTP {response.StatusCode}.");
-                throw ApiException.BadGateway($"OpenAI request failed with HTTP {response.StatusCode}.");
-            }
-
-            var envelope = ExtractOpenAiTextEnvelope(body);
-            var category = envelope.Status.Equals("incomplete", StringComparison.OrdinalIgnoreCase)
-                ? AiFailureCategories.Incomplete
-                : !string.IsNullOrWhiteSpace(envelope.Refusal)
-                    ? AiFailureCategories.Refusal
-                    : string.IsNullOrWhiteSpace(envelope.Content)
-                        ? AiFailureCategories.SchemaError
-                        : string.Empty;
-            await RecordGenerationAttemptAsync(draftId, new AiGenerationAttempt
-            {
-                Step = step,
-                AttemptNumber = attemptNumber,
-                ResponseId = envelope.ResponseId,
-                Model = model,
-                PromptVersion = promptVersion,
-                SchemaVersion = schemaVersion,
-                Status = string.IsNullOrWhiteSpace(category) ? "SUCCESS" : "FAILED",
-                FailureCategory = category,
-                InputTokens = envelope.InputTokens,
-                OutputTokens = envelope.OutputTokens,
-                CachedInputTokens = envelope.CachedInputTokens,
-                ReasoningTokens = envelope.ReasoningTokens,
-                ResponseSha256 = Sha256(envelope.Content),
-                RawResponsePath = rawPath
-                ,GenerationRunId = generationRunId ?? string.Empty
-            });
-            attemptRecorded = true;
-
-            if (category == AiFailureCategories.Incomplete)
-                throw ApiException.Unprocessable($"OpenAI response was incomplete: {envelope.IncompleteReason}.");
-            if (category == AiFailureCategories.Refusal)
-                throw ApiException.Unprocessable($"OpenAI refused the structured case request: {envelope.Refusal}");
-            if (category == AiFailureCategories.SchemaError)
-                throw ApiException.Unprocessable("OpenAI returned no structured JSON output.");
-
-            var content = envelope.Content;
-            await LogGenerationAsync(draftId, ProviderName, step, "SUCCESS", loggedPrompt,
-                containsSpoilers ? "[REDACTED SPOILER RESPONSE]" : Truncate(content, 8000), null);
-            return content;
-        }
-        catch (OperationCanceledException) when (_operationCancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (ApiException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "OpenAI generation failed.");
-            if (!attemptRecorded)
-            {
-                await RecordGenerationAttemptAsync(draftId, new AiGenerationAttempt
-                {
-                    Step = step, AttemptNumber = attemptNumber, Model = model,
-                    PromptVersion = promptVersion, SchemaVersion = schemaVersion,
-                    Status = "FAILED", FailureCategory = AiFailureCategories.HttpError,
-                    GenerationRunId = generationRunId ?? string.Empty,
-                    ValidationErrors = { ex.Message }
-                });
-            }
-            await LogGenerationAsync(draftId, ProviderName, step, "FAILED", loggedPrompt, string.Empty, ex.Message);
-            throw ApiException.BadGateway("OpenAI request failed. Check server logs for the correlation ID and provider details.");
-        }
     }
 
     private async Task HeartbeatGenerationAsync(string draftId, string? generationRunId)
@@ -3441,68 +3417,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 "ai.generation.stale");
     }
 
-    internal static OpenAiTextEnvelope ExtractOpenAiTextEnvelope(string responseBody)
-    {
-        using var doc = JsonDocument.Parse(responseBody);
-        var root = doc.RootElement;
-        var responseId = root.TryGetProperty("id", out var id) ? id.GetString() ?? string.Empty : string.Empty;
-        var status = root.TryGetProperty("status", out var statusNode) ? statusNode.GetString() ?? string.Empty : string.Empty;
-        var incompleteReason = root.TryGetProperty("incomplete_details", out var incomplete)
-            && incomplete.ValueKind == JsonValueKind.Object
-            && incomplete.TryGetProperty("reason", out var reason)
-                ? reason.GetString() ?? string.Empty
-                : string.Empty;
-        var inputTokens = 0;
-        var outputTokens = 0;
-        var cachedInputTokens = 0;
-        var reasoningTokens = 0;
-        if (root.TryGetProperty("usage", out var usage) && usage.ValueKind == JsonValueKind.Object)
-        {
-            if (usage.TryGetProperty("input_tokens", out var input) && input.TryGetInt32(out var parsedInput)) inputTokens = parsedInput;
-            if (usage.TryGetProperty("output_tokens", out var outputUsage) && outputUsage.TryGetInt32(out var parsedOutput)) outputTokens = parsedOutput;
-            if (usage.TryGetProperty("input_tokens_details", out var inputDetails)
-                && inputDetails.ValueKind == JsonValueKind.Object
-                && inputDetails.TryGetProperty("cached_tokens", out var cached) && cached.TryGetInt32(out var parsedCached))
-                cachedInputTokens = parsedCached;
-            if (usage.TryGetProperty("output_tokens_details", out var outputDetails)
-                && outputDetails.ValueKind == JsonValueKind.Object
-                && outputDetails.TryGetProperty("reasoning_tokens", out var reasoning) && reasoning.TryGetInt32(out var parsedReasoning))
-                reasoningTokens = parsedReasoning;
-        }
-
-        var builder = new StringBuilder();
-        var refusal = string.Empty;
-
-        var hasTopLevelOutputText = root.TryGetProperty("output_text", out var outputText) && outputText.ValueKind == JsonValueKind.String;
-        if (hasTopLevelOutputText)
-        {
-            builder.Append(outputText.GetString());
-        }
-
-        if (root.TryGetProperty("output", out var output) && output.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var outputItem in output.EnumerateArray())
-            {
-                if (!outputItem.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array)
-                {
-                    continue;
-                }
-
-                foreach (var part in content.EnumerateArray())
-                {
-                    if (part.TryGetProperty("refusal", out var refusalNode) && refusalNode.ValueKind == JsonValueKind.String)
-                        refusal = refusalNode.GetString() ?? string.Empty;
-                    if (!hasTopLevelOutputText && part.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
-                    {
-                        builder.Append(text.GetString());
-                    }
-                }
-            }
-        }
-        return new OpenAiTextEnvelope(responseId, status, builder.ToString(), refusal, incompleteReason, inputTokens, outputTokens,
-            cachedInputTokens, reasoningTokens);
-    }
-
     private static AiStoryPreview ParseStoryPreview(string content, GenerateAiCaseRequest request)
     {
         AiStoryPreview? preview;
@@ -3512,12 +3426,12 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
         catch (JsonException)
         {
-            throw ApiException.BadGateway("OpenAI story preview could not be parsed.");
+            throw ApiException.BadGateway("The story preview could not be parsed.");
         }
 
         if (preview is null || string.IsNullOrWhiteSpace(preview.Title) || string.IsNullOrWhiteSpace(preview.Summary))
         {
-            throw ApiException.BadGateway("OpenAI story preview was missing title or summary.");
+            throw ApiException.BadGateway("The story preview was missing title or summary.");
         }
 
         if (preview.EstimatedScenes <= 0)
@@ -3690,9 +3604,15 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             "correctOptionId": "deduce-1", "successResponse": "...", "failureResponse": "...", "unlockClueIds": [] }],
           "requiredTeamworkChains": [{ "chainId": "chain-1", "investigatorClueId": "clue-1",
             "interrogatorChallengeId": "challenge-1", "deductionId": "deduction-1", "description": "..." }],
-          "hints": [{ "hintId": "hint-scene-1", "contextType": "SCENE", "targetId": "scene-1", "order": 1, "text": "..." },
-            { "hintId": "hint-challenge-1", "contextType": "CONFRONTATION", "targetId": "challenge-1", "order": 1, "text": "..." },
-            { "hintId": "hint-deduction-1", "contextType": "DEDUCTION", "targetId": "deduction-1", "order": 1, "text": "..." }],
+          "hints": [{ "hintId": "hint-scene-1-1", "contextType": "SCENE", "targetId": "scene-1", "order": 1, "text": "..." },
+            { "hintId": "hint-scene-1-2", "contextType": "SCENE", "targetId": "scene-1", "order": 2, "text": "..." },
+            { "hintId": "hint-scene-1-3", "contextType": "SCENE", "targetId": "scene-1", "order": 3, "text": "..." },
+            { "hintId": "hint-challenge-1-1", "contextType": "CONFRONTATION", "targetId": "challenge-1", "order": 1, "text": "..." },
+            { "hintId": "hint-challenge-1-2", "contextType": "CONFRONTATION", "targetId": "challenge-1", "order": 2, "text": "..." },
+            { "hintId": "hint-challenge-1-3", "contextType": "CONFRONTATION", "targetId": "challenge-1", "order": 3, "text": "..." },
+            { "hintId": "hint-deduction-1-1", "contextType": "DEDUCTION", "targetId": "deduction-1", "order": 1, "text": "..." },
+            { "hintId": "hint-deduction-1-2", "contextType": "DEDUCTION", "targetId": "deduction-1", "order": 2, "text": "..." },
+            { "hintId": "hint-deduction-1-3", "contextType": "DEDUCTION", "targetId": "deduction-1", "order": 3, "text": "..." }],
           "interactions": [{ "interactionId": "interaction-open-chest", "type": "USE_ITEM_ON_TARGET",
             "targetId": "item-locked-chest", "requiredItemIds": ["item-rusty-key"], "requiredClueIds": [],
             "unlockItemIds": ["item-ancient-map"], "unlockClueIds": ["clue-chest-inscription"], "unlockSceneIds": [],
@@ -3795,7 +3715,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         - Create exactly {contract.EvidenceChallenges} evidenceChallenges. challengeId must use prefix "challenge-" and be unique. Each challenge references an existing dialogue, accepts one isEvidence clue, and unlocks at least one clue.
         - Create at least one deduction. deductionId must use prefix "deduction-", require at least one clue and one resolved challenge, have at least three options, and have a valid correctOptionId.
         - Create at least one requiredTeamworkChain. chainId must use prefix "chain-" and connect one investigator clue, one interrogator challenge, and one deduction.
-        - Create at least one SCENE hint per scene, one CONFRONTATION hint per challenge, and one DEDUCTION hint per deduction.
+        {HintLevelRequirement}
+        - finalLogic.requiredEvidenceLinks[].acceptedEvidenceIds is optional (null or an array): other isEvidence clue IDs that prove the same claim just as well, so a player who reasons correctly with them is not marked wrong. Never list the claim's own evidenceId or another claim's evidenceId; leave it null when only one clue truly proves the claim.
         - finalLogic must have at least three motiveOptions and three methodOptions with unique IDs and valid correctMotiveId/correctMethodId.
         {requiredEvidenceLinksRequirement}
         - finalLogic.requiredDeductionIds must reference the required deduction(s), and finalLogic.requiredTeamworkChainIds must reference the required teamwork chain(s).
@@ -3830,7 +3751,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
 
     private static string BuildAdditiveCrackRequirements(AiCaseDraft draft)
     {
-        var budget = CrackGenerationBudgets.For(draft.Settings.GenerationPreset);
+        var budget = CrackGenerationBudgets.For(draft.Settings);
         var (minimumCracks, maximumCracks) = (budget.MinCracks, budget.MaxCracks);
         var minimumCameraCracks = maximumCracks >= 4 ? 2 : 1;
         return $"""
@@ -3856,9 +3777,20 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         - INSPECT_ENVIRONMENT uses an ENVIRONMENT hotspot whose targetId equals interactionId, requires no inventory item, and can unlock clues/items/scenes through the existing interaction contract.
         - Candidate evidence and source testimony must be reachable before their challenge. A challenge reveal is downstream, is not a candidate, and cannot be unlocked by any other source.
         - testimonyFragmentId and correctEvidenceId remain the authored correct pair. Failure feedback must be generic and must not identify or quote the correct pair or reveal.
-        - Every challenge needs prompt, successResponse, failureResponse, revealTitle, at least one reveal clue, and a CONFRONTATION hint. Deductions and finalLogic may depend on resolved challengeIds normally.
+        - Every challenge needs prompt, successResponse, failureResponse, revealTitle, at least one reveal clue, and CONFRONTATION hints at order 1, 2 and 3. Deductions and finalLogic may depend on resolved challengeIds normally.
         """;
     }
+
+    /// <summary>
+    /// The hint rule (VUAN-6, <see cref="CaseHintRules"/>) as the writer must follow it: three escalating hints per
+    /// question. Shared by the full-case prompt and the projection prompt.
+    /// </summary>
+    internal const string HintLevelRequirement =
+        "- Hints: every scene, every evidence challenge (CONFRONTATION) and every deduction has exactly three hints, at order 1, 2 and 3. "
+        + "Order 1 gives a general direction (who to question, what kind of thing to look for); order 2 points to where to look "
+        + "(a place, an object, a statement); order 3 is almost the answer. Orders 1 and 2 must never name or imply the culprit; "
+        + "order 3 may point at the exact evidence or contradiction but never states the final accusation. "
+        + "Every interactive puzzle carries at least three solution hints in the same 1-2-3 progression.";
 
     private static string BuildV3FullCasePrompt(AiCaseDraft draft, string? correction, string? previousJson)
     {
@@ -3986,15 +3918,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         """
     };
 
-    private static string BackgroundQaMarkerPath(string backgroundPath) => $"{backgroundPath}.qa-passed";
-
-    internal static bool CanReusePassedBackground(string backgroundPath, string prompt)
-    {
-        var markerPath = BackgroundQaMarkerPath(backgroundPath);
-        if (!CanReuseGeneratedFile(backgroundPath, prompt) || !File.Exists(markerPath)) return false;
-        return string.Equals(File.ReadAllText(markerPath).Trim(), Sha256(prompt), StringComparison.OrdinalIgnoreCase);
-    }
-
     private async Task SaveAssetCheckpointAsync(
         AiCaseDraft draft,
         GameCase gameCase,
@@ -4020,63 +3943,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 .Set(d => d.UpdatedAt, DateTime.UtcNow));
     }
 
-    private static string ResolveAssetSlug(AiCaseDraft draft, GameCase gameCase, string assetsRoot)
-    {
-        var generatedRoot = Path.Combine(assetsRoot, "ai-generated", AssetPipelineVersion);
-        if (!string.IsNullOrWhiteSpace(draft.AssetManifest.AssetRootPath)
-            && IsPathInside(draft.AssetManifest.AssetRootPath, generatedRoot))
-        {
-            return Path.GetFileName(Path.TrimEndingDirectorySeparator(draft.AssetManifest.AssetRootPath));
-        }
-
-        var baseSlug = Slugify(gameCase.CaseId);
-        var basePath = Path.Combine(generatedRoot, baseSlug);
-        if (!Directory.Exists(basePath) || DirectoryIsEmpty(basePath))
-        {
-            return baseSlug;
-        }
-
-        var suffix = string.IsNullOrWhiteSpace(draft.Id) ? DateTime.UtcNow.ToString("yyyyMMddHHmmss") : draft.Id[..Math.Min(8, draft.Id.Length)];
-        return $"{baseSlug}-{suffix}";
-    }
-
-    private static bool DirectoryIsEmpty(string path) =>
-        !Directory.EnumerateFileSystemEntries(path).Any();
-
-    private IReadOnlyList<VisionImageInput>? ResolveCharacterStyleReferences(string assetsRoot)
-    {
-        var configuredPaths = (_settings.CharacterStyleReferencePaths ?? new List<string>())
-            .Where(path => !string.IsNullOrWhiteSpace(path))
-            .Select(path => path.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        if (configuredPaths.Count == 0 && !string.IsNullOrWhiteSpace(_settings.CharacterStyleReferencePath))
-        {
-            configuredPaths.Add(_settings.CharacterStyleReferencePath.Trim());
-        }
-
-        var references = new List<VisionImageInput>();
-        foreach (var configuredPath in configuredPaths)
-        {
-            var fullPath = Path.GetFullPath(Path.Combine(
-                assetsRoot,
-                configuredPath.Replace('/', Path.DirectorySeparatorChar)));
-            if (!IsPathInside(fullPath, assetsRoot) || !File.Exists(fullPath))
-            {
-                _logger.LogWarning(
-                    "Character style reference was not found or escaped the frontend assets root: {CharacterStyleReferencePath}",
-                    configuredPath);
-                continue;
-            }
-
-            references.Add(new VisionImageInput(
-                "CANONICAL PIXEL-CHIBI STYLE REFERENCE ONLY: match crisp pixel clusters, proportions, outlines, shading and sprite readability; do not copy identity, face, clothing, pose or accessories",
-                fullPath));
-        }
-
-        return references.Count == 0 ? null : references;
-    }
-
     private static bool IsPathInside(string path, string root)
     {
         var fullPath = Path.GetFullPath(path);
@@ -4097,498 +3963,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         || scene.Runtime is { CharacterPlacements.Count: > 0 }
         || scene.Runtime is { ClueZones.Count: > 0 };
 
-    private static async Task<IReadOnlyList<TResult>> RunBoundedAsync<TSource, TResult>(
-        IEnumerable<TSource> source,
-        int maxConcurrency,
-        Func<TSource, Task<TResult>> operation)
-    {
-        var items = source.ToList();
-        if (items.Count == 0)
-        {
-            return Array.Empty<TResult>();
-        }
-
-        using var gate = new SemaphoreSlim(Math.Clamp(maxConcurrency, 1, 8));
-        var tasks = items.Select(async (item, index) =>
-        {
-            await gate.WaitAsync();
-            try
-            {
-                return (Index: index, Result: await operation(item));
-            }
-            finally
-            {
-                gate.Release();
-            }
-        });
-        var results = await Task.WhenAll(tasks);
-        return results
-            .OrderBy(result => result.Index)
-            .Select(result => result.Result)
-            .ToArray();
-    }
-
-    private async Task<GeneratedImageProcessResult> GenerateCutoutFileAsync(
-        string draftId,
-        string step,
-        string prompt,
-        string size,
-        string filePath,
-        IReadOnlyList<VisionImageInput>? references = null,
-        bool forceRegenerate = false,
-        string? quality = null)
-    {
-        if (_settings.BlocksAssetCalls)
-        {
-            await RecordPlannedCallAsync(draftId, step, "image", wouldCallApi: false, AssetBlockReason());
-            throw ApiException.BadRequest("Asset generation is disabled by dry-run/safety settings.");
-        }
-
-        Exception? lastError = null;
-        var currentPrompt = prompt;
-        var cutoutModel = CutoutImageModel;
-        if (!SupportsTransparentImageParameter(cutoutModel))
-        {
-            throw ApiException.BadGateway(
-                $"Cutout image model '{cutoutModel}' does not support background=transparent. Configure OpenAI:CutoutImageModel to a transparent-background capable model.");
-        }
-
-        for (var attempt = 1; attempt <= 2; attempt++)
-        {
-            var attemptStep = attempt == 1 ? step : $"{step}:RetryTransparentCutout";
-            var regenerate = forceRegenerate || attempt > 1;
-            if (references is { Count: > 0 })
-            {
-                await GenerateReferencedImageFileAsync(
-                    draftId,
-                    attemptStep,
-                    currentPrompt,
-                    size,
-                    filePath,
-                    references,
-                    cutoutModel,
-                    transparentBackground: true,
-                    forceRegenerate: regenerate,
-                    quality: quality);
-            }
-            else
-            {
-                await GenerateImageFileAsync(
-                    draftId,
-                    attemptStep,
-                    currentPrompt,
-                    size,
-                    filePath,
-                    modelOverride: cutoutModel,
-                    transparentBackground: true,
-                    allowFallback: false,
-                    forceRegenerate: regenerate,
-                    quality: quality);
-            }
-
-            try
-            {
-                var info = await GeneratedImageProcessor.NormalizeCutoutAsync(filePath);
-                await LogGenerationAsync(draftId, ProviderName, $"{step}:PostProcess", "SUCCESS", currentPrompt, JsonSerializer.Serialize(info), null);
-                return info;
-            }
-            catch (Exception ex)
-            {
-                lastError = ex;
-                await LogGenerationAsync(draftId, ProviderName, $"{step}:PostProcess", "FAILED", currentPrompt, string.Empty, ex.Message);
-                currentPrompt = $"""
-                {prompt}
-
-                Critical retry correction:
-                The previous asset was rejected because it had an opaque or white background.
-                Return a real transparent PNG alpha channel cutout only: no white background, no solid background,
-                no studio backdrop, no canvas, no paper rectangle, no shadow box, object/person only.
-                """;
-            }
-        }
-
-        throw ApiException.BadGateway($"OpenAI generated an unusable opaque cutout for {step}: {lastError?.Message}");
-    }
-
-    private async Task GenerateReferencedImageFileAsync(
-        string draftId,
-        string step,
-        string prompt,
-        string size,
-        string filePath,
-        IReadOnlyList<VisionImageInput> references,
-        string model,
-        bool transparentBackground,
-        bool forceRegenerate,
-        string? quality = null)
-    {
-        if (_settings.BlocksAssetCalls)
-        {
-            await RecordPlannedCallAsync(draftId, step, "image", wouldCallApi: false, AssetBlockReason());
-            throw ApiException.BadRequest("Asset generation is disabled by dry-run/safety settings.");
-        }
-
-        if (!forceRegenerate && CanReuseGeneratedFile(filePath, prompt))
-        {
-            await LogGenerationAsync(draftId, ProviderName, step, "REUSED", prompt, $"reused {filePath}", null);
-            return;
-        }
-
-        await RecordPlannedCallAsync(draftId, step, "image", wouldCallApi: true, "Referenced image generation call will run.");
-
-        try
-        {
-            var client = _httpClientFactory.CreateClient(OpenAiHttpClientName);
-            client.Timeout = Timeout.InfiniteTimeSpan;
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
-
-            using var form = new MultipartFormDataContent();
-            form.Add(new StringContent(model), "model");
-            form.Add(new StringContent(prompt), "prompt");
-            form.Add(new StringContent(size), "size");
-            form.Add(new StringContent("1"), "n");
-            if (!string.IsNullOrWhiteSpace(quality))
-            {
-                form.Add(new StringContent(NormalizeImageQuality(quality)), "quality");
-            }
-            if (transparentBackground)
-            {
-                form.Add(new StringContent("transparent"), "background");
-                form.Add(new StringContent("png"), "output_format");
-            }
-
-            var streams = new List<Stream>();
-            try
-            {
-                foreach (var reference in references)
-                {
-                    var stream = File.OpenRead(reference.Path);
-                    streams.Add(stream);
-                    var imageContent = new StreamContent(stream);
-                    imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
-                    form.Add(imageContent, "image[]", Path.GetFileName(reference.Path));
-                }
-
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Clamp(_settings.TimeoutSeconds, 60, 900)));
-                using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-                    timeout.Token,
-                    _operationCancellationToken);
-                using var response = await AccountedImageAsync(draftId, step, model, () => client.PostAsync(
-                    $"{_settings.BaseUrl.TrimEnd('/')}/images/edits",
-                    form,
-                    linkedCancellation.Token));
-                var body = await response.Content.ReadAsStringAsync(_operationCancellationToken);
-                if (!response.IsSuccessStatusCode)
-                {
-                    await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, body, $"HTTP {(int)response.StatusCode}");
-                    throw ApiException.BadGateway($"OpenAI referenced image request failed with HTTP {(int)response.StatusCode}: {Truncate(body, 600)}");
-                }
-
-                var imageBytes = await ExtractImageBytesAsync(client, body, _operationCancellationToken);
-                Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-                await File.WriteAllBytesAsync(filePath, imageBytes, _operationCancellationToken);
-                await WritePromptHashAsync(filePath, prompt);
-                await LogGenerationAsync(
-                    draftId,
-                    ProviderName,
-                    step,
-                    "SUCCESS",
-                    prompt,
-                    $"wrote {filePath} using {references.Count} background reference image(s)",
-                    null);
-            }
-            finally
-            {
-                foreach (var stream in streams)
-                {
-                    await stream.DisposeAsync();
-                }
-            }
-        }
-        catch (ApiException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "OpenAI referenced image generation failed.");
-            await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, string.Empty, ex.Message);
-            throw ApiException.BadGateway("OpenAI referenced image request failed. Check server logs for details.");
-        }
-    }
-
-    private async Task GenerateImageFileAsync(
-        string draftId,
-        string step,
-        string prompt,
-        string size,
-        string filePath,
-        string? modelOverride = null,
-        bool transparentBackground = false,
-        bool allowFallback = false,
-        bool forceRegenerate = false,
-        string? quality = null)
-    {
-        if (_settings.BlocksAssetCalls)
-        {
-            await RecordPlannedCallAsync(draftId, step, "image", wouldCallApi: false, AssetBlockReason());
-            throw ApiException.BadRequest("Asset generation is disabled by dry-run/safety settings.");
-        }
-
-        try
-        {
-            if (!forceRegenerate && CanReuseGeneratedFile(filePath, prompt))
-            {
-                await LogGenerationAsync(draftId, ProviderName, step, "REUSED", prompt, $"reused {filePath}", null);
-                return;
-            }
-
-            await RecordPlannedCallAsync(draftId, step, "image", wouldCallApi: true, "Image generation call will run.");
-
-            var client = _httpClientFactory.CreateClient(OpenAiHttpClientName);
-            client.Timeout = Timeout.InfiniteTimeSpan;
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _settings.ApiKey);
-
-            var imageModel = string.IsNullOrWhiteSpace(modelOverride) ? _settings.ImageModel : modelOverride.Trim();
-            var useTransparentParameter = transparentBackground && SupportsTransparentImageParameter(imageModel);
-            if (transparentBackground && !useTransparentParameter)
-            {
-                throw ApiException.BadGateway(
-                    $"Image model '{imageModel}' does not support background=transparent. Configure OpenAI:CutoutImageModel to a transparent-background capable model.");
-            }
-
-            var payload = BuildImagePayload(imageModel, prompt, size, useTransparentParameter, quality);
-            using var response = await PostImageGenerationAsync(client, payload, draftId, step, imageModel);
-
-            var body = await response.Content.ReadAsStringAsync(_operationCancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, body, $"HTTP {(int)response.StatusCode}");
-                if (!allowFallback ||
-                    (int)response.StatusCode is 401 or 403 ||
-                    !await TryWriteFallbackImageAsync(draftId, step, prompt, filePath, $"HTTP {(int)response.StatusCode}: {Truncate(body, 600)}"))
-                {
-                    throw ApiException.BadGateway($"OpenAI image request failed with HTTP {(int)response.StatusCode}: {Truncate(body, 600)}");
-                }
-
-                await WritePromptHashAsync(filePath, prompt);
-                return;
-            }
-
-            var imageBytes = await ExtractImageBytesAsync(client, body, _operationCancellationToken);
-            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-            await File.WriteAllBytesAsync(filePath, imageBytes, _operationCancellationToken);
-            await WritePromptHashAsync(filePath, prompt);
-            await LogGenerationAsync(draftId, ProviderName, step, "SUCCESS", prompt, $"wrote {filePath}", null);
-        }
-        catch (OperationCanceledException) when (_operationCancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (TaskCanceledException ex)
-        {
-            await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, string.Empty, ex.Message);
-            if (!allowFallback || !await TryWriteFallbackImageAsync(draftId, step, prompt, filePath, "image request timed out"))
-            {
-                throw ApiException.BadGateway("OpenAI image request timed out.");
-            }
-            await WritePromptHashAsync(filePath, prompt);
-        }
-        catch (ApiException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "OpenAI image generation failed.");
-            await LogGenerationAsync(draftId, ProviderName, step, "FAILED", prompt, string.Empty, ex.Message);
-            if (!allowFallback || !await TryWriteFallbackImageAsync(draftId, step, prompt, filePath, ex.Message))
-            {
-                throw ApiException.BadGateway("OpenAI image request failed. Check server logs for details.");
-            }
-            await WritePromptHashAsync(filePath, prompt);
-        }
-    }
-
-    private static bool CanReuseGeneratedFile(string filePath, string prompt)
-    {
-        var hashPath = $"{filePath}.prompt.sha256";
-        return File.Exists(filePath)
-               && new FileInfo(filePath).Length > 0
-               && File.Exists(hashPath)
-               && string.Equals(File.ReadAllText(hashPath).Trim(), Sha256(prompt), StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static Task WritePromptHashAsync(string filePath, string prompt) =>
-        File.WriteAllTextAsync($"{filePath}.prompt.sha256", Sha256(prompt));
-
-    private async Task<HttpResponseMessage> PostImageGenerationAsync(HttpClient client, Dictionary<string, object> payload,
-        string draftId, string step, string model)
-    {
-        const int maxAttempts = 3;
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Clamp(_settings.TimeoutSeconds, 60, 360)));
-            using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-                timeout.Token,
-                _operationCancellationToken);
-            using var requestContent = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            var response = await AccountedImageAsync(draftId, step, model, () => client.PostAsync(
-                $"{_settings.BaseUrl.TrimEnd('/')}/images/generations",
-                requestContent,
-                linkedCancellation.Token));
-            var statusCode = (int)response.StatusCode;
-            if (attempt == maxAttempts || (statusCode != 429 && statusCode < 500))
-            {
-                return response;
-            }
-
-            var retryDelay = response.Headers.RetryAfter?.Delta
-                ?? TimeSpan.FromSeconds(Math.Pow(2, attempt));
-            retryDelay = TimeSpan.FromSeconds(Math.Clamp(retryDelay.TotalSeconds, 1, 30));
-            _logger.LogWarning(
-                "OpenAI image generation returned HTTP {StatusCode}; retrying attempt {NextAttempt}/{MaxAttempts} after {DelaySeconds:n0}s.",
-                statusCode,
-                attempt + 1,
-                maxAttempts,
-                retryDelay.TotalSeconds);
-            response.Dispose();
-            await Task.Delay(retryDelay, _operationCancellationToken);
-        }
-
-        throw new InvalidOperationException("OpenAI image retry loop exited unexpectedly.");
-    }
-
-    private static Dictionary<string, object> BuildImagePayload(
-        string model,
-        string prompt,
-        string size,
-        bool useTransparent,
-        string? quality)
-    {
-        var payload = new Dictionary<string, object>
-        {
-            ["model"] = model,
-            ["prompt"] = prompt,
-            ["size"] = size,
-            ["n"] = 1
-        };
-
-        if (useTransparent)
-        {
-            payload["background"] = "transparent";
-            payload["output_format"] = "png";
-        }
-
-        if (!string.IsNullOrWhiteSpace(quality))
-        {
-            payload["quality"] = NormalizeImageQuality(quality);
-        }
-
-        return payload;
-    }
-
-    private static string NormalizeImageQuality(string? quality) => quality?.Trim().ToLowerInvariant() switch
-    {
-        "low" => "low",
-        "medium" => "medium",
-        "high" => "high",
-        "auto" => "auto",
-        _ => "high"
-    };
-
-    private static bool SupportsTransparentImageParameter(string model) =>
-        !string.Equals(model, "gpt-image-2", StringComparison.OrdinalIgnoreCase);
-
-    private async Task<bool> TryWriteFallbackImageAsync(string draftId, string step, string prompt, string filePath, string reason)
-    {
-        var assetsRoot = FindUpwards("src/FE/public/assets");
-        if (assetsRoot is null)
-        {
-            return false;
-        }
-
-        var candidates = GetFallbackImageCandidates(assetsRoot, step)
-            .Where(File.Exists)
-            .ToList();
-        if (candidates.Count == 0)
-        {
-            return false;
-        }
-
-        var selected = candidates[(step.GetHashCode() & int.MaxValue) % candidates.Count];
-        Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-        File.Copy(selected, filePath, overwrite: true);
-        await LogGenerationAsync(draftId, ProviderName, step, "FALLBACK", prompt, $"copied {selected} to {filePath}", reason);
-        return true;
-    }
-
-    private static IEnumerable<string> GetFallbackImageCandidates(string assetsRoot, string step)
-    {
-        if (step.StartsWith("GenerateBackground:", StringComparison.Ordinal))
-        {
-            return new[]
-            {
-                Path.Combine(assetsRoot, "scenes", "lobby.png"),
-                Path.Combine(assetsRoot, "scenes", "dressing-room.png"),
-                Path.Combine(assetsRoot, "scenes", "owners-office.png"),
-                Path.Combine(assetsRoot, "scenes", "backstage-hallway.png"),
-                Path.Combine(assetsRoot, "scenes", "props-room.png")
-            };
-        }
-
-        if (step.StartsWith("GenerateCharacterSprite:", StringComparison.Ordinal))
-        {
-            return new[]
-            {
-                Path.Combine(assetsRoot, "characters", "mona-sprite.png"),
-                Path.Combine(assetsRoot, "characters", "samuel-sprite.png"),
-                Path.Combine(assetsRoot, "characters", "victor-sprite.png"),
-                Path.Combine(assetsRoot, "characters", "eleanor-sprite.png")
-            };
-        }
-
-        if (step.StartsWith("GenerateItem:", StringComparison.Ordinal))
-        {
-            return new[]
-            {
-                Path.Combine(assetsRoot, "items", "ledger.png"),
-                Path.Combine(assetsRoot, "items", "letter.png"),
-                Path.Combine(assetsRoot, "items", "key.png"),
-                Path.Combine(assetsRoot, "items", "pawn-ticket.png"),
-                Path.Combine(assetsRoot, "items", "cyanide-bottle.png"),
-                Path.Combine(assetsRoot, "items", "scratched-photo.png"),
-                Path.Combine(assetsRoot, "items", "makeup-kit.png"),
-                Path.Combine(assetsRoot, "items", "body.png")
-            };
-        }
-
-        return new[]
-        {
-            Path.Combine(assetsRoot, "cases", "lumiere-murder.png")
-        };
-    }
-
-    private static async Task<byte[]> ExtractImageBytesAsync(
-        HttpClient client,
-        string responseBody,
-        CancellationToken cancellationToken)
-    {
-        using var doc = JsonDocument.Parse(responseBody);
-        var first = doc.RootElement.GetProperty("data")[0];
-        if (first.TryGetProperty("b64_json", out var b64) && b64.ValueKind == JsonValueKind.String)
-        {
-            return Convert.FromBase64String(b64.GetString() ?? string.Empty);
-        }
-
-        if (first.TryGetProperty("url", out var url) && url.ValueKind == JsonValueKind.String)
-        {
-            return await client.GetByteArrayAsync(url.GetString(), cancellationToken);
-        }
-
-        throw ApiException.BadGateway("OpenAI image response did not include image bytes.");
-    }
-
     private static ScenePlacementPlan ParseAndSanitizePlacementPlan(
         string json,
         GameCase gameCase,
@@ -4603,7 +3977,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
         catch (JsonException)
         {
-            throw ApiException.BadGateway("OpenAI placement plan could not be parsed.");
+            throw ApiException.BadGateway("The placement plan could not be parsed.");
         }
 
         plan ??= new ScenePlacementPlan();
@@ -4689,6 +4063,75 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             nextScene,
             new SceneRuntime { Width = RuntimeWidth, Height = RuntimeHeight });
         return plan;
+    }
+
+    /// <summary>Deterministic answer to a scene placement step, used by mock mode and the bridge smoke test.</summary>
+    internal static string BuildMockPlacementPlanJson(GameCase gameCase, CaseScene scene)
+    {
+        var node = JsonSerializer.SerializeToNode(BuildMockPlacementPlan(gameCase, scene), PrettyJson)!.AsObject();
+        node["backgroundQa"] = new JsonObject
+        {
+            ["pixelArtMatch"] = true,
+            ["prohibitedTextFound"] = false,
+            ["prohibitedUiFound"] = false,
+            ["duplicateEmbeddedTargetFound"] = false,
+            ["unexpectedForegroundContentFound"] = false,
+            ["unexpectedCutoutItemIds"] = new JsonArray(),
+            ["sceneMatch"] = true,
+            ["notes"] = "Deterministic mock layout."
+        };
+        return node.ToJsonString(PrettyJson);
+    }
+
+    /// <summary>Deterministic answer to a placement verification step: every planned placement is accepted.</summary>
+    internal static string BuildMockPlacementVerificationJson(CaseScene scene) => new JsonObject
+    {
+        ["placements"] = new JsonArray((scene.PlacementPlan?.Placements ?? new List<PlannedPlacement>())
+            .Select(placement => (JsonNode)new JsonObject
+            {
+                ["type"] = placement.Type,
+                ["id"] = placement.Id,
+                ["accepted"] = true,
+                ["styleMatch"] = true,
+                ["identityMatch"] = true,
+                ["smallPortableObject"] = true,
+                ["reason"] = "Deterministic mock verification."
+            }).ToArray())
+    }.ToJsonString(PrettyJson);
+
+    private static ScenePlacementPlan BuildMockPlacementPlan(GameCase gameCase, CaseScene scene)
+    {
+        var cameraClues = gameCase.Clues
+            .Where(clue => IsCameraClue(clue) && clue.SceneId == scene.SceneId)
+            .ToList();
+        return new ScenePlacementPlan
+        {
+            SceneId = scene.SceneId,
+            Width = RuntimeWidth,
+            Height = RuntimeHeight,
+            FloorY = 720,
+            WalkableArea = new RuntimeBox { X = 0, Y = 480, Width = RuntimeWidth, Height = 240 },
+            ClueZones = cameraClues.Select((clue, index) => new ClueZone
+            {
+                ClueId = clue.ClueId,
+                Label = clue.Title,
+                Bounds = new RuntimeBox
+                {
+                    X = 220 + (index % 4) * 300,
+                    Y = 260 + (index / 4) * 150,
+                    Width = 120,
+                    Height = 90
+                },
+                Shape = "rect",
+                Visibility = "medium",
+                DetectionDifficulty = "medium",
+                DetectionStatus = "FOUND",
+                Confidence = 0.95,
+                Source = "mock-layout",
+                IsFallback = false,
+                Reason = "Deterministic no-provider layout used by the mock workflow."
+            }).ToList()
+        };
     }
 
     private static void ApplyDeterministicMockSceneLayout(GameCase gameCase)
@@ -4861,123 +4304,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             string.Equals(p.Id, id, StringComparison.Ordinal))
         ?? throw ApiException.BadGateway($"Placement plan {plan.SceneId} is missing {type} {id}.");
 
-    private static async Task<string> CreatePlacementContextAsync(
-        string caseAssetsRoot,
-        string backgroundPath,
-        CaseScene scene,
-        PlannedPlacement placement)
-    {
-        var contextPath = Path.Combine(
-            caseAssetsRoot,
-            "references",
-            $"{Slugify(scene.SceneId)}-{NormalizePlacementType(placement.Type)}-{Slugify(placement.Id)}.png");
-        await GeneratedImageProcessor.CreatePlacementContextAsync(
-            backgroundPath,
-            contextPath,
-            placement.X,
-            placement.Y,
-            placement.Width,
-            placement.Height,
-            placement.Anchor);
-        return contextPath;
-    }
-
-    private static List<VisionImageInput> BuildAssetReferenceInputs(
-        CaseScene scene,
-        PlannedPlacement placement,
-        string backgroundPath,
-        string contextPath) =>
-        new()
-        {
-            new($"FULL BACKGROUND {scene.SceneId}: preserve its art style, perspective and lighting", backgroundPath),
-            new($"LOCAL PLACEMENT CROP for {placement.Type} {placement.Id} at x={placement.X:0}, y={placement.Y:0}", contextPath)
-        };
-
-    private static string CharacterSpritePath(string caseAssetsRoot, string characterId) =>
-        Path.Combine(caseAssetsRoot, "characters", CharacterAssetStyleVersion, $"{Slugify(characterId)}-sprite.png");
-
-    private static string CharacterSpriteUrl(string assetRootUrl, string characterId) =>
-        $"{assetRootUrl}/characters/{CharacterAssetStyleVersion}/{Slugify(characterId)}-sprite.png";
-
-    private static List<VisionImageInput> BuildLayoutVisionInputs(
-        CaseScene scene,
-        GameCase gameCase,
-        string caseAssetsRoot,
-        string backgroundPath)
-    {
-        var images = new List<VisionImageInput>
-        {
-            new($"BACKGROUND {scene.SceneId}: {scene.Title} (already normalized to {RuntimeWidth}x{RuntimeHeight})", backgroundPath)
-        };
-
-        foreach (var item in gameCase.Items.Where(item => scene.ItemIds.Contains(item.ItemId) && ShouldGenerateItemAsset(gameCase, item)))
-        {
-            images.Add(new(
-                $"ITEM {item.ItemId}: {item.Name}. Use this exact cutout aspect when placing it.",
-                Path.Combine(caseAssetsRoot, "items", $"{Slugify(item.ItemId)}.png")));
-        }
-
-        foreach (var character in gameCase.Characters.Where(character => scene.CharacterIds.Contains(character.CharacterId)))
-        {
-            images.Add(new(
-                $"NPC {character.CharacterId}: {character.Name}. Full-body sprite, feet should sit on the floor.",
-                CharacterSpritePath(caseAssetsRoot, character.CharacterId)));
-        }
-
-        return images;
-    }
-
-    private async Task<string> GenerateJsonWithOpenAiVisionAsync(string draftId, string step, string prompt, IReadOnlyList<VisionImageInput> images, int maxOutputTokens)
-    {
-        if (_settings.BlocksAssetCalls)
-        {
-            await RecordPlannedCallAsync(draftId, step, "vision", wouldCallApi: false, AssetBlockReason());
-            throw ApiException.BadRequest("Vision layout generation is disabled by dry-run/safety settings.");
-        }
-
-        if (images.Count == 0)
-        {
-            throw ApiException.BadGateway("OpenAI vision request needs at least one image.");
-        }
-
-        var requestContent = new List<object>
-        {
-            new { type = "input_text", text = prompt }
-        };
-
-        foreach (var image in images)
-        {
-            var bytes = await File.ReadAllBytesAsync(image.Path, _operationCancellationToken);
-            var imageDataUrl = $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
-            requestContent.Add(new { type = "input_text", text = $"Reference image: {image.Label}" });
-            requestContent.Add(new { type = "input_image", image_url = imageDataUrl });
-        }
-
-        var payload = new
-        {
-            model = _settings.LogicModel,
-            instructions = "You inspect game scene backgrounds and transparent cutout assets, then return exact JSON layout metadata. Return exactly one valid JSON object. No markdown fences or commentary.",
-            input = new object[]
-            {
-                new
-                {
-                    role = "user",
-                    content = requestContent
-                }
-            },
-            text = new
-            {
-                format = new { type = "json_object" }
-            },
-            max_output_tokens = maxOutputTokens
-        };
-
-        const string schemaVersion = "scene-vision-layout-v1";
-        return await GenerateJsonWithOpenAiAsync(draftId, step, prompt, maxOutputTokens, schemaVersion,
-            new JsonObject(), await NextGenerationAttemptNumberAsync(draftId, schemaVersion),
-            payloadOverride: payload, kind: "vision");
-    }
-
     private static ScenePlacementPlan ApplyPlacementVerification(ScenePlacementPlan plan, string verificationJson)
     {
         JsonDocument document;
@@ -4987,7 +4313,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
         catch (JsonException)
         {
-            throw ApiException.BadGateway("OpenAI placement verification could not be parsed.");
+            throw ApiException.BadGateway("The placement verification could not be parsed.");
         }
 
         using (document)
@@ -4995,7 +4321,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             if (!document.RootElement.TryGetProperty("placements", out var placements) ||
                 placements.ValueKind != JsonValueKind.Array)
             {
-                throw ApiException.BadGateway("OpenAI placement verification did not include placements.");
+                throw ApiException.BadGateway("The placement verification did not include placements.");
             }
 
             foreach (var adjustment in placements.EnumerateArray())
@@ -5041,8 +4367,12 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             ? value
             : fallback;
 
-    private static SceneRuntime BuildRuntimeFromPlacementPlan(CaseScene scene, GameCase gameCase)
+    private static SceneRuntime BuildRuntimeFromPlacementPlan(
+        CaseScene scene,
+        GameCase gameCase,
+        IReadOnlyDictionary<string, string>? spriteUrls = null)
     {
+        var previousRuntime = scene.Runtime;
         var plan = scene.PlacementPlan ?? throw ApiException.BadGateway($"Scene {scene.SceneId} has no placement plan.");
         var itemMap = gameCase.Items.ToDictionary(item => item.ItemId, StringComparer.Ordinal);
         var characterMap = gameCase.Characters.ToDictionary(character => character.CharacterId, StringComparer.Ordinal);
@@ -5109,7 +4439,9 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 runtime.CharacterPlacements.Add(new CharacterPlacement
                 {
                     CharacterId = character.CharacterId,
-                    Asset = CharacterSpriteUrlFromPortrait(character.ImageUrl, character.CharacterId),
+                    Asset = spriteUrls is not null && spriteUrls.TryGetValue(character.CharacterId, out var sprite)
+                        ? sprite
+                        : character.ImageUrl,
                     Position = new RuntimePoint { X = placement.X, Y = placement.Y, Anchor = "bottom-center" },
                     Size = new RuntimeSize { Width = placement.Width, Height = placement.Height },
                     Hotspot = box,
@@ -5121,6 +4453,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             }
         }
 
+        if (previousRuntime is not null)
+        {
+            runtime.Audio = previousRuntime.Audio;
+            runtime.Weather = previousRuntime.Weather;
+            runtime.Indoor = previousRuntime.Indoor;
+            runtime.TimeOfDay = previousRuntime.TimeOfDay;
+        }
         return runtime;
     }
 
@@ -5140,13 +4479,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 Width = placement.Width,
                 Height = placement.Height
             };
-
-    private static string CharacterSpriteUrlFromPortrait(string portraitUrl, string characterId)
-    {
-        var slash = portraitUrl.LastIndexOf('/');
-        var folder = slash >= 0 ? portraitUrl[..(slash + 1)] : string.Empty;
-        return $"{folder}{Slugify(characterId)}-sprite.png";
-    }
 
     private static Dictionary<string, SpawnPoint> SanitizeSpawnPoints(Dictionary<string, SpawnPoint> spawnPoints, SceneRuntime runtime)
     {
@@ -5973,97 +5305,6 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
     }
 
-    private async Task RegenerateFailedCutoutsAsync(
-        AiCaseDraft draft,
-        GameCase gameCase,
-        CaseScene scene,
-        string caseAssetsRoot,
-        string backgroundPath,
-        IReadOnlyList<VisionImageInput>? characterStyleReferences,
-        AiAssetManifest manifest,
-        IReadOnlyCollection<PlacementQaFailure> failures)
-    {
-        foreach (var failure in failures
-                     .Where(failure => !string.IsNullOrWhiteSpace(failure.Id))
-                     .DistinctBy(failure => $"{failure.Type}:{failure.Id}"))
-        {
-            if (failure.Type == "npc")
-            {
-                var character = gameCase.Characters.FirstOrDefault(candidate => candidate.CharacterId == failure.Id);
-                if (character is null) continue;
-                var prompt = $"{BuildCharacterMasterSpritePrompt(character)}\nCritical visual QA correction: {failure.Reason}";
-                var spritePath = CharacterSpritePath(caseAssetsRoot, character.CharacterId);
-                var spriteInfo = await GenerateCutoutFileAsync(
-                    draft.Id,
-                    $"GenerateCharacterSprite:{character.CharacterId}:RetryVisualQa",
-                    prompt,
-                    "1024x1536",
-                    spritePath,
-                    references: characterStyleReferences,
-                    forceRegenerate: true,
-                    quality: NormalizeImageQuality(_settings.CharacterImageQuality));
-                var spriteUrl = CharacterSpriteUrl(manifest.AssetRootUrl, character.CharacterId);
-                var portraitPath = Path.Combine(caseAssetsRoot, "characters", CharacterAssetStyleVersion, $"{Slugify(character.CharacterId)}-portrait.png");
-                var portraitInfo = await GeneratedImageProcessor.CreateCharacterPortraitAsync(spritePath, portraitPath);
-                character.ImageUrl = $"{manifest.AssetRootUrl}/characters/{CharacterAssetStyleVersion}/{Slugify(character.CharacterId)}-portrait.png";
-                manifest.Assets.RemoveAll(asset => asset.TargetId == character.CharacterId && asset.AssetType.StartsWith("character-", StringComparison.Ordinal));
-                manifest.Assets.Add(NewAsset("character-sprite", character.CharacterId, spriteUrl, spritePath, prompt, spriteInfo, CutoutImageModel));
-                manifest.Assets.Add(NewAsset("character-portrait", character.CharacterId, character.ImageUrl, portraitPath,
-                    $"Derived locally from canonical sprite {spriteUrl} after visual QA retry.", portraitInfo, CutoutImageModel));
-                continue;
-            }
-
-            if (failure.Type == "item")
-            {
-                var item = gameCase.Items.FirstOrDefault(candidate => candidate.ItemId == failure.Id);
-                if (item is null || ItemRenderMode(item) != CaseItemRenderModes.Cutout) continue;
-                var placement = FindPlannedPlacement(scene.PlacementPlan!, "item", item.ItemId);
-                var contextPath = await CreatePlacementContextAsync(caseAssetsRoot, backgroundPath, scene, placement);
-                var prompt = $"{BuildItemImagePrompt(draft, item, scene, placement)}\nCritical visual QA correction: {failure.Reason}";
-                var itemPath = Path.Combine(caseAssetsRoot, "items", $"{Slugify(item.ItemId)}.png");
-                var itemInfo = await GenerateCutoutFileAsync(
-                    draft.Id,
-                    $"GenerateItem:{scene.SceneId}:{item.ItemId}:RetryVisualQa",
-                    prompt,
-                    "1024x1024",
-                    itemPath,
-                    BuildAssetReferenceInputs(scene, placement, backgroundPath, contextPath),
-                    forceRegenerate: true);
-                item.ImageUrl = $"{manifest.AssetRootUrl}/items/{Slugify(item.ItemId)}.png";
-                manifest.Assets.RemoveAll(asset => asset.TargetId == item.ItemId && asset.AssetType == "item");
-                manifest.Assets.Add(NewAsset("item", item.ItemId, item.ImageUrl, itemPath, prompt, itemInfo, CutoutImageModel));
-            }
-        }
-
-        await SaveAssetCheckpointAsync(draft, gameCase, manifest, AiDraftStatus.GeneratingFinalAssets);
-    }
-
-    private AiGeneratedAsset NewAsset(
-        string type,
-        string targetId,
-        string url,
-        string filePath,
-        string prompt,
-        GeneratedImageProcessResult? processing = null,
-        string? model = null) => new()
-    {
-        AssetType = type,
-        TargetId = targetId,
-        Url = url,
-        FilePath = filePath,
-        Prompt = prompt,
-        PromptSha256 = Sha256(prompt),
-        QaPassed = type != "background",
-        Model = string.IsNullOrWhiteSpace(model) ? _settings.ImageModel : model,
-        PipelineVersion = AssetPipelineVersion,
-        SourceWidth = processing?.SourceWidth,
-        SourceHeight = processing?.SourceHeight,
-        NormalizedWidth = processing?.NormalizedWidth,
-        NormalizedHeight = processing?.NormalizedHeight,
-        HasAlpha = processing?.HasAlpha,
-        ProcessingStatus = processing?.ProcessingStatus ?? string.Empty
-    };
-
     private static IEnumerable<CaseScene> OrderedScenes(GameCase gameCase) =>
         gameCase.Stages.OrderBy(s => s.Order).SelectMany(s => s.Scenes);
 
@@ -6136,12 +5377,12 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
     }
 
-    private async Task<decimal> ReserveAiAdmissionAsync(CurrentUser user, string? idempotencyKey)
+    private async Task EnsureAiAdmissionAsync(CurrentUser user)
     {
-        // Mock/dry-run generation never makes a paid upstream call, so it remains
-        // usable in local development without a production budget.
-        if (_settings.BlocksAiCalls) return 0m;
+        // Mock/dry-run generation never asks Claude, so it stays usable locally without limits.
+        if (_settings.BlocksAiCalls) return;
         EnsureCreationReady();
+        if (!_quota.Enabled) return;
 
         var activeStatuses = new[]
         {
@@ -6160,9 +5401,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 Builders<AiCaseDraft>.Filter.Ne(item => item.ActiveQuotaKey, null),
                 Builders<AiCaseDraft>.Filter.In(item => item.Status, activeStatuses)));
         if (activeCount >= _quota.MaxActiveDraftsPerUser)
-        {
             throw AiDraftQuotaSlots.ActiveLimitReached();
-        }
 
         var quotaDay = VietnamQuotaDay(DateTime.UtcNow);
         var dailyCount = await _db.AiCaseDrafts.CountDocumentsAsync(
@@ -6170,85 +5409,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 && item.QuotaDay == quotaDay
                 && item.DailyQuotaKey != null);
         if (dailyCount >= _quota.MaxCasesPerUserPerDay)
-        {
             throw AiDraftQuotaSlots.DailyLimitReached();
-        }
-
-        // Admission limits above still apply. Paid calls reserve separately when usage accounting is installed.
-        if (_usageAccounting is not null) return 0m;
-        var now = DateTime.UtcNow;
-        try
-        {
-            await _db.AiBudgetLedger.UpdateOneAsync(
-                item => item.Id == AiBudgetLedger.GlobalId,
-                Builders<AiBudgetLedger>.Update
-                    .SetOnInsert(item => item.Id, AiBudgetLedger.GlobalId)
-                    .SetOnInsert(item => item.LimitUsd, _quota.GlobalBudgetUsd)
-                    .SetOnInsert(item => item.UpdatedAt, now),
-                new UpdateOptions { IsUpsert = true });
-        }
-        catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
-        {
-            // Another admission initialized the singleton concurrently; the
-            // conditional reservation below remains the authoritative operation.
-        }
-
-        var available = new BsonDocumentFilterDefinition<AiBudgetLedger>(new BsonDocument
-        {
-            { "_id", AiBudgetLedger.GlobalId },
-            { "$expr", new BsonDocument("$and", new BsonArray
-                {
-                    new BsonDocument("$eq", new BsonArray { "$limitUsd", BsonDecimal128.Create(_quota.GlobalBudgetUsd) }),
-                    new BsonDocument("$lte", new BsonArray
-                    {
-                        new BsonDocument("$add", new BsonArray { "$reservedUsd", "$spentUsd", BsonDecimal128.Create(_quota.EstimatedCaseCostUsd) }),
-                        "$limitUsd"
-                    })
-                }) }
-        });
-        var reserved = await _db.AiBudgetLedger.FindOneAndUpdateAsync(
-            available,
-            Builders<AiBudgetLedger>.Update
-                .Inc(item => item.ReservedUsd, _quota.EstimatedCaseCostUsd)
-                .Set(item => item.UpdatedAt, now),
-            new FindOneAndUpdateOptions<AiBudgetLedger> { ReturnDocument = ReturnDocument.After });
-        if (reserved is null)
-        {
-            throw ApiException.Conflict(
-                "The shared AI budget is exhausted.",
-                "AI_GLOBAL_BUDGET_EXHAUSTED",
-                "ai.quota.budgetExhausted");
-        }
-
-        return _quota.EstimatedCaseCostUsd;
-    }
-
-    private async Task ReleaseAiReservationAsync(decimal amount)
-    {
-        await SettleAiReservationAsync(amount, charge: false);
-    }
-
-    private async Task SettleAiReservationAsync(decimal amount, bool charge)
-    {
-        if (amount <= 0m) return;
-        var update = Builders<AiBudgetLedger>.Update
-            .Inc(item => item.ReservedUsd, -amount)
-            .Set(item => item.UpdatedAt, DateTime.UtcNow);
-        if (charge)
-        {
-            update = update.Inc(item => item.SpentUsd, amount);
-        }
-
-        var settled = await _db.AiBudgetLedger.UpdateOneAsync(
-            item => item.Id == AiBudgetLedger.GlobalId && item.ReservedUsd >= amount,
-            update);
-        if (settled.MatchedCount == 0)
-        {
-            _logger.LogWarning(
-                "AI budget reservation reconciliation found no matching reservation for {Amount} USD (charge={Charge}).",
-                amount,
-                charge);
-        }
     }
 
     private static string NormalizeIdempotencyKey(string? key) =>
@@ -6261,7 +5422,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         return TimeZoneInfo.ConvertTimeFromUtc(utc, zone).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    private static void EnsureDraftAccess(CurrentUser user, AiCaseDraft draft)
+    internal static void EnsureDraftAccess(CurrentUser user, AiCaseDraft draft)
     {
         if (string.Equals(user.Role, UserRole.Admin, StringComparison.OrdinalIgnoreCase))
         {
@@ -6412,6 +5573,16 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         FilterDefinition<AiCaseDraft> filter = Builders<AiCaseDraft>.Filter.Eq(draft => draft.Id, draftId);
         if (!string.IsNullOrWhiteSpace(attempt.GenerationRunId))
             filter &= Builders<AiCaseDraft>.Filter.Eq(draft => draft.GenerationRunId, attempt.GenerationRunId);
+        // A run parked for Claude replays from its checkpoint; the same attempt must not be recorded twice, or the
+        // attempt numbers derived from this history (and the bridge request keys built from them) would drift.
+        filter &= Builders<AiCaseDraft>.Filter.Not(Builders<AiCaseDraft>.Filter.ElemMatch(
+            draft => draft.GenerationAttempts,
+            Builders<AiGenerationAttempt>.Filter.And(
+                Builders<AiGenerationAttempt>.Filter.Eq(item => item.Step, attempt.Step),
+                Builders<AiGenerationAttempt>.Filter.Eq(item => item.AttemptNumber, attempt.AttemptNumber),
+                Builders<AiGenerationAttempt>.Filter.Eq(item => item.SchemaVersion, attempt.SchemaVersion),
+                Builders<AiGenerationAttempt>.Filter.Eq(item => item.ResponseSha256, attempt.ResponseSha256),
+                Builders<AiGenerationAttempt>.Filter.Eq(item => item.GenerationRunId, attempt.GenerationRunId))));
         await _db.AiCaseDrafts.UpdateOneAsync(
             filter,
             Builders<AiCaseDraft>.Update
@@ -6431,7 +5602,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         {
             Step = $"{step}:Validation",
             AttemptNumber = attemptNumber,
-            Model = _settings.LogicModel,
+            Model = ProviderName,
+            GenerationRunId = draft.GenerationRunId,
             PromptVersion = CaseLogicPromptVersion(draft),
             SchemaVersion = CaseLogicSchemaVersion(draft),
             Status = "FAILED",

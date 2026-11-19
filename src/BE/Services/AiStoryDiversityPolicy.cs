@@ -126,6 +126,90 @@ internal static class AiStoryDiversityPolicy
         "a mountain observatory hosting a small scientific delegation"
     ];
 
+    /// <summary>
+    /// Settings a draft may draw for each world (plan section 7). A world's draft never draws a place from another
+    /// world. Drafts without a world (created before orders existed) keep the original <see cref="Settings"/>.
+    /// </summary>
+    internal static readonly IReadOnlyDictionary<string, string[]> WorldSettings = new Dictionary<string, string[]>(StringComparer.Ordinal)
+    {
+        [AiCaseWorlds.HangDuongVictorian] =
+        [
+            "the Hang Duong harbor quays and warehouses during a night shift",
+            "the Hang Duong railway station and its square",
+            "the covered market streets of Hang Duong",
+            "a lakeside park and boathouse in Hang Duong",
+            "a villa quarter of Hang Duong with private townhouses",
+            "a clockmaker's and goldsmith's row on Hang Duong street",
+            "a Hang Duong tailor's shop and the bookshop beside it",
+            "a Hang Duong print works and newspaper office",
+            "a Hang Duong tavern and tea room on a busy evening",
+            "a Hang Duong grand hotel with its lobby and guest rooms",
+            "the Hang Duong police station and its records room",
+            "a Hang Duong doctor's surgery",
+            "the backstage of a Hang Duong theatre during a premiere",
+            "a Hang Duong townhouse study, bedroom, attic and wine cellar",
+            "an isolated manor and its service passages",
+            "a private museum during an inventory lockdown",
+            "a mountain observatory hosting a small scientific delegation"
+        ],
+        [AiCaseWorlds.TaishoJapan] =
+        [
+            "a lantern-lit street of wooden houses in Taisho-era Japan",
+            "a Taisho-era tram station and its waiting hall",
+            "a shrine precinct and its garden during a festival night",
+            "a Taisho-era tea house with private rooms",
+            "a kimono shop and its storeroom",
+            "a tatami boarding house for students and clerks",
+            "the backstage of a kabuki theatre",
+            "a Taisho-era police station",
+            "a traditional pharmacy with its drawer wall",
+            "a Western-style department store opening a new floor",
+            "a public bathhouse at closing time"
+        ],
+        [AiCaseWorlds.Shanghai1930] =
+        [
+            "a neon-lit concession street in 1930s Shanghai",
+            "a riverside wharf on the Huangpu at night",
+            "a shikumen stone-gate lane and its courtyard houses",
+            "a 1930s Shanghai teahouse",
+            "a traditional Chinese herbal medicine shop",
+            "a pawnshop behind a high counter",
+            "a singing hall during a late show",
+            "a qipao tailor's workshop",
+            "a print shop producing a tabloid",
+            "a private detective's office above a shop",
+            "a mahjong parlor with private rooms"
+        ],
+        [AiCaseWorlds.NewWorld] =
+        [
+            "an original locale defined by the creator's idea, kept to 1900-1935 technology"
+        ]
+    };
+
+    internal static readonly IReadOnlyDictionary<string, string[]> WorldEras = new Dictionary<string, string[]>(StringComparer.Ordinal)
+    {
+        [AiCaseWorlds.HangDuongVictorian] =
+        [
+            "late Victorian gaslight society",
+            "the early Edwardian period",
+            "a restrained alternate gaslamp history with no digital technology"
+        ],
+        [AiCaseWorlds.TaishoJapan] =
+        [
+            "Taisho-era Japan (1912-1926), gas lamps giving way to electric light",
+            "late Taisho city life with trams, cafes and Western department stores"
+        ],
+        [AiCaseWorlds.Shanghai1930] =
+        [
+            "1930s Shanghai between the International Settlement and the old city",
+            "a jazz-age treaty-port city of the 1930s"
+        ],
+        [AiCaseWorlds.NewWorld] =
+        [
+            "an original world set between 1900 and 1935 as the creator describes it"
+        ]
+    };
+
     private static readonly string[] Eras =
     [
         "late Victorian gaslight society",
@@ -216,8 +300,10 @@ internal static class AiStoryDiversityPolicy
         "use travel time to invalidate an otherwise plausible alibi"
     ];
 
-    public static AiStoryDiversityProfile Create(string? requestedCaseType, string? seed = null)
+    public static AiStoryDiversityProfile Create(string? requestedCaseType, string? seed = null, string? world = null)
     {
+        var settings = world is not null && WorldSettings.TryGetValue(world, out var worldSettings) ? worldSettings : Settings;
+        var eras = world is not null && WorldEras.TryGetValue(world, out var worldEras) ? worldEras : Eras;
         var normalizedRequest = AiCaseTypes.Normalize(requestedCaseType);
         var effectiveSeed = string.IsNullOrWhiteSpace(seed) ? Guid.NewGuid().ToString("N") : seed.Trim();
         var concreteType = normalizedRequest == AiCaseTypes.Random
@@ -229,8 +315,8 @@ internal static class AiStoryDiversityPolicy
             Seed = effectiveSeed,
             RequestedCaseType = normalizedRequest,
             CaseType = concreteType,
-            SettingArchetype = Pick(Settings, effectiveSeed, "setting"),
-            EraFlavor = Pick(Eras, effectiveSeed, "era"),
+            SettingArchetype = Pick(settings, effectiveSeed, "setting"),
+            EraFlavor = Pick(eras, effectiveSeed, "era"),
             IncidentPattern = Pick(IncidentPatterns, effectiveSeed, "incident"),
             EvidenceMotif = Pick(EvidenceMotifs, effectiveSeed, "evidence"),
             CulpritRelationship = Pick(Relationships, effectiveSeed, "relationship"),
@@ -246,7 +332,8 @@ internal static class AiStoryDiversityPolicy
     public static AiStoryDiversityProfile CreateDistinct(
         string? requestedCaseType,
         string seed,
-        IEnumerable<AiStoryDiversityProfile> recentProfiles)
+        IEnumerable<AiStoryDiversityProfile> recentProfiles,
+        string? world = null)
     {
         var history = recentProfiles.Where(IsUsable).Take(50).ToList();
         AiStoryDiversityProfile? best = null;
@@ -255,7 +342,7 @@ internal static class AiStoryDiversityPolicy
         for (var attempt = 0; attempt < 32; attempt++)
         {
             var candidateSeed = attempt == 0 ? seed : $"{seed}:{attempt}";
-            var candidate = Create(requestedCaseType, candidateSeed);
+            var candidate = Create(requestedCaseType, candidateSeed, world);
             var maximumSimilarity = history.Count == 0
                 ? 0
                 : history.Max(previous => StructuralSimilarity(candidate, previous));
@@ -267,7 +354,7 @@ internal static class AiStoryDiversityPolicy
             }
         }
 
-        return best ?? Create(requestedCaseType, seed);
+        return best ?? Create(requestedCaseType, seed, world);
     }
 
     public static double StructuralSimilarity(AiStoryDiversityProfile left, AiStoryDiversityProfile right)

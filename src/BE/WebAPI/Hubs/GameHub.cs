@@ -7,6 +7,8 @@ using MongoDB.Bson;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.Models;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Market;
+using SirLocked.Api.Services.TeamComms;
 
 namespace SirLocked.Api.WebAPI.Hubs;
 
@@ -16,15 +18,26 @@ public class GameHub : Hub
     private static readonly RoomPresenceTracker Presence = new();
     private static readonly ConcurrentDictionary<string, long> LastPoseTicks = new();
     private static readonly TimeSpan PoseInterval = TimeSpan.FromMilliseconds(50);
+    private static readonly HashSet<string> PixelFacings = new(StringComparer.Ordinal)
+    {
+        "south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"
+    };
     private readonly MongoDbContext _db;
     private readonly RoomDisconnectTimeoutService _disconnectTimeout;
+    private readonly LobbyEntranceService _entrances;
     private readonly ILogger<GameHub> _logger;
     private static readonly CooperativePingPolicy PingPolicy = new();
+    /// <summary>Who has the voice channel of each match open. In memory, like <see cref="Presence"/>.</summary>
+    internal static readonly VoiceRoomRegistry Voice = new();
+    private static readonly SlidingWindowLimiter VoiceSignals = SlidingWindowLimiter.ForVoiceSignals();
+    public const string VoiceStateEvent = "VoiceState";
+    public const string VoiceSignalEvent = "VoiceSignal";
 
-    public GameHub(MongoDbContext db, RoomDisconnectTimeoutService disconnectTimeout, ILogger<GameHub> logger)
+    public GameHub(MongoDbContext db, RoomDisconnectTimeoutService disconnectTimeout, LobbyEntranceService entrances, ILogger<GameHub> logger)
     {
         _db = db;
         _disconnectTimeout = disconnectTimeout;
+        _entrances = entrances;
         _logger = logger;
     }
 
@@ -78,10 +91,23 @@ public class GameHub : Hub
             roomId,
             version = room.GameplayState?.Version ?? 0
         });
+        try
+        {
+            // After joining the group, so the arriving player sees their own entrance too.
+            await _entrances.AnnounceAsync(roomId, userId!, Context.ConnectionAborted);
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            // Cosmetic only: a player must still get into the room.
+            _logger.LogWarning(error, "Could not announce the entrance of {UserId} in room {RoomId}.", userId, roomId);
+        }
     }
 
     public async Task LeaveRoom(string roomId)
     {
+        var userId = Context.UserIdentifier;
+        if (!string.IsNullOrEmpty(userId) && Voice.Leave(roomId, userId, Context.ConnectionId))
+            await AnnounceVoiceAsync(roomId, userId, inVoice: false, micOn: false);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomGroup(roomId));
         Context.Items.Remove(RoomPlayerItemKey(roomId));
         JoinedRooms().TryRemove(roomId, out _);
@@ -90,6 +116,17 @@ public class GameHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        foreach (var (roomId, userId) in Voice.LeaveAll(Context.ConnectionId))
+        {
+            try
+            {
+                await AnnounceVoiceAsync(roomId, userId, inVoice: false, micOn: false);
+            }
+            catch (Exception error)
+            {
+                _logger.LogWarning(error, "Could not announce that {UserId} left voice in room {RoomId}.", userId, roomId);
+            }
+        }
         foreach (var roomId in JoinedRooms().Keys)
         {
             try
@@ -129,6 +166,8 @@ public class GameHub : Hub
         var x = Math.Clamp(pose.X, 0, 5000);
         var y = Math.Clamp(pose.Y, 0, 5000);
         var direction = string.Equals(pose.Direction, "left", StringComparison.OrdinalIgnoreCase) ? "left" : "right";
+        // Pixel scenes animate eight facings; anything else is dropped so clients fall back to direction.
+        var facing = pose.Facing is { } requested && PixelFacings.Contains(requested) ? requested : null;
 
         await Clients.OthersInGroup(RoomGroup(roomId)).SendAsync("PlayerPoseUpdated", new
         {
@@ -140,10 +179,80 @@ public class GameHub : Hub
             x,
             y,
             direction,
+            facing,
             moving = pose.Moving,
             updatedAt = DateTime.UtcNow
         });
     }
+
+    // ------------------------------------------------------------------ voice between the two detectives
+    // The audio goes browser to browser (WebRTC). The server only checks who may talk and passes the set-up messages
+    // (offer, answer, ICE candidates) from one player's open voice channel to the other's.
+
+    /// <summary>Opens the caller's voice channel. Returns who already has theirs open; the one with the smaller id calls the other.</summary>
+    public async Task<VoiceJoinResult> VoiceJoin(string roomId, bool micOn)
+    {
+        var userId = Context.UserIdentifier;
+        if (!ObjectId.TryParse(roomId, out _)) throw new HubException("Voice is open only during a two-player match.");
+        // Fresh read: a player who left the room must not get back into its voice channel.
+        var room = await _db.Rooms.Find(r => r.Id == roomId).FirstOrDefaultAsync(Context.ConnectionAborted);
+        if (!TeamCommsRules.CanTalk(room, userId)) throw new HubException("Voice is open only during a two-player match.");
+        var (others, replaced) = Voice.Join(roomId, userId!, Context.ConnectionId, micOn);
+        if (replaced is not null)
+        {
+            // The same player opened voice in another tab: the old tab closes its own.
+            await Clients.Client(replaced.ConnectionId).SendAsync(VoiceStateEvent,
+                new { roomId, userId, inVoice = false, micOn = false, replaced = true }, Context.ConnectionAborted);
+        }
+        await AnnounceVoiceAsync(roomId, userId!, inVoice: true, micOn, fresh: true);
+        return new VoiceJoinResult(others.Select(member => new VoicePeerDto(member.UserId, member.MicOn)).ToList());
+    }
+
+    public async Task VoiceMic(string roomId, bool micOn)
+    {
+        var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId) || Voice.SetMic(roomId, userId, Context.ConnectionId, micOn) is null)
+            throw new HubException("Open voice first.");
+        await AnnounceVoiceAsync(roomId, userId, inVoice: true, micOn);
+    }
+
+    public async Task VoiceLeave(string roomId)
+    {
+        var userId = Context.UserIdentifier;
+        if (!string.IsNullOrEmpty(userId) && Voice.Leave(roomId, userId, Context.ConnectionId))
+            await AnnounceVoiceAsync(roomId, userId, inVoice: false, micOn: false);
+    }
+
+    /// <summary>Passes one WebRTC set-up message to the partner, if both have voice open. Anything else is dropped.</summary>
+    public async Task VoiceSignal(string roomId, string toUserId, VoiceSignalMessage signal)
+    {
+        var userId = Context.UserIdentifier;
+        var from = string.IsNullOrEmpty(userId) ? null : Voice.Find(roomId, userId);
+        if (from is null || from.ConnectionId != Context.ConnectionId) throw new HubException("Open voice first.");
+        if (!TeamCommsRules.IsValidSignal(signal)) throw new HubException("Invalid voice signal.");
+        if (string.IsNullOrEmpty(toUserId) || toUserId == userId) return;
+        // The partner may have closed voice a moment ago: nothing to deliver.
+        var to = Voice.Find(roomId, toUserId);
+        if (to is null) return;
+        if (!VoiceSignals.TryAcquire($"{roomId}:{userId}", DateTime.UtcNow)) return;
+        await Clients.Client(to.ConnectionId).SendAsync(VoiceSignalEvent, new
+        {
+            roomId,
+            fromUserId = userId,
+            kind = signal.Kind,
+            sdp = signal.Sdp,
+            candidate = signal.Candidate,
+            sdpMid = signal.SdpMid,
+            sdpMLineIndex = signal.SdpMLineIndex
+        }, Context.ConnectionAborted);
+    }
+
+    /// <summary>
+    /// Tells the partner. <paramref name="fresh"/> marks a (re)opened channel: the partner then drops any connection it still
+    /// holds to this player, because this side starts from nothing.
+    /// </summary>
+    private Task AnnounceVoiceAsync(string roomId, string userId, bool inVoice, bool micOn, bool fresh = false) =>
+        Clients.OthersInGroup(RoomGroup(roomId)).SendAsync(VoiceStateEvent, new { roomId, userId, inVoice, micOn, fresh });
 
     private async Task<RoomPlayer?> GetRoomPlayerAsync(string roomId)
     {
@@ -253,5 +362,7 @@ public class PlayerPoseMessage
     public double X { get; set; }
     public double Y { get; set; }
     public string Direction { get; set; } = "right";
+    /// <summary>Optional eight-way facing used by pixel scenes (south, south-east, east, ...).</summary>
+    public string? Facing { get; set; }
     public bool Moving { get; set; }
 }

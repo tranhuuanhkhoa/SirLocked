@@ -55,7 +55,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
 
         return ExecuteAsync(user, roomId, (context, now) =>
         {
-            RequireRole(context.Player, PlayerRole.Interrogator);
+            RequireRole(context, PlayerRole.Interrogator);
             var (fragment, challenge) = RequireOwnedTestimony(context, user.Id, request.TestimonyFragmentId);
             RequireUnresolved(context.Room.GameplayState!, challenge.ChallengeId);
             RequireGeneratedPresetReady(context, challenge);
@@ -65,7 +65,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
                 challenge.ChallengeId,
                 fragment.Id,
                 user.Id,
-                context.Player.Role!,
+                ActingRole(context, PlayerRole.Interrogator),
                 now);
         }, PairedCommandKind.Start, cancellationToken);
     }
@@ -78,7 +78,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         CancellationToken cancellationToken = default) =>
         ExecuteAsync(user, roomId, (context, now) =>
         {
-            RequireRole(context.Player, PlayerRole.Interrogator);
+            RequireRole(context, PlayerRole.Interrogator);
             var (fragment, challenge) = RequireOwnedTestimony(context, user.Id, request.TestimonyFragmentId);
             RequireUnresolved(context.Room.GameplayState!, challenge.ChallengeId);
             return PairedConfrontationRules.ProposeTestimony(
@@ -87,7 +87,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
                 challenge.ChallengeId,
                 fragment.Id,
                 user.Id,
-                context.Player.Role!,
+                ActingRole(context, PlayerRole.Interrogator),
                 request.ExpectedRevision,
                 now);
         }, PairedCommandKind.EditTestimony, cancellationToken);
@@ -100,7 +100,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         CancellationToken cancellationToken = default) =>
         ExecuteAsync(user, roomId, (context, now) =>
         {
-            RequireRole(context.Player, PlayerRole.Investigator);
+            RequireRole(context, PlayerRole.Investigator);
             var active = context.Room.GameplayState!.ActiveConfrontation;
             var challenge = active is null
                 ? null
@@ -111,7 +111,7 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
                 attemptId,
                 request.EvidenceId,
                 user.Id,
-                context.Player.Role!,
+                ActingRole(context, PlayerRole.Investigator),
                 request.ExpectedRevision,
                 now);
         }, PairedCommandKind.SubmitEvidence, cancellationToken);
@@ -144,7 +144,8 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
                 request.ExpectedRevision,
                 isCorrect,
                 challenge.UnlockClueIds,
-                now);
+                now,
+                TutorialRules.RequiredConfirmations(context.Room));
         }, PairedCommandKind.Confirm, cancellationToken);
 
     public Task<PairedConfrontationCommandResponse> CancelAsync(
@@ -303,8 +304,10 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         string fragmentId)
     {
         var state = context.Room.GameplayState!;
+        // Open co-op shares one notebook: anything either detective heard can be used.
+        var shared = CaseRuleSets.IsOpenCoop(context.Case);
         var owned = state.TestimonyDiscoveries.Any(discovery =>
-            discovery.TestimonyFragmentId == fragmentId && discovery.DiscoveredByUserId == userId);
+            discovery.TestimonyFragmentId == fragmentId && (shared || discovery.DiscoveredByUserId == userId));
         var fragment = owned
             ? context.Case.TestimonyFragments.FirstOrDefault(candidate => candidate.Id == fragmentId)
             : null;
@@ -331,13 +334,17 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         EvidenceChallenge? challenge)
     {
         var state = context.Room.GameplayState!;
-        var owned = state.ClueDiscoveries.Any(discovery =>
-            discovery.ClueId == evidenceId && discovery.DiscoveredByUserId == userId);
+        var shared = CaseRuleSets.IsOpenCoop(context.Case);
+        var owned = shared
+            ? state.UnlockedClueIds.Contains(evidenceId)
+            : state.ClueDiscoveries.Any(discovery =>
+                discovery.ClueId == evidenceId && discovery.DiscoveredByUserId == userId);
         var evidence = owned
             ? context.Case.Clues.FirstOrDefault(candidate => candidate.ClueId == evidenceId && candidate.IsEvidence)
             : null;
+        // Open co-op: any found evidence may be put forward; a wrong pick is judged at confirm time.
         var allowedByChallenge = challenge is not null
-            && (challenge.CandidateEvidenceIds.Count == 0
+            && (shared || challenge.CandidateEvidenceIds.Count == 0
                 || challenge.CandidateEvidenceIds.Contains(evidenceId, StringComparer.Ordinal));
         if (evidence is not null && allowedByChallenge) return;
 
@@ -357,6 +364,9 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
 
     private static void RequireGeneratedPresetReady(GameplayContext context, EvidenceChallenge challenge)
     {
+        // Open co-op: a statement either detective heard can be challenged right away; the team
+        // discusses which evidence breaks it (a wrong pairing only costs a little score).
+        if (CaseRuleSets.IsOpenCoop(context.Case)) return;
         // Legacy hand-authored V3 challenges had no candidate allowlists. Keep
         // their dialogue-level behavior; all new AI V3 challenges use explicit
         // dynamic candidate lists and cannot start until their configured readiness sets exist.
@@ -380,6 +390,16 @@ public sealed class PairedConfrontationCoordinator : IPairedConfrontationCoordin
         // Deliberately avoid identifying the missing private choice or its owner.
         throw NotAvailable();
     }
+
+    /// <summary>Open co-op: either detective may take either side of a confrontation.</summary>
+    private static void RequireRole(GameplayContext context, string role)
+    {
+        if (CaseRuleSets.IsOpenCoop(context.Case) && PlayerRole.IsValid(context.Player.Role)) return;
+        RequireRole(context.Player, role);
+    }
+
+    private static string ActingRole(GameplayContext context, string expected) =>
+        CaseRuleSets.IsOpenCoop(context.Case) ? expected : context.Player.Role!;
 
     private static void RequireRole(RoomPlayer player, string role)
     {

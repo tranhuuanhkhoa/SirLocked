@@ -13,13 +13,24 @@ namespace SirLocked.Api.Services;
 public class LeaderboardService : ILeaderboardService
 {
     private readonly MongoDbContext _db;
+    private readonly LegacyCaseCatalog? _legacy;
 
-    public LeaderboardService(MongoDbContext db) => _db = db;
+    public LeaderboardService(MongoDbContext db, LegacyCaseCatalog? legacy = null)
+    {
+        _db = db;
+        _legacy = legacy;
+    }
 
     public async Task<LeaderboardDto> GetCaseLeaderboardAsync(
         string caseId, string? metric, int limit = 100,
         DateTime? after = null, DateTime? before = null, CancellationToken ct = default)
     {
+        // A hidden (legacy) case has no public ranking; its results are kept, just not shown.
+        if (_legacy is not null && await _legacy.IsHiddenAsync(caseId))
+        {
+            return new LeaderboardDto { Metric = LeaderboardMetrics.Normalize(metric), TotalRanked = 0 };
+        }
+
         var filter = Builders<GameResult>.Filter.And(
             Builders<GameResult>.Filter.Eq(r => r.CaseId, caseId),
             Builders<GameResult>.Filter.Eq(r => r.Success, true));

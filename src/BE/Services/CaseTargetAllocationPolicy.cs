@@ -27,6 +27,12 @@ public static class CaseTargetAllocationPolicy
         return ForCaseType(caseType);
     }
 
+    /// <summary>An OPEN_COOP_1 draft has exactly its level's suspects; older drafts derive them from the contract.</summary>
+    public static int RequiredSuspects(AiDraftSettings? settings, AiGenerationContract contract, string targetKind) =>
+        AiPipelineVersions.IsOpenCoop(settings)
+            ? AiDifficultyProfiles.For(settings!.Difficulty).Suspects
+            : RequiredSuspects(contract, targetKind);
+
     public static int RequiredSuspects(AiGenerationContract contract, string targetKind)
     {
         var targetCharacterSlots = targetKind == CaseTargetKinds.Character ? 1 : 0;

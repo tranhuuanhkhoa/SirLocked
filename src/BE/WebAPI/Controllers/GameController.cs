@@ -39,6 +39,26 @@ public class GameController : BaseApiController
     public async Task<ActionResult<ApiResponse<GameActionResponse>>> SolvePuzzle(string roomId, [FromBody] SolvePuzzleRequest request) =>
         Ok(await _gameplayService.SolvePuzzleAsync(Caller, roomId, request));
 
+    [HttpPost("lead-hint")]
+    public async Task<ActionResult<ApiResponse<LeadHintResponse>>> RequestLeadHint(string roomId, [FromBody] LeadHintRequest request) =>
+        Ok(await _gameplayService.RequestLeadHintAsync(Caller, roomId, request));
+
+    [HttpPost("timeline/place")]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> PlaceTimelineEvent(string roomId, [FromBody] PlaceTimelineEventRequest request) =>
+        Ok(await _gameplayService.PlaceTimelineEventAsync(Caller, roomId, request));
+
+    [HttpPost("board/pin")]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> PinBoardItem(string roomId, [FromBody] PinBoardItemRequest request) =>
+        Ok(await _gameplayService.PinBoardItemAsync(Caller, roomId, request));
+
+    [HttpPost("board/hint")]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> BoardHint(string roomId) =>
+        Ok(await _gameplayService.BoardHintAsync(Caller, roomId));
+
+    [HttpPost("puzzle-probe")]
+    public async Task<ActionResult<ApiResponse<GameActionResponse>>> ProbePuzzle(string roomId, [FromBody] ProbePuzzleRequest request) =>
+        Ok(await _gameplayService.ProbePuzzleAsync(Caller, roomId, request));
+
     [HttpPost("capture-clue")]
     [Consumes("multipart/form-data")]
     [RequestFormLimits(MultipartBodyLengthLimit = 1_100_000)]

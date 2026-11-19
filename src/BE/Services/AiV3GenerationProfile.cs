@@ -66,6 +66,9 @@ public static class AiV3GenerationProfile
         gameCase.ShortDemoProfileVersion = gameCase.GenerationPreset == AiGenerationPresets.ShortDemo
             ? draft.Settings.ShortDemoProfileVersion : 0;
         gameCase.SourceAiDraftId = draft.Id;
+        // VUAN-7: a case a VIP paid for is theirs ("Tác giả"); ADMIN orders have no author.
+        gameCase.AuthorUserId = string.Equals(draft.CreatedByRole, SirLocked.Api.Models.Enums.UserRole.Vip, StringComparison.OrdinalIgnoreCase)
+            ? draft.CreatedByUserId : string.Empty;
         gameCase.AiSemanticReviewStatus = includeReviewStatus && isV3
             ? draft.V3SemanticReview.Status
             : string.Empty;
@@ -76,7 +79,8 @@ public static class AiV3GenerationProfile
         {
             scene.BackgroundUrl = string.Empty;
             scene.PlacementPlan = null;
-            scene.Runtime = null;
+            // Layout is regenerated; the writer's atmosphere (music, weather, indoor, time of day) is content and stays.
+            scene.Runtime = CaseAtmosphere.KeepOnlyAtmosphere(scene.Runtime);
         }
         foreach (var character in gameCase.Characters) character.ImageUrl = string.Empty;
         foreach (var item in gameCase.Items) item.ImageUrl = string.Empty;
@@ -124,7 +128,7 @@ public static class AiV3GenerationProfile
         var result = new CaseValidationResult();
         if (!IsV3(gameCase)) return result;
 
-        var budget = CrackGenerationBudgets.For(gameCase.GenerationPreset);
+        var budget = CrackGenerationBudgets.For(gameCase);
         var (minimumCracks, maximumCracks) = (budget.MinCracks, budget.MaxCracks);
         if (gameCase.EvidenceChallenges.Count < minimumCracks || gameCase.EvidenceChallenges.Count > maximumCracks)
             result.Add("PresetContract", "evidenceChallenges",

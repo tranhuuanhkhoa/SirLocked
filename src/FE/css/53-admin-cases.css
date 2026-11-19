@@ -1,0 +1,421 @@
+/* Khu vụ án trong admin: danh sách, chi tiết, nhập JSON, hàng tuần (/admin/ai làm riêng).
+   Chỉ áp dụng trong body[data-area="admin"]; hệ thiết kế chung ở 60-admin-theme.css.
+   Mọi lớp mang tiền tố acs- (admin cases). File này nạp TRƯỚC 60-admin-theme.css, nên chỗ nào đè lên
+   .adm-card / .btn của theme thì viết hai lớp (.adm-card.acs-...) hoặc có #app. */
+
+/* ---------- khung trang ---------- */
+
+.acs-page { display: flex; flex-direction: column; gap: 24px; min-width: 0; line-height: 1.5; }
+.acs-page > .adm-head { margin-bottom: 0; }
+.acs-page > .adm-back-link { margin-bottom: -6px; width: fit-content; }
+.acs-code {
+  font-family: var(--adm-mono);
+  font-size: 12px;
+  color: var(--adm-muted);
+  overflow-wrap: anywhere;
+}
+.acs-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.adm-pill.acs-pill-pixel { background: var(--adm-navy); color: #f0d48c; letter-spacing: .04em; }
+.adm-pill.acs-status { min-height: 30px; }
+body[data-area="admin"] #app .acs-ai-btn svg { color: var(--adm-gold-bright); }
+
+/* ảnh bìa, hoặc ô xanh "Chưa có ảnh bìa" */
+.acs-cover {
+  display: block;
+  width: 176px;
+  height: 99px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--adm-navy);
+  image-rendering: pixelated;
+}
+.acs-cover--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--adm-on-navy-3);
+  font-size: 12px;
+  text-align: center;
+}
+.acs-cover--empty svg { color: var(--adm-gold-bright); stroke-width: 1.6; }
+
+/* ---------- danh sách vụ án ---------- */
+
+.adm-card.acs-filter-card { padding: 18px 20px; gap: 14px; }
+.acs-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.acs-search { flex: 1 1 300px; min-width: 0; background: var(--adm-paper-2) !important; }
+.acs-filter-row .adm-filter { min-height: 40px; }
+.acs-legacy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 32px;
+  font-size: 14px;
+  color: var(--adm-text-2);
+  cursor: pointer;
+}
+body[data-area="admin"] #app .acs-legacy input { margin: 0; flex: none; }
+.acs-legacy small { font-size: 13px; color: var(--adm-muted); }
+
+.acs-case-list { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.adm-card.acs-case {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  padding: 16px;
+  transition: border-color var(--m-fast);
+}
+.adm-card.acs-case:hover { border-color: #cdb27a; }
+.acs-case-main { flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+body[data-area="admin"] #app .acs-case-title {
+  font-family: var(--adm-display);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--adm-navy);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+body[data-area="admin"] #app .acs-case-title:hover { text-decoration: underline; text-underline-offset: 3px; }
+.acs-case-stats { display: flex; gap: 8px; }
+.acs-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 96px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: var(--adm-tile);
+  text-align: center;
+}
+.acs-mini strong { font-size: 18px; font-weight: 700; line-height: 1.3; color: var(--adm-navy); }
+.acs-mini span { font-size: 12px; color: var(--adm-muted); white-space: nowrap; }
+.acs-case-status { flex: 0 0 132px; display: flex; justify-content: center; }
+.acs-case-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+body[data-area="admin"] #app .acs-case-actions .btn-sm { min-height: 40px; }
+.acs-case-reason {
+  flex: 1 1 100%;
+  max-width: none; /* 10-game.css caps .v3-gate-reason, which kept it beside the buttons */
+  margin: -8px 0 0;
+  font-size: 13px;
+  color: var(--adm-bad);
+  text-align: right;
+}
+
+.adm-card.acs-pager-card { padding: 0; border-radius: 16px; box-shadow: none; }
+.acs-pager-card .adm-pager { border-top: 0; padding: 10px 16px; }
+.acs-per-page { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; white-space: nowrap; }
+/* !important: the theme's input rule carries an id and five attribute selectors */
+body[data-area="admin"] #app .acs-per-page select {
+  width: auto;
+  min-height: 36px !important;
+  height: 36px;
+  padding: 0 28px 0 10px !important;
+  border-radius: var(--adm-r-sm) !important;
+  font-size: 13px !important;
+}
+
+@media (max-width: 720px) {
+  .acs-case-main { flex-basis: 100%; }
+  .acs-case-stats { flex: 1 1 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .acs-mini { min-width: 0; }
+  .acs-mini span { white-space: normal; }
+  .acs-case-status { flex: 0 1 auto; justify-content: flex-start; }
+  .acs-case-reason { text-align: left; margin-top: 0; }
+}
+@media (max-width: 900px) {
+  /* chạm bằng ngón tay */
+  body[data-area="admin"] #app .acs-case-actions .btn-sm,
+  .acs-pager-card .adm-page-btn { min-height: 44px; height: 44px; }
+  body[data-area="admin"] #app .acs-per-page select { min-height: 44px !important; height: 44px; }
+  .acs-pager-card .adm-page-btn { min-width: 44px; }
+  .acs-filter-row .adm-filter { min-height: 44px; }
+  .acs-legacy { min-height: 44px; }
+}
+
+/* ---------- chi tiết vụ án ---------- */
+
+.acs-detail { gap: 22px; }
+.adm-card.acs-hero {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 20px;
+  border-radius: 20px;
+}
+.acs-cover.acs-hero-cover {
+  flex: 0 1 340px;
+  width: 340px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+}
+.acs-cover--empty.acs-hero-cover { font-size: 13px; }
+.acs-hero-body { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.acs-hero-titlebar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+body[data-area="admin"] #app .acs-hero-titlebar h1 {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1.15;
+  color: var(--adm-navy);
+  overflow-wrap: anywhere;
+}
+.acs-hero-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.acs-hero-facts { font-size: 13px; color: var(--adm-muted); }
+.acs-hero-summary { margin: 0; color: var(--adm-text-2); text-wrap: pretty; }
+.acs-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; }
+
+.acs-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 12px; }
+.adm-card.acs-stat { gap: 2px; padding: 16px 18px; border-radius: 16px; box-shadow: none; }
+.acs-stat-label { font-size: 13px; color: var(--adm-muted); }
+.acs-stat-value { font-size: 26px; font-weight: 700; line-height: 1.3; color: var(--adm-navy); }
+.acs-stat-name { font-size: 16px; font-weight: 700; line-height: 1.5; color: var(--adm-navy); }
+.acs-stat-note { margin-top: 4px; font-size: 12px; color: var(--adm-muted); }
+.acs-stat-note strong { color: var(--adm-text-2); font-weight: 600; }
+
+.adm-card.acs-gates { padding: 20px; gap: 12px; box-shadow: none; }
+body[data-area="admin"] #app .acs-gates .adm-card-title { font-size: 20px; }
+.adm-pill.acs-gate-pill { font-size: 12px; font-weight: 700; letter-spacing: .06em; }
+.acs-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.acs-checks > .acs-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--adm-tile);
+  min-width: 0;
+}
+.acs-check-mark {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--adm-ok-bg);
+  color: var(--adm-ok);
+}
+.acs-check-mark svg { stroke-width: 2.4; }
+.acs-check.v3-gate-fail .acs-check-mark { background: var(--adm-bad-bg); color: var(--adm-bad); }
+.acs-check-text { display: flex; flex-direction: column; min-width: 0; }
+.acs-check-text strong { font-size: 14px; font-weight: 600; color: var(--adm-ink); }
+.acs-check-text > span { font-size: 13px; color: var(--adm-muted); overflow-wrap: anywhere; }
+.acs-check.v3-gate-fail .acs-check-text > span { color: var(--adm-bad); }
+#validation-output:empty { display: none; }
+body[data-area="admin"] #app #validation-output .notice { margin: 0; }
+body[data-area="admin"] #app #validation-output ul { margin: 6px 0 0; padding-left: 20px; }
+body[data-area="admin"] #app .acs-banner { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.acs-banner svg { flex: none; stroke-width: 2.2; }
+
+.adm-card.acs-content { border-radius: 18px; box-shadow: none; }
+.acs-tabpanel { min-width: 0; }
+.acs-tabpanel[hidden] { display: none; }
+#acs-panel-structure,
+#acs-panel-json { padding: 20px; }
+.acs-stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 14px; }
+.acs-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--adm-tile);
+  min-width: 0;
+}
+.acs-stage-kicker { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--adm-eyebrow); }
+body[data-area="admin"] #app .acs-stage-title { margin: 0; font-family: var(--adm-display); font-size: 19px; font-weight: 700; color: var(--adm-navy); }
+.acs-scenes { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.acs-scenes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--adm-card);
+  font-size: 14px;
+}
+.acs-scenes li .acs-code { font-size: 11px; }
+.acs-stage-empty { margin: 0; font-size: 14px; color: var(--adm-muted); }
+.acs-json-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.acs-json-bar p { flex: 1 1 280px; margin: 0; font-size: 14px; color: var(--adm-muted); }
+body[data-area="admin"] #app .acs-json {
+  margin: 0;
+  max-height: 360px;
+  overflow: auto;
+  padding: 16px 18px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--adm-navy);
+  color: #e9e1cf;
+  font-family: var(--adm-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre;
+}
+body[data-area="admin"] #app .acs-json:focus-visible { outline: 2px solid var(--adm-gold); outline-offset: 2px; }
+/* The theme's phone rule for .btn-sm comes before its 38 px base rule with the same weight, so it never applies: set it here. */
+@media (max-width: 900px) {
+  body[data-area="admin"] #app .acs-json-bar .btn-sm { min-height: 44px; }
+}
+
+@media (max-width: 600px) {
+  .adm-card.acs-hero { padding: 16px; gap: 16px; }
+  body[data-area="admin"] #app .acs-hero-titlebar h1 { font-size: 30px; }
+  .acs-hero-actions .btn { flex: 1 1 auto; }
+  #acs-panel-structure,
+  #acs-panel-json { padding: 16px; }
+  .cs-panel { padding: 16px; }
+}
+@media (max-width: 600px) {
+  /* như thiết kế: ba tab xuống dòng thay vì cuộn ngang (cuộn ngang giấu mất tab JSON) */
+  .acs-content > .adm-tabs { flex-wrap: wrap; overflow: visible; }
+}
+
+/* ---------- nhập JSON (/admin/import): trang riêng, vẽ như hộp thoại "Nhập JSON" trong một thẻ ---------- */
+
+.adm-card.acs-import-card {
+  gap: 18px;
+  padding: 24px;
+  border-radius: 20px;
+}
+.acs-import-head { display: flex; flex-direction: column; gap: 4px; }
+body[data-area="admin"] #app .acs-import-head h1 {
+  margin: 0;
+  font-family: var(--adm-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--adm-navy);
+}
+.acs-import-head .adm-card-sub { margin: 0; font-size: 14px; }
+.acs-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.acs-field > label { font-size: 13px; font-weight: 600; color: var(--adm-text-2); }
+.acs-field .field-hint { margin-top: -4px; }
+.acs-field .field-hint code { font-size: 12px; color: var(--adm-text-2); overflow-wrap: anywhere; }
+body[data-area="admin"] #app .acs-json-input {
+  /* !important: the theme's general input rule outweighs its own .json-input mono rule */
+  font-family: var(--adm-mono) !important;
+  width: 100%;
+  margin: 0;
+  min-height: 260px;
+  padding: 14px;
+  background: var(--adm-paper-2);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+}
+.acs-check-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--adm-text-2);
+  cursor: pointer;
+}
+body[data-area="admin"] #app .acs-check-line input { margin: 0; flex: none; }
+#import-output:empty { display: none; }
+body[data-area="admin"] #app #import-output .notice { margin: 0; }
+body[data-area="admin"] #app #import-output ul { margin: 6px 0 0; padding-left: 20px; overflow-wrap: anywhere; }
+.acs-import-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+@media (max-width: 600px) {
+  .adm-card.acs-import-card { padding: 18px 16px; }
+  .acs-import-actions .btn { flex: 1 1 auto; }
+}
+
+/* ---------- hàng tuần (/admin/weekly) ----------
+   Lớp ws-weekly-* có sẵn trong 09-app.css (khu workshop của người chơi dùng chung tên). Chỉ đè ở đây, trong vùng admin. */
+
+.acs-weekly-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 16px; align-items: start; }
+body[data-area="admin"] #app .adm-card.ws-weekly-form {
+  margin: 0;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 20px;
+}
+.acs-weekly-head { display: flex; align-items: center; gap: 14px; }
+.acs-weekly-heading { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+body[data-area="admin"] #app .acs-weekly-heading .adm-card-title { font-size: 22px; }
+.acs-weekly-heading .adm-card-sub { margin: 0; }
+.acs-weekly-icon {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.acs-weekly-icon--gold { background: var(--adm-warn-bg); color: var(--adm-warn); }
+.acs-weekly-icon--violet { background: var(--adm-violet-bg); color: var(--adm-violet); }
+body[data-area="admin"] #app .ws-weekly-current.acs-weekly-state {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--adm-tile);
+  color: var(--adm-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+.acs-weekly-state::before { content: ""; width: 8px; height: 8px; flex: none; border-radius: 999px; background: currentColor; }
+body[data-area="admin"] #app .ws-weekly-current.acs-weekly-state.is-set { background: var(--adm-ok-bg); color: var(--adm-ok); }
+.acs-weekly-state strong { color: inherit; }
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--adm-text-2);
+}
+body[data-area="admin"] #app .ws-weekly-form :is(.ws-weekly-select, .ws-weekly-input) { width: 100%; font-size: 14px; }
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; }
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+body[data-area="admin"] #app .ws-weekly-save { padding: 0 22px; }
+/* Thử thách tuần: one day names the week; the rule, the week the server stored, or why it refused. */
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-hint { margin: -8px 0 0; font-size: 13px; line-height: 1.45; color: var(--adm-muted); }
+body[data-area="admin"] #app .ws-weekly-form :is(.ws-weekly-saved, .ws-weekly-error) {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-saved { background: var(--adm-ok-bg); color: var(--adm-ok); }
+body[data-area="admin"] #app .ws-weekly-form .ws-weekly-error { background: var(--adm-bad-bg); color: var(--adm-bad); }
+.ws-weekly-error[hidden] { display: none; }
+@media (max-width: 600px) {
+  body[data-area="admin"] #app .adm-card.ws-weekly-form { padding: 18px 16px; }
+}

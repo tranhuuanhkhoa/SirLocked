@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Room;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Market;
 
 namespace SirLocked.Api.WebAPI.Controllers;
 
@@ -16,11 +17,16 @@ public class RoomsController : BaseApiController
 
     [HttpPost]
     public async Task<ActionResult<ApiResponse<RoomResponse>>> Create([FromBody] CreateRoomRequest request) =>
-        Ok(await _roomService.CreateAsync(Caller, request.CaseId), "Room created.");
+        Ok(await _roomService.CreateAsync(Caller, request.CaseId, request.Visibility), "Room created.");
+
+    /// <summary>Waiting public rooms with a free seat plus public games in progress.</summary>
+    [HttpGet("public")]
+    public async Task<ActionResult<ApiResponse<List<PublicRoomResponse>>>> Public([FromQuery] PublicRoomQuery query, CancellationToken cancellationToken) =>
+        Ok(await _roomService.ListPublicAsync(CallerId, query, cancellationToken));
 
     [HttpPost("join")]
     public async Task<ActionResult<ApiResponse<RoomResponse>>> Join([FromBody] JoinRoomRequest request) =>
-        Ok(await _roomService.JoinAsync(Caller, request.RoomCode), "Joined room.");
+        Ok(await _roomService.JoinAsync(Caller, request.RoomCode, request.InviteToken), "Joined room.");
 
     [HttpGet("mine")]
     public async Task<ActionResult<ApiResponse<List<RoomResponse>>>> Mine(CancellationToken cancellationToken) =>
@@ -37,6 +43,12 @@ public class RoomsController : BaseApiController
     [HttpPost("{roomId}/select-role")]
     public async Task<ActionResult<ApiResponse<RoomResponse>>> SelectRole(string roomId, [FromBody] SelectRoleRequest request) =>
         Ok(await _roomService.SelectRoleAsync(Caller, roomId, request.Role), "Role selected.");
+
+    /// <summary>Puts on (itemId) or takes off (null) the caller's Sherlock or Watson outfit and redraws the lobby for both players.</summary>
+    [HttpPut("{roomId}/outfit")]
+    public async Task<ActionResult<ApiResponse<RoomResponse>>> Outfit(string roomId, [FromBody] WearOutfitRequest request,
+        [FromServices] LobbyOutfitService outfits, CancellationToken cancellationToken) =>
+        Ok(await outfits.WearAsync(Caller, roomId, request.Category, request.ItemId, cancellationToken), "Outfit updated.");
 
     [HttpPost("{roomId}/ready")]
     public async Task<ActionResult<ApiResponse<RoomResponse>>> Ready(string roomId, [FromBody] ReadyRequest request) =>

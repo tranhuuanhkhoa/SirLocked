@@ -32,7 +32,9 @@ public static class ProjectionCapacityPolicy
         var challengeSlots = contract.MaxEvidenceChallenges > 0
             ? contract.MaxEvidenceChallenges
             : contract.EvidenceChallenges;
-        var desiredRedHerrings = DesiredRedHerrings(effectiveSettings.GenerationPreset);
+        var desiredRedHerrings = AiPipelineVersions.IsOpenCoop(effectiveSettings)
+            ? AiDifficultyProfiles.For(effectiveSettings.Difficulty).RedHerrings.Max
+            : DesiredRedHerrings(effectiveSettings.GenerationPreset);
         var availableAfterFinalAndChallenges =
             contract.MaxClues - ProofConclusionIds.ByCategory.Count - challengeSlots;
         var redHerringSlots = Math.Clamp(

@@ -37,6 +37,11 @@ public class GameCase
     public int ShortDemoProfileVersion { get; set; }
     /// <summary>Server-owned provenance for AI-generated cases.</summary>
     public string SourceAiDraftId { get; set; } = string.Empty;
+    /// <summary>
+    /// VUAN-7: the VIP who ordered this case (empty for ADMIN and hand-written cases). Server-owned: set from the draft on
+    /// import, never taken from imported JSON. Shown as the "Tác giả" badge once the case is published.
+    /// </summary>
+    public string AuthorUserId { get; set; } = string.Empty;
     /// <summary>1 keeps legacy three-claim accusation; 2 requires the causal five-claim contract.</summary>
     public int LogicContractVersion { get; set; } = CaseLogicContractVersions.LegacyThreeClaim;
     public string LogicVerificationStatus { get; set; } = CaseLogicVerificationStatuses.LegacyUnverified;
@@ -70,6 +75,15 @@ public class GameCase
     public List<AlternateRewardPath> AlternateRewardPaths { get; set; } = new();
     public FinalLogic FinalLogic { get; set; } = new();
     public CasePresentation? Presentation { get; set; }
+    /// <summary>
+    /// Gameplay rule set layered over the mechanics version. Empty keeps the classic gated rules;
+    /// <see cref="CaseRuleSets.OpenCoop"/> opens every place, shares one notebook and adds the timeline.
+    /// </summary>
+    public string RuleSet { get; set; } = string.Empty;
+    /// <summary>Open-coop timeline reconstruction (optional).</summary>
+    public CaseTimeline? Timeline { get; set; }
+    /// <summary>Open co-op case wall settings (middle card, authored strings). Optional.</summary>
+    public CaseBoard? Board { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -87,6 +101,19 @@ public class CaseStage
 [BsonIgnoreExtraElements]
 public class CaseScene
 {
+    /// <summary>
+    /// Write-only alias used by the AI contract: the writer sends the scene atmosphere as "atmosphere" and it is
+    /// stored in <see cref="Runtime"/>, which stays server-owned. Never serialized.
+    /// </summary>
+    [JsonPropertyName("atmosphere")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnore]
+    public SirLocked.Api.Services.SceneAtmosphereContent? Atmosphere
+    {
+        get => null;
+        set => value?.ApplyTo(this);
+    }
+
     public string SceneId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string BackgroundUrl { get; set; } = string.Empty;
@@ -252,6 +279,12 @@ public static class CasePuzzleTypes
     public const string CodePuzzle = "CODE_PUZZLE";
     public const string SequencePuzzle = "SEQUENCE_PUZZLE";
     public const string SymbolMatchPuzzle = "SYMBOL_MATCH_PUZZLE";
+    /// <summary>
+    /// Hands-on puzzle drawn by a frontend module chosen by <see cref="CasePuzzle.Kind"/> and checked by the
+    /// matching server-side kind (see Services/PuzzleKinds). Not part of <see cref="All"/>, which lists the
+    /// classic types the AI presets must produce.
+    /// </summary>
+    public const string InteractivePuzzle = "INTERACTIVE_PUZZLE";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -298,6 +331,21 @@ public class ScenePlacementPlan
     public List<PlannedPlacement> Placements { get; set; } = new();
     public List<ClueZone> ClueZones { get; set; } = new();
     public List<TransitionZone> Transitions { get; set; } = new();
+    /// <summary>Pixel drafts (VUAN-6B) only: topdown or isometric, decided by the server from the scene's indoor flag.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? Projection { get; set; }
+    /// <summary>Pixel drafts only: the walk grid the bot built from the walk mask (128x128 cells of 16).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public SceneWalkGrid? WalkGrid { get; set; }
+    /// <summary>Pixel drafts only: layers cut from the native map, drawn over actors standing behind their baseY.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public List<SceneForegroundLayer>? Foreground { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? BackdropColor { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -361,6 +409,111 @@ public class SceneRuntime
     public List<ClueZone> ClueZones { get; set; } = new();
     public CameraRules CameraRules { get; set; } = new();
     public List<TransitionZone> Transitions { get; set; } = new();
+    /// <summary>Optional pure pixel-art presentation (PixelLab scenes). Null keeps the classic side-view renderer.</summary>
+    public SceneRenderSettings? Render { get; set; }
+    /// <summary>Optional weather of an outdoor scene. Indoor scenes have none (see docs/case-audio-weather.md).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public SceneWeather? Weather { get; set; }
+    /// <summary>Optional: true for a scene inside a building; weather is switched off there.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public bool? Indoor { get; set; }
+    /// <summary>Optional: DAY, DUSK or NIGHT.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? TimeOfDay { get; set; }
+}
+
+public static class SceneWeatherTypes
+{
+    public const string None = "NONE";
+    public const string Rain = "RAIN";
+    public const string Wind = "WIND";
+    public const string Snow = "SNOW";
+    public const string Storm = "STORM";
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { None, Rain, Wind, Snow, Storm };
+}
+
+public static class SceneTimesOfDay
+{
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { "DAY", "DUSK", "NIGHT" };
+}
+
+[BsonIgnoreExtraElements]
+public class SceneWeather
+{
+    public string Type { get; set; } = SceneWeatherTypes.None;
+    /// <summary>0 to 1.</summary>
+    public double Intensity { get; set; }
+}
+
+public static class SceneRenderModes
+{
+    public const string Pixel = "pixel";
+    public const string TopDown = "topdown";
+    public const string Isometric = "isometric";
+    public static readonly IReadOnlySet<string> Projections = new HashSet<string>(StringComparer.Ordinal) { TopDown, Isometric };
+}
+
+/// <summary>
+/// Pixel scenes draw a native-resolution background scaled by <see cref="PixelScale"/> with nearest-neighbour
+/// filtering. Runtime coordinates stay the authoritative unit (runtime = native x pixelScale); the camera follows
+/// the player and walkability comes from <see cref="WalkGrid"/> instead of rectangles.
+/// </summary>
+[BsonIgnoreExtraElements]
+public class SceneRenderSettings
+{
+    public string Mode { get; set; } = SceneRenderModes.Pixel;
+    public string Projection { get; set; } = SceneRenderModes.TopDown;
+    public int NativeWidth { get; set; }
+    public int NativeHeight { get; set; }
+    /// <summary>Runtime units per native background pixel.</summary>
+    public double PixelScale { get; set; } = 4;
+    /// <summary>Screen pixels per runtime unit on the 1600x900 reference viewport.</summary>
+    public double CameraZoom { get; set; } = 1;
+    /// <summary>Runtime units per sprite pixel for players and NPCs in this scene.</summary>
+    public double ActorScale { get; set; } = 1.5;
+    /// <summary>Runtime units per second.</summary>
+    public double WalkSpeed { get; set; } = 300;
+    /// <summary>Runtime distance from the player's feet to an interaction's approach point.</summary>
+    public double InteractRadius { get; set; } = 120;
+    public string BackdropColor { get; set; } = string.Empty;
+    public SceneWalkGrid? WalkGrid { get; set; }
+    /// <summary>Cut-outs drawn above actors whose feet are behind <see cref="SceneForegroundLayer.BaseY"/>.</summary>
+    public List<SceneForegroundLayer> Foreground { get; set; } = new();
+}
+
+[BsonIgnoreExtraElements]
+public class SceneWalkGrid
+{
+    /// <summary>Runtime units per cell.</summary>
+    public int CellSize { get; set; }
+    public int Cols { get; set; }
+    public int Rows { get; set; }
+    /// <summary>One string per row, '1' = walkable feet position, '0' = blocked.</summary>
+    public List<string> Data { get; set; } = new();
+
+    public bool IsWalkable(double x, double y)
+    {
+        if (CellSize <= 0 || !double.IsFinite(x) || !double.IsFinite(y) || x < 0 || y < 0) return false;
+        var col = (int)Math.Floor(x / CellSize);
+        var row = (int)Math.Floor(y / CellSize);
+        return row < Rows && col < Cols && row < Data.Count && col < Data[row].Length && Data[row][col] == '1';
+    }
+}
+
+[BsonIgnoreExtraElements]
+public class SceneForegroundLayer
+{
+    public string Id { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+    /// <summary>Ground-contact line in runtime units used for depth sorting against actor feet.</summary>
+    public double BaseY { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -368,6 +521,32 @@ public class SceneAudioConfig
 {
     public string AmbienceUrl { get; set; } = string.Empty;
     public Dictionary<string, string> Cues { get; set; } = new();
+    /// <summary>Optional looping music of the area (see docs/case-audio-weather.md).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public SceneMusic? Music { get; set; }
+}
+
+[BsonIgnoreExtraElements]
+public class SceneMusic
+{
+    /// <summary>.ogg file: https:// or a /assets/... path.</summary>
+    public string Url { get; set; } = string.Empty;
+    /// <summary>Optional .mp3 for browsers without Ogg Vorbis.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? FallbackUrl { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Source { get; set; } = string.Empty;
+    public string License { get; set; } = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public double? LoopStartSec { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public double? LoopEndSec { get; set; }
+    /// <summary>0 to 1.</summary>
+    public double Volume { get; set; } = 0.5;
 }
 
 [BsonIgnoreExtraElements]
@@ -469,12 +648,40 @@ public class TransitionZone
 public class CaseCharacter
 {
     public CharacterVisualPresentation? Presentation { get; set; }
+    /// <summary>Optional dialogue voice (see docs/case-audio-weather.md).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public CharacterVoice? Voice { get; set; }
     public string CharacterId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string VisualDescription { get; set; } = string.Empty;
+}
+
+[BsonIgnoreExtraElements]
+public class CharacterVoice
+{
+    public VoiceBlip? Blip { get; set; }
+}
+
+public static class VoiceBlipWaves
+{
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { "square", "triangle", "sine", "sawtooth" };
+}
+
+/// <summary>Per-letter speech blip: pitch in Hz, letters per second, oscillator wave and pitch variance.</summary>
+[BsonIgnoreExtraElements]
+public class VoiceBlip
+{
+    /// <summary>80 to 1200 Hz.</summary>
+    public double Pitch { get; set; }
+    /// <summary>10 to 40 letters per second.</summary>
+    public double Speed { get; set; }
+    public string Wave { get; set; } = "square";
+    /// <summary>0 to 1.</summary>
+    public double Variance { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -656,6 +863,25 @@ public class CasePuzzle
     public string InvestigationPurpose { get; set; } = string.Empty;
     public List<string> RevealsConclusionIds { get; set; } = new();
     public string ProgressionRole { get; set; } = string.Empty;
+    /// <summary>
+    /// Puzzle kind for <see cref="CasePuzzleTypes.KindPuzzle"/> (see <see cref="PuzzleKinds"/>). Each case
+    /// carries its own parameters; the solution never leaves the server.
+    /// </summary>
+    public string Kind { get; set; } = string.Empty;
+    /// <summary>Public parameters sent to the client (raw JSON object).</summary>
+    [JsonPropertyName("params")]
+    [JsonConverter(typeof(RawJsonStringConverter))]
+    public string ParamsJson { get; set; } = string.Empty;
+    /// <summary>Server-only solution (raw JSON object).</summary>
+    [JsonPropertyName("solution")]
+    [JsonConverter(typeof(RawJsonStringConverter))]
+    public string SolutionJson { get; set; } = string.Empty;
+    /// <summary>Extra content shown only after the puzzle is solved (raw JSON object).</summary>
+    [JsonPropertyName("reveal")]
+    [JsonConverter(typeof(RawJsonStringConverter))]
+    public string RevealJson { get; set; } = string.Empty;
+    /// <summary>EASY / NORMAL / HARD — used when parameters are generated for this case.</summary>
+    public string Difficulty { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]
@@ -715,6 +941,19 @@ public class RequiredEvidenceLink
     /// <summary>Required for causal contract-v2 cases; empty on legacy three-claim cases.</summary>
     public string ConclusionId { get; set; } = string.Empty;
     public string EvidenceId { get; set; } = string.Empty;
+    /// <summary>
+    /// Optional other evidence clues that prove the same claim just as well (VUAN-6). The accusation is scored
+    /// correct for this claim when the player presents <see cref="EvidenceId"/> or any of these. Absent (null)
+    /// keeps the original one-answer rule, and is left out of the stored document and of canonical hashes.
+    /// </summary>
+    [BsonIgnoreIfNull]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? AcceptedEvidenceIds { get; set; }
+
+    /// <summary>True when <paramref name="evidenceId"/> answers this claim: the authored evidence or an accepted alternative.</summary>
+    public bool Accepts(string? evidenceId) =>
+        !string.IsNullOrEmpty(evidenceId)
+        && (evidenceId == EvidenceId || AcceptedEvidenceIds?.Contains(evidenceId, StringComparer.Ordinal) == true);
 }
 
 [BsonIgnoreExtraElements]

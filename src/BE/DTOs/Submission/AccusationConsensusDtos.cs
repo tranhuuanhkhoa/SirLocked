@@ -83,4 +83,7 @@ public sealed class AccusationCommandResponse
     public AccusationProposalDto? Accusation { get; set; }
     /// <summary>Non-null only on the command that completed the case.</summary>
     public GameResultResponse? Result { get; set; }
+    /// <summary>Open co-op: the confirmed accusation was wrong but the team has another attempt.</summary>
+    public bool Rejected { get; set; }
+    public string Message { get; set; } = string.Empty;
 }

@@ -63,6 +63,13 @@ public class ScoreSummary
     public int WrongEvidencePenalty { get; set; }
     public int WrongDeductionPenalty { get; set; }
     public int CameraMissPenalty { get; set; }
+    // Open co-op penalties (zero for classic cases).
+    public int WrongAccusationPenalty { get; set; }
+    public int TimelinePenalty { get; set; }
+    public int HintPenalty { get; set; }
+    public int PuzzlePenalty { get; set; }
+    /// <summary>VUAN-7: points taken by paid hint levels (level 2 and 3, a share of the score).</summary>
+    public int PaidHintPenalty { get; set; }
 
     public int TotalScore { get; set; }
     public string Rank { get; set; } = string.Empty;

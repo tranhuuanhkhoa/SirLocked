@@ -80,7 +80,6 @@ public class PresentationVideoJob
     public string Resolution { get; set; } = "480p";
     public string PricingVersion { get; set; } = string.Empty;
     public decimal ReservedUsd { get; set; }
-    public AiCallLease? UsageLease { get; set; }
     public string? ProviderRequestId { get; set; }
     public string? ProviderVideoUrl { get; set; }
     public string? ProviderTerminalBody { get; set; }

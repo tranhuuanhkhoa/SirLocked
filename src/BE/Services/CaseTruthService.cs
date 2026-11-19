@@ -270,7 +270,11 @@ public sealed class CaseTruthService : ICaseTruthService
     public CaseValidationResult ValidateProjection(CaseTruthPackage truth, GameCase gameCase)
     {
         var result = new CaseValidationResult();
-        var truthBudget = gameCase.ProjectionBuildMode == ProjectionBuildModes.AiCompiled
+        // An OPEN_COOP case does not record its level: check it against the largest level (the level itself is
+        // checked against the draft before layout).
+        var truthBudget = CaseRuleSets.IsOpenCoop(gameCase)
+            ? AiTruthGenerationBudget.ForLevel(AiDifficultyProfiles.For(AiDifficultyProfiles.Hard))
+            : gameCase.ProjectionBuildMode == ProjectionBuildModes.AiCompiled
             ? AiTruthGenerationBudget.ForProjection(new AiDraftSettings
             {
                 GenerationPreset = gameCase.GenerationPreset,

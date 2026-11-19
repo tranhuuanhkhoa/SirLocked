@@ -195,6 +195,8 @@ public static class AiQueueStates
     public const string Pending = "PENDING";
     public const string Running = "RUNNING";
     public const string RetryScheduled = "RETRY_SCHEDULED";
+    /// <summary>Parked: the run asked Claude a question and resumes once the bridge receives the answer.</summary>
+    public const string AwaitingClaude = "AWAITING_CLAUDE";
     public const string Cancelled = "CANCELLED";
 }
 
@@ -223,7 +225,7 @@ public class AiCaseDraft
     public string Prompt { get; set; } = string.Empty;
     public AiDraftSettings Settings { get; set; } = new();
     public string Status { get; set; } = string.Empty;
-    public string Provider { get; set; } = "OpenAI";
+    public string Provider { get; set; } = "Claude";
     public string CreatedByUserId { get; set; } = string.Empty;
     public string CreatedByRole { get; set; } = string.Empty;
     public AiStoryPreview StoryPreview { get; set; } = new();
@@ -317,6 +319,9 @@ public class AiCaseDraft
     public DateTime? GenerationClaimedAt { get; set; }
     /// <summary>Set when the draft has been imported into gameCases.</summary>
     public string? ImportedCaseId { get; set; }
+    /// <summary>OPEN_COOP_1: what happened when the intro cutscene was queued after import (QUEUED, EXISTS, FAILED: …).</summary>
+    [BsonIgnoreIfNull]
+    public string? IntroCutsceneStatus { get; set; }
     [BsonIgnoreIfNull]
     public string? IdempotencyKey { get; set; }
     public string QuotaDay { get; set; } = string.Empty;
@@ -326,11 +331,65 @@ public class AiCaseDraft
     /// <summary>Unique per creator/day; retained after completion so cancellation does not refund the daily create.</summary>
     [BsonIgnoreIfNull]
     public string? DailyQuotaKey { get; set; }
-    public decimal ReservedBudgetUsd { get; set; }
+    /// <summary>Unique per VIP week slot; cleared when an order is rejected so the slot is freed.</summary>
+    [BsonIgnoreIfNull]
+    public string? WeeklyQuotaKey { get; set; }
+    public string QuotaWeek { get; set; } = string.Empty;
+    /// <summary>The creator's order. Null on drafts created before orders existed.</summary>
+    public AiCaseOrder? Order { get; set; }
+    /// <summary>How many failed steps the autopilot has sent back for repair (AUTO orders only; bounded).</summary>
+    [BsonIgnoreIfDefault]
+    public int AutopilotRepairs { get; set; }
+    /// <summary>How many of those repairs were logic retries (they rebuild from the same inputs, so only one is tried).</summary>
+    [BsonIgnoreIfDefault]
+    public int AutopilotJsonRetries { get; set; }
+    public string OrderStatus { get; set; } = string.Empty;
+    public List<AiOrderStatusChange> OrderStatusHistory { get; set; } = new();
+    /// <summary>Questions the bot asked the creator (draft_ask), open and answered.</summary>
+    public List<AiDecision> Decisions { get; set; } = new();
+    public string OrderRejectReason { get; set; } = string.Empty;
+    /// <summary>Set while the run is parked waiting for Claude.</summary>
+    public AiClaudeWait? ClaudeWait { get; set; }
+    /// <summary>
+    /// Generation run of the queued operation. Kept while the operation parks, retries or is reclaimed, so its
+    /// bridge requests keep their keys; cleared when the operation completes or another one is queued.
+    /// </summary>
+    public string OperationRunId { get; set; } = string.Empty;
+    public List<AiBridgeAssetUpload> BridgeAssets { get; set; } = new();
+    /// <summary><see cref="AiVisualPipelines"/>: empty for drafts made before VUAN-6B (classic 1600x900 scenes).</summary>
+    public string VisualPipeline { get; set; } = AiVisualPipelines.Classic;
+    /// <summary>Pixel drafts: the picture plan the bot declared (library, variant, PixelLab) once it fits pixelLabCap.</summary>
+    [BsonIgnoreIfNull]
+    public AiAssetPlan? AssetPlan { get; set; }
+    /// <summary>
+    /// <see cref="AiDraftLanes"/>: who writes the case. Empty (the ADMIN bot through the bridge) for every draft made
+    /// before VUAN-7 and for ADMIN orders; <c>VIP_API</c> for paid VIP orders written through the Claude API.
+    /// </summary>
+    public string Lane { get; set; } = string.Empty;
+    /// <summary>VIP orders: the coins held for the order and what happened to them.</summary>
+    [BsonIgnoreIfNull]
+    public AiVipBilling? VipBilling { get; set; }
+    /// <summary>VIP orders: the structured brief and content check written by the light model before the story.</summary>
+    [BsonIgnoreIfNull]
+    public AiVipBrief? VipBrief { get; set; }
+    /// <summary>The bot's report.md (results of its five checks), shown to admins.</summary>
+    public string BridgeReport { get; set; } = string.Empty;
+    public DateTime? BridgeReportUpdatedAt { get; set; }
+    /// <summary>Recent previews used by the story-preview prompt, frozen so a resumed run builds the same prompt.</summary>
+    [BsonIgnoreIfNull]
+    public List<AiStoryHistorySnapshotEntry>? StoryHistorySnapshot { get; set; }
     public DateTime? CancelledAt { get; set; }
     public string CancelledByUserId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+[BsonIgnoreExtraElements]
+public class AiStoryHistorySnapshotEntry
+{
+    public AiStoryPreview Preview { get; set; } = new();
+    public AiStoryDiversityProfile Diversity { get; set; } = new();
+    public string StoryFingerprint { get; set; } = string.Empty;
 }
 
 [BsonIgnoreExtraElements]
@@ -351,6 +410,18 @@ public class AiDraftSettings
     /// <summary>Requested crime archetype. RANDOM lets the server select a concrete type per draft.</summary>
     public string CaseType { get; set; } = AiCaseTypes.Random;
     public AiCreativeConstraints CreativeConstraints { get; set; } = new();
+    /// <summary>
+    /// "OPEN_COOP_1" for drafts whose size comes from <c>AiDifficultyProfiles</c>; null for every draft created
+    /// before it, which keep the preset-and-stages pipeline they started with. Null is never written, so an old
+    /// draft's settings hash (and its saved projection plan) stays exactly as it was.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? PipelineVersion { get; set; }
+    /// <summary>BALANCED, PUZZLE or DIALOGUE (OPEN_COOP_1 drafts only): leans the level's puzzle and dialogue counts.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [BsonIgnoreIfNull]
+    public string? Leaning { get; set; }
 }
 
 [BsonIgnoreExtraElements]

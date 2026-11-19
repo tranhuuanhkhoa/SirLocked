@@ -355,7 +355,47 @@ public static class MockCaseFactory
             Choices = { new ConversationChoice { ChoiceId = "conv-witness-return", Label = "Thank you." } }
         });
 
+        CompleteHintLevels(gameCase.Stages, gameCase.EvidenceChallenges, gameCase.Deductions, gameCase.Hints);
         return gameCase;
+    }
+
+    /// <summary>
+    /// Gives every scene, challenge and deduction hints at order 1, 2 and 3 (the hint rule, <see cref="CaseHintRules"/>),
+    /// adding generic ones where a mock has fewer. Mock content only: real cases are written by the bot.
+    /// </summary>
+    internal static void CompleteHintLevels(
+        IEnumerable<CaseStage> stages,
+        IEnumerable<EvidenceChallenge> challenges,
+        IEnumerable<DeductionChallenge> deductions,
+        List<CaseHint> hints)
+    {
+        var texts = new Dictionary<int, string>
+        {
+            [1] = "Start with what the people here say and what lies in plain sight.",
+            [2] = "Look closely at the object or statement that does not fit the rest.",
+            [3] = "Present the physical trace that directly contradicts the claim."
+        };
+        void Complete(string contextType, string targetId)
+        {
+            var existing = hints.Where(hint => hint.ContextType == contextType && hint.TargetId == targetId).ToList();
+            var baseId = existing.FirstOrDefault()?.HintId ?? $"hint-{contextType.ToLowerInvariant()}-{targetId}";
+            foreach (var level in CaseHintRules.Levels.Where(level => existing.All(hint => hint.Order != level)))
+                hints.Add(new CaseHint
+                {
+                    HintId = $"{baseId}-level-{level}",
+                    ContextType = contextType,
+                    TargetId = targetId,
+                    Order = level,
+                    Text = texts[level]
+                });
+        }
+
+        foreach (var scene in stages.SelectMany(stage => stage.Scenes))
+            Complete(HintContextTypes.Scene, scene.SceneId);
+        foreach (var challenge in challenges)
+            Complete(HintContextTypes.Confrontation, challenge.ChallengeId);
+        foreach (var deduction in deductions)
+            Complete(HintContextTypes.Deduction, deduction.DeductionId);
     }
 
     private static string ThemeFromPrompt(string prompt)
