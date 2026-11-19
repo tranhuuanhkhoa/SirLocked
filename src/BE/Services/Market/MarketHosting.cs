@@ -121,6 +121,7 @@ public static class MarketServiceCollectionExtensions
         services.AddScoped<ProgressService>();
         services.AddScoped<IPlayerCosmeticsReader>(provider => provider.GetRequiredService<ProgressService>());
         services.AddScoped<LobbyEntranceService>();
+        services.AddScoped<LobbyOutfitService>();
         services.AddScoped<WeeklyDropService>(); // needs IWeeklyService, registered in Program.cs
         services.AddScoped<IGameResultRewardHook, MarketGameRewardHook>();
         services.AddHostedService<MarketMaintenanceWorker>();

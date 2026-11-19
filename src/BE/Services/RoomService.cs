@@ -62,6 +62,7 @@ public partial class RoomService : IRoomService
                 player.FrameDefId = look.FrameDefId;
                 player.TitleDefId = look.TitleDefId;
                 player.EntranceDefId = look.EntranceDefId;
+                player.SkinDefIds = look.SkinDefIds?.ToList() ?? new List<string>();
             }
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
