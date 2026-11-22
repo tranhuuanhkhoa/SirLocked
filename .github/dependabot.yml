@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /src/BE
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    target-branch: develop
+    ignore:
+      - dependency-name: SixLabors.ImageSharp
+        update-types: [version-update:semver-major, version-update:semver-minor]
+  - package-ecosystem: npm
+    directory: /src/FE
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    target-branch: develop
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    target-branch: develop
