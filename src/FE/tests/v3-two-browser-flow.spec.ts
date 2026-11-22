@@ -287,13 +287,17 @@ async function contextFor(browser: Browser, flow: SharedV3Flow, role: Role) {
   }, { roomId: flow.roomId, userId });
   await page.route(`**/api/game/rooms/${flow.roomId}/**`, (route) => flow.route(role, route));
   await page.goto(`/game/${flow.roomId}`);
+  await page.waitForFunction(() =>
+    typeof (window as unknown as { __sirlockedEmitSignalR?: unknown }).__sirlockedEmitSignalR === 'function');
   return { context, page };
 }
 
 async function emitState(page: Page, version: number) {
   await page.evaluate(({ version }) => {
-    (window as unknown as { __sirlockedEmitSignalR?: (event: string, payload: unknown) => void })
-      .__sirlockedEmitSignalR?.('GameStateUpdated', { version });
+    const emit = (window as unknown as { __sirlockedEmitSignalR?: (event: string, payload: unknown) => void })
+      .__sirlockedEmitSignalR;
+    if (!emit) throw new Error('The SignalR test shim has not initialized.');
+    emit('GameStateUpdated', { version });
   }, { version });
 }
 
