@@ -1136,6 +1136,13 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
                     ["MongoDb:ConnectionString"] = _connectionString,
                     ["MongoDb:DatabaseName"] = _databaseName,
                     ["AiGeneration:MockAiResponses"] = "false",
+                    // Keep bridge workflow tests on the real bridge path despite process-level CI flags.
+                    ["MOCK_AI_RESPONSES"] = "false",
+                    ["OpenAI:MockAiResponses"] = "false",
+                    ["AI_DRY_RUN"] = "false",
+                    ["OpenAI:AiDryRun"] = "false",
+                    ["SKIP_ASSET_GENERATION"] = "false",
+                    ["OpenAI:SkipAssetGeneration"] = "false",
                     ["Bridge:Key"] = key,
                     // VUAN-7: the VIP lane counts as configured unless a test closes it; the Claude client is a fake that
                     // never calls Anthropic.
