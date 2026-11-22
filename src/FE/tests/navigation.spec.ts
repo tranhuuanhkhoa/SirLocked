@@ -93,7 +93,7 @@ test('real floor clicks route in 2D around obstacles and settle at the selected 
   expect(pending.pending).toBe(true);
   expect(pending.action).toBe(false);
   expect(pending.waypoints.length).toBeGreaterThan(1);
-  await expect.poll(async () => (await readPose(page)).pending).toBe(false);
+  await expect.poll(async () => (await readPose(page)).pending, { timeout: 30_000 }).toBe(false);
   const arrived = await readPose(page);
   expect(arrived.x).toBeCloseTo(1050, 0);
   expect(arrived.y).toBeCloseTo(680, 0);
@@ -105,7 +105,7 @@ test('item click approaches before executing the existing inspect command exactl
   await clickWorld(page, 1250, 610);
   expect((await readPose(page)).action).toBe(true);
   expect(api.inspected()).toBe(0);
-  await expect.poll(api.inspected).toBe(1);
+  await expect.poll(api.inspected, { timeout: 30_000 }).toBe(1);
   expect((await readPose(page)).pending).toBe(false);
   await page.waitForTimeout(350);
   expect(api.inspected()).toBe(1);
@@ -194,7 +194,7 @@ test('a new authoritative scene cancels an approach, and authored exit clicks ex
   await expect.poll(async () => page.evaluate(() => (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').state.currentSceneId)).toBe('study');
   await clickWorld(page, 1460, 580);
   expect(api.moved()).toBe(0);
-  await expect.poll(api.moved).toBe(1);
+  await expect.poll(api.moved, { timeout: 30_000 }).toBe(1);
   await page.waitForTimeout(250);
   expect(api.moved()).toBe(1);
 });

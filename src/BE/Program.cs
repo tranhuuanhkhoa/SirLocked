@@ -425,11 +425,15 @@ builder.Services.AddCors(options =>
 });
 
 var googleSettings = builder.Configuration.GetSection("Google").Get<GoogleSettings>() ?? new GoogleSettings();
+var googleCredentialsConfigured =
+    !string.IsNullOrWhiteSpace(googleSettings.ClientId) &&
+    !string.IsNullOrWhiteSpace(googleSettings.ClientSecret);
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddCookie("External")
-    .AddGoogle(options => GoogleAuthenticationSetup.Configure(options, googleSettings))
-    .AddJwtBearer();
+var authenticationBuilder = builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddCookie("External");
+if (googleCredentialsConfigured)
+    authenticationBuilder.AddGoogle(options => GoogleAuthenticationSetup.Configure(options, googleSettings));
+authenticationBuilder.AddJwtBearer();
 
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
     .Configure<IOptions<JwtSettings>>((options, configuredJwt) =>
@@ -468,6 +472,9 @@ builder.Services.AddHealthChecks()
     .AddCheck<MongoDbHealthCheck>("mongodb", tags: new[] { "ready" });
 
 var app = builder.Build();
+
+if (!googleCredentialsConfigured)
+    app.Logger.LogWarning("Google sign-in is disabled because Google:ClientId and Google:ClientSecret are not configured.");
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();

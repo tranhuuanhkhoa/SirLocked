@@ -86,6 +86,28 @@ const pointerOn = (page: Page, selector: string) => page.evaluate((sel) => {
 }, selector);
 const runtimePoint = (page: Page, x: number, y: number) => page.evaluate(([px, py]) =>
   (window as any).__sirlockedGame.scene.getScene('SirLockedPhaserScene').pagePointOfRuntime({ x: px, y: py }), [x, y]);
+async function stableRuntimePoint(page: Page, x: number, y: number) {
+  let previous: { x: number; y: number } | null = null;
+  let stableSamples = 0;
+  await expect.poll(async () => {
+    const current = await runtimePoint(page, x, y);
+    if (!current) {
+      previous = null;
+      stableSamples = 0;
+      return false;
+    }
+    stableSamples = previous
+      && Math.abs(current.x - previous.x) < 1
+      && Math.abs(current.y - previous.y) < 1
+      ? stableSamples + 1
+      : 0;
+    previous = current;
+    return stableSamples >= 2;
+  }, { timeout: 10_000 }).toBe(true);
+  const point = await runtimePoint(page, x, y);
+  if (!point) throw new Error('The scene point is not available.');
+  return point;
+}
 
 test('tutorial coach walks a newcomer from the welcome to the first questions', async ({ page }) => {
   const errors: string[] = [];
@@ -196,7 +218,7 @@ test('a normal two-player room has no switch tool and Q never switches detective
   await expect(page.locator('#tutorial-role-btn')).toHaveCount(0);
   await expect(coach(page)).toHaveCount(0);
   await page.keyboard.press('q');
-  const point = await runtimePoint(page, 708, 1314);
+  const point = await stableRuntimePoint(page, 708, 1314);
   await page.mouse.click(point.x, point.y);
   await expect(page.locator('#toast-root')).toContainText('Chỉ Điều tra viên', { timeout: 10_000 });
   await page.waitForTimeout(600);

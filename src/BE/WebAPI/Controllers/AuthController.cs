@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.DependencyInjection;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Auth;
 using SirLocked.Api.Services.Interfaces;
@@ -54,8 +55,12 @@ public class AuthController : BaseApiController
 
     [HttpGet("google")]
     [AllowAnonymous]
-    public IActionResult GoogleLogin()
+    public async Task<IActionResult> GoogleLogin()
     {
+        var schemeProvider = HttpContext.RequestServices.GetRequiredService<IAuthenticationSchemeProvider>();
+        if (await schemeProvider.GetSchemeAsync(GoogleDefaults.AuthenticationScheme) is null)
+            return Redirect(_frontendRedirects.LoginError("google_unavailable"));
+
         var redirectUrl = Url.Action(nameof(GoogleCallback), "Auth");
         var properties = new AuthenticationProperties
         {

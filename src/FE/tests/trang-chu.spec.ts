@@ -262,7 +262,13 @@ for (const [width, height] of [[1440, 900], [1920, 1080], [1262, 903], [1100, 82
     for (const img of [sherlock, watson]) {
       await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
     }
-    await page.waitForTimeout(2600); // the entrance animation
+    await expect.poll(() => page.evaluate(() => {
+      const stageBottom = document.querySelector('#stage')!.getBoundingClientRect().bottom;
+      const sherlockBottom = document.querySelector('#fig-sherlock')!.getBoundingClientRect().bottom;
+      const watsonBottom = document.querySelector('#fig-watson')!.getBoundingClientRect().bottom;
+      const sherlockOffset = Math.min(Math.abs(sherlockBottom - (stageBottom + 10)), Math.abs(sherlockBottom - (stageBottom + 8)));
+      return Math.max(sherlockOffset, Math.abs(watsonBottom - sherlockBottom));
+    })).toBeLessThanOrEqual(3);
     const layout = await page.evaluate(() => {
       const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
       const stage = rect('#stage'), sh = rect('#fig-sherlock'), wa = rect('#fig-watson'), title = rect('#hero-title');
