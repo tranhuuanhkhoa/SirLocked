@@ -15,7 +15,7 @@ import path from 'node:path';
  *   npx playwright test tests/atmosphere-full-stack.spec.ts
  */
 type Json = Record<string, any>;
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string } };
 const enabled = process.env.SIRLOCKED_RUN_ATMOSPHERE_FULL_STACK === 'true';
 const apiUrl = process.env.SIRLOCKED_TEST_API_URL ?? '';
 const readJson = (file: string) => JSON.parse(readFileSync(path.resolve(file), 'utf8')) as Json;
@@ -136,7 +136,6 @@ async function openPlayer(browser: Browser, auth: Auth, roomId: string, errors: 
   });
   await page.addInitScript(({ auth }) => {
     localStorage.setItem('sirlocked.token', auth.token);
-    localStorage.setItem('sirlocked.refreshToken', auth.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');

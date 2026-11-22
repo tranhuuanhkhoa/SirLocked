@@ -16,7 +16,7 @@ import { expect, request, test, type APIRequestContext, type Browser, type Page 
  * Local machines have no Cloudinary: the real refusal is checked first, then the upload answer and the picture itself are
  * supplied by the test. Set SIRLOCKED_ADMIN_EVIDENCE_DIR to keep the screenshots.
  */
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
 
 const enabled = process.env.SIRLOCKED_RUN_ADMIN_CHESTS_FULL_STACK === 'true';
 const evidenceDir = process.env.SIRLOCKED_ADMIN_EVIDENCE_DIR;
@@ -59,7 +59,6 @@ async function openAs(browser: Browser, auth: Auth, viewport: { width: number; h
   page.on('pageerror', (error) => failures.push(error.message));
   await page.addInitScript((value) => {
     localStorage.setItem('sirlocked.token', value.token);
-    localStorage.setItem('sirlocked.refreshToken', value.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', value.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(value.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');

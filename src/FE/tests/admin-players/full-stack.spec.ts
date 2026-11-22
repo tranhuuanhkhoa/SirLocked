@@ -15,7 +15,7 @@ import { expect, request, test, type APIRequestContext, type Browser, type Brows
  *
  * The API must run with Auth__AutoVerifyRegistrations=true. Each run registers two fresh users, and writes only to that local database.
  */
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
+type Auth = { token: string; refreshTokenExpiry: string; refreshCookie: string; user: { userId: string; fullName: string } };
 
 const enabled = process.env.SIRLOCKED_RUN_ADMIN_PLAYERS_FULL_STACK === 'true';
 const evidenceDir = process.env.SIRLOCKED_ADMIN_EVIDENCE_DIR;
@@ -26,7 +26,8 @@ async function login(api: APIRequestContext, email: string, password: string): P
   const response = await api.post('/api/auth/login', { data: { email, password } });
   const body = await response.text();
   expect(response.ok(), `login ${email}: ${response.status()}`).toBe(true);
-  return JSON.parse(body).data;
+  const refreshCookie = response.headers()['set-cookie']?.match(/sirlocked_refresh=([^;]+)/)?.[1] ?? '';
+  return { ...JSON.parse(body).data, refreshCookie };
 }
 
 async function register(api: APIRequestContext, fullName: string, email: string): Promise<Auth> {
@@ -37,7 +38,8 @@ async function register(api: APIRequestContext, fullName: string, email: string)
   });
   const body = await response.text();
   expect(response.ok(), `register ${email}: ${body}`).toBe(true);
-  return JSON.parse(body).data;
+  const refreshCookie = response.headers()['set-cookie']?.match(/sirlocked_refresh=([^;]+)/)?.[1] ?? '';
+  return { ...JSON.parse(body).data, refreshCookie };
 }
 
 async function call<T = any>(api: APIRequestContext, method: string, path: string, token: string, data?: unknown): Promise<T> {
@@ -49,11 +51,18 @@ async function call<T = any>(api: APIRequestContext, method: string, path: strin
 
 async function openAs(browser: Browser, auth: Auth, failures: string[], viewport = { width: 1440, height: 900 }): Promise<{ page: Page; context: BrowserContext }> {
   const context = await browser.newContext({ viewport });
+  await context.addCookies([{
+    name: 'sirlocked_refresh',
+    value: auth.refreshCookie,
+    domain: new URL(process.env.SIRLOCKED_PLAYWRIGHT_BASE_URL!).hostname,
+    path: '/api/auth',
+    httpOnly: true,
+    sameSite: 'Strict',
+  }]);
   const page = await context.newPage();
   page.on('pageerror', (error) => failures.push(error.message));
   await page.addInitScript((value) => {
     localStorage.setItem('sirlocked.token', value.token);
-    localStorage.setItem('sirlocked.refreshToken', value.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', value.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(value.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');
@@ -418,7 +427,12 @@ test('một vòng quản trị đầy đủ: xu, vật phẩm, cấp, ảnh, ch�
     await answer(adminPage, 'Tài khoản bị lộ');
     await expect(dialog(adminPage)).toHaveCount(0);
     expect((await api.get('/api/market/me', { headers: { Authorization: `Bearer ${a.token}` } })).status()).toBe(401);
-    expect((await api.post('/api/auth/refresh', { data: { refreshToken: a.refreshToken } })).ok()).toBe(false);
+    const staleClient = await request.newContext({ baseURL: process.env.SIRLOCKED_TEST_API_URL });
+    try {
+      expect((await staleClient.post('/api/auth/refresh', { data: { refreshToken: decodeURIComponent(a.refreshCookie) } })).ok()).toBe(false);
+    } finally {
+      await staleClient.dispose();
+    }
     await playerPage.goto('/market');
     await expect(playerPage).toHaveURL(/\/login/, { timeout: 20_000 });
     await shot(playerPage, '24-nguoi-choi-bi-ep-dang-xuat');

@@ -6,10 +6,10 @@ export const authApi = {
   adminLogin: (email, password) => post('/api/auth/admin/login', { email, password }),
   me: () => get('/api/auth/me'),
   changePassword: (currentPassword, newPassword) => patch('/api/auth/change-password', { currentPassword, newPassword }),
-  refresh: (refreshToken) => post('/api/auth/refresh', { refreshToken }),
+  refresh: () => post('/api/auth/refresh', undefined, { headers: { 'X-SirLocked-Client': 'web' }, credentials: 'same-origin' }),
   forgotPassword: (email) => post('/api/auth/forgot-password', { email }),
   resetPassword: (token, newPassword) => post('/api/auth/reset-password', { token, newPassword }),
   verifyEmail: (token) => post('/api/auth/verify-email', { token }),
   resendVerification: () => post('/api/auth/resend-verification'),
-  logout: () => post('/api/auth/logout'),
+  logout: () => post('/api/auth/logout', undefined, { credentials: 'same-origin' }),
 };

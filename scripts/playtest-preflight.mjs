@@ -48,7 +48,6 @@ async function call(player, method, route, data) {
 async function openGame(player) {
   const initialize = ({ auth, roomId }) => {
     localStorage.setItem('sirlocked.token', auth.token); localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
-    localStorage.setItem('sirlocked.refreshToken', auth.refreshToken); localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry);
     localStorage.setItem('sirlocked.uiLanguage', 'en'); sessionStorage.setItem(`sirlocked.intro.${roomId}`, '1');
   };
   await player.page.addInitScript(initialize, { auth: player.auth, roomId: room.roomId });

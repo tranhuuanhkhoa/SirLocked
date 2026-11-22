@@ -139,3 +139,18 @@ MongoDB-backed endpoint.
 - Do not expose `.env`.
 - Configure HTTPS termination.
 - Keep Swagger disabled or protected if deploying publicly.
+
+### Nginx security headers
+
+Install `scripts/server/security-headers.conf` as `/etc/nginx/snippets/sirlocked-security-headers.conf` and include it in the SPA-serving `server` block:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name example.invalid;
+    include /etc/nginx/snippets/sirlocked-security-headers.conf;
+    # Existing SPA root and /api, /hubs, /signin-google proxy locations.
+}
+```
+
+The snippet applies `nosniff`, frame, referrer, and permissions policies, HSTS, and a `Content-Security-Policy-Report-Only` policy. Report-Only is intentional while reports are reviewed; the current external allowances cover Cloudinary images, Google Fonts, Google ads, Google OAuth, and PayOS navigation used by the app.

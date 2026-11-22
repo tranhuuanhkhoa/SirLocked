@@ -16,7 +16,6 @@ const shots = process.env.SIRLOCKED_UI_AUDIT_DIR ?? 'ui-audit';
 
 type Auth = {
   token: string;
-  refreshToken: string;
   refreshTokenExpiry: string;
   user: { userId: string; fullName: string; role: string; isEmailVerified: boolean };
 };
@@ -124,7 +123,6 @@ async function shot(page: Page, name: string) {
 async function seedSession(page: Page, auth: Auth) {
   await page.addInitScript((auth) => {
     window.localStorage.setItem('sirlocked.token', auth.token);
-    window.localStorage.setItem('sirlocked.refreshToken', auth.refreshToken);
     window.localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry);
     window.localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     window.localStorage.setItem('sirlocked.uiLanguage', 'en');

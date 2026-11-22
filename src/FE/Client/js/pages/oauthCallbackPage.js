@@ -24,28 +24,26 @@ export async function renderOAuthCallbackPage(app) {
       </div>
     </section>`, { threadsClass: 'is-solving' }));
 
-  // After the #, so the tokens never reach a server or its logs. A redirect from before this change has them in the query.
+  // Older redirects may still include credentials in the hash or query.
   const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search);
-  const token = params.get('token');
-  const refreshToken = params.get('refreshToken');
   const error = params.get('error');
-  // Remove credentials from the address bar and browser history before any network request.
+  // Remove legacy credentials from the address bar and history before any network request.
   window.history.replaceState(window.history.state, '', window.location.pathname);
 
-  if (error || !token) {
+  if (error) {
     toast(tr('Google sign-in failed. Please try again.', 'Đăng nhập Google thất bại. Vui lòng thử lại.'), 'error');
     navigate('/login', { replace: true });
     return;
   }
 
   try {
-    // Lưu token tạm để gọi /me
-    localStorage.setItem('sirlocked.token', token);
-    if (refreshToken) localStorage.setItem('sirlocked.refreshToken', refreshToken);
-
+    const auth = await authApi.refresh();
+    if (!auth?.token || !auth.user?.userId) throw new Error('Invalid session.');
+    localStorage.setItem('sirlocked.token', auth.token);
+    localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     const user = await authApi.me();
     if (!app.isConnected) return;
-    session.save({ token, refreshToken, refreshTokenExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), user });
+    session.save({ ...auth, user });
 
     toast(tr(`Welcome, ${user.fullName}!`, `Chào mừng, ${user.fullName}!`), 'success');
     // Replacing it leaves no address with tokens in the browser's history.

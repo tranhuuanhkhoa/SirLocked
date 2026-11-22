@@ -21,7 +21,5 @@ public sealed class FrontendRedirects
     public string LoginError(string errorCode) =>
         $"{_baseUrl}/login?error={Uri.EscapeDataString(errorCode)}";
 
-    /// <summary>The tokens go after the #: a browser sends that part to nobody, so they stay out of every server log.</summary>
-    public string OAuthCallback(string token, string refreshToken) =>
-        $"{_baseUrl}/oauth-callback#token={Uri.EscapeDataString(token)}&refreshToken={Uri.EscapeDataString(refreshToken)}";
+    public string OAuthCallback() => $"{_baseUrl}/oauth-callback";
 }

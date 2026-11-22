@@ -10,7 +10,7 @@ import type { Role } from './solver.js';
 
 export interface PlayerSession {
   role: Role;
-  auth: { token: string; refreshToken: string; refreshTokenExpiry: string; user: unknown };
+  auth: { token: string; refreshTokenExpiry: string; user: unknown };
 }
 
 const ASSET = /\.(png|jpe?g|webp|gif|svg|js|mjs|css|ogg|mp3|wav|m4a|woff2?|ttf)(\?|$)/i;
@@ -121,7 +121,6 @@ export class PlayerScreens {
         });
         await page.addInitScript(({ auth }: { auth: PlayerSession['auth'] }) => {
           (globalThis as any).localStorage.setItem('sirlocked.token', auth.token);
-          (globalThis as any).localStorage.setItem('sirlocked.refreshToken', auth.refreshToken);
           (globalThis as any).localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry);
           (globalThis as any).localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
           (globalThis as any).localStorage.setItem('sirlocked.uiLanguage', 'vi');

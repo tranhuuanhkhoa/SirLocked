@@ -32,10 +32,12 @@ public sealed class GoogleOAuthAvailabilityTests
 
         var live = await client.GetAsync("/live");
         Assert.Equal(HttpStatusCode.OK, live.StatusCode);
+        AssertSecurityHeaders(live, hasApiCsp: false);
 
         var response = await client.GetAsync("/api/auth/google");
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.Contains("google_unavailable", response.Headers.Location?.ToString() ?? string.Empty);
+        AssertSecurityHeaders(response, hasApiCsp: true);
     }
 
     [Fact]
@@ -51,6 +53,19 @@ public sealed class GoogleOAuthAvailabilityTests
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         var location = response.Headers.Location?.ToString() ?? string.Empty;
         Assert.True(location.Contains("accounts.google.com", StringComparison.Ordinal), $"Unexpected redirect: {location}");
+        AssertSecurityHeaders(response, hasApiCsp: true);
+    }
+
+    private static void AssertSecurityHeaders(HttpResponseMessage response, bool hasApiCsp)
+    {
+        Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
+        Assert.Equal("DENY", response.Headers.GetValues("X-Frame-Options").Single());
+        Assert.Equal("strict-origin-when-cross-origin", response.Headers.GetValues("Referrer-Policy").Single());
+        Assert.Equal("camera=(), geolocation=(), microphone=(self)", response.Headers.GetValues("Permissions-Policy").Single());
+        if (hasApiCsp)
+            Assert.Equal("default-src 'none'; frame-ancestors 'none'", response.Headers.GetValues("Content-Security-Policy").Single());
+        else
+            Assert.False(response.Headers.Contains("Content-Security-Policy"));
     }
 
     private sealed class GoogleCredentialsEnvironment : IDisposable

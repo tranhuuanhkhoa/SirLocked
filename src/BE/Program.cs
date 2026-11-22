@@ -479,6 +479,9 @@ if (!googleCredentialsConfigured)
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseForwardedHeaders();
+if (!app.Environment.IsDevelopment())
+    app.UseHsts();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {

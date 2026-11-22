@@ -166,8 +166,9 @@ public class AuthService : IAuthService
     public async Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request)
     {
         AuthValidator.Refresh(request);
-        var tokenHash = HashRefreshToken(request.RefreshToken);
-        var user = await _db.Users.Find(u => u.RefreshTokenHash == tokenHash || u.RefreshToken == request.RefreshToken).FirstOrDefaultAsync()
+        var refreshToken = request.RefreshToken!;
+        var tokenHash = HashRefreshToken(refreshToken);
+        var user = await _db.Users.Find(u => u.RefreshTokenHash == tokenHash || u.RefreshToken == refreshToken).FirstOrDefaultAsync()
             ?? throw ApiException.Unauthorized("Invalid refresh token.");
 
         return await CompleteRefreshAsync(user, tokenHash);
@@ -235,6 +236,25 @@ public class AuthService : IAuthService
             .Inc(u => u.AuthorizationVersion, 1)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
+    }
+
+    public async Task<bool> LogoutByRefreshTokenAsync(string refreshToken)
+    {
+        var now = DateTime.UtcNow;
+        var tokenHash = HashRefreshToken(refreshToken);
+        var filters = Builders<User>.Filter;
+        var token = filters.Eq(u => u.RefreshTokenHash, tokenHash)
+            | (filters.Eq(u => u.RefreshToken, refreshToken)
+               & (filters.Eq(u => u.RefreshTokenHash, null) | filters.Eq(u => u.RefreshTokenHash, "")));
+        var filter = token & filters.Gt(u => u.RefreshTokenExpiry, now);
+        var update = Builders<User>.Update
+            .Set(u => u.RefreshToken, null)
+            .Set(u => u.RefreshTokenHash, null)
+            .Set(u => u.RefreshTokenExpiry, null)
+            .Inc(u => u.AuthorizationVersion, 1)
+            .Set(u => u.UpdatedAt, now);
+        var result = await _db.Users.UpdateOneAsync(filter, update);
+        return result.MatchedCount == 1;
     }
 
     public async Task<object> ForgotPasswordAsync(ForgotPasswordRequest request)
@@ -424,7 +444,7 @@ public class AuthService : IAuthService
 
     private async Task<AuthResponse> BuildAuthResponseAndSaveRefreshToken(User user, string? expectedRefreshTokenHash = null)
     {
-        var expiresAt = DateTime.UtcNow.AddHours(_jwt.ExpiryHours);
+        var expiresAt = DateTime.UtcNow.AddMinutes(_jwt.EffectiveExpiryMinutes);
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),

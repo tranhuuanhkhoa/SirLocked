@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
 using SirLocked.Api.DTOs;
@@ -27,20 +28,32 @@ public class AuthController : BaseApiController
     [HttpPost("register")]
     [AllowAnonymous]
     [EnableRateLimiting("register")]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request) =>
-        Ok(await _authService.RegisterAsync(request), "Account created.");
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Register([FromBody] RegisterRequest request)
+    {
+        var auth = await _authService.RegisterAsync(request);
+        AuthCookies.SetRefresh(Response, auth.RefreshToken, auth.RefreshTokenExpiry);
+        return Ok(auth, "Account created.");
+    }
 
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting("login")]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] LoginRequest request) =>
-        Ok(await _authService.LoginAsync(request), "Logged in.");
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Login([FromBody] LoginRequest request)
+    {
+        var auth = await _authService.LoginAsync(request);
+        AuthCookies.SetRefresh(Response, auth.RefreshToken, auth.RefreshTokenExpiry);
+        return Ok(auth, "Logged in.");
+    }
 
     [HttpPost("admin/login")]
     [AllowAnonymous]
     [EnableRateLimiting("login")]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> AdminLogin([FromBody] LoginRequest request) =>
-        Ok(await _authService.AdminLoginAsync(request), "Logged in.");
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> AdminLogin([FromBody] LoginRequest request)
+    {
+        var auth = await _authService.AdminLoginAsync(request);
+        AuthCookies.SetRefresh(Response, auth.RefreshToken, auth.RefreshTokenExpiry);
+        return Ok(auth, "Logged in.");
+    }
 
     [HttpGet("me")]
     [Authorize]
@@ -50,8 +63,29 @@ public class AuthController : BaseApiController
     [HttpPost("refresh")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-token")]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> Refresh([FromBody] RefreshTokenRequest request) =>
-        Ok(await _authService.RefreshTokenAsync(request), "Token refreshed.");
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> Refresh(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshTokenRequest? request)
+    {
+        var cookieToken = Request.Cookies[AuthCookies.RefreshCookieName];
+        string? refreshToken;
+        if (!string.IsNullOrWhiteSpace(cookieToken))
+        {
+            if (!string.Equals(Request.Headers["X-SirLocked-Client"].ToString(), "web", StringComparison.Ordinal))
+                throw ApiException.Forbidden("The required client header is missing.", "CSRF_HEADER_MISSING", "auth.csrfHeaderMissing");
+            refreshToken = cookieToken;
+        }
+        else
+        {
+            refreshToken = request?.RefreshToken;
+        }
+
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            throw ApiException.Unauthorized("Refresh token is required.");
+
+        var auth = await _authService.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = refreshToken });
+        AuthCookies.SetRefresh(Response, auth.RefreshToken, auth.RefreshTokenExpiry);
+        return Ok(auth, "Token refreshed.");
+    }
 
     [HttpGet("google")]
     [AllowAnonymous]
@@ -89,9 +123,8 @@ public class AuthController : BaseApiController
 
         var auth = await _authService.GoogleLoginAsync(email, fullName);
 
-        // Redirect về frontend kèm token
-        var redirectUrl = _frontendRedirects.OAuthCallback(auth.Token, auth.RefreshToken);
-        return Redirect(redirectUrl);
+        AuthCookies.SetRefresh(Response, auth.RefreshToken, auth.RefreshTokenExpiry);
+        return Redirect(_frontendRedirects.OAuthCallback());
     }
 
     [HttpPost("forgot-password")]
@@ -133,11 +166,26 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("logout")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<object>>> Logout()
     {
-        // Thu hồi refresh token phía server; client cũng tự xóa JWT.
-        await _authService.LogoutAsync(CallerId);
+        var refreshToken = Request.Cookies[AuthCookies.RefreshCookieName];
+        AuthCookies.ClearRefresh(Response);
+
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            await _authService.LogoutAsync(CallerId);
+        }
+        else if (!string.IsNullOrWhiteSpace(refreshToken))
+        {
+            if (!await _authService.LogoutByRefreshTokenAsync(refreshToken))
+                throw ApiException.Unauthorized();
+        }
+        else
+        {
+            throw ApiException.Unauthorized();
+        }
+
         return Ok<object>(new { loggedOut = true }, "Logged out.");
     }
 }
