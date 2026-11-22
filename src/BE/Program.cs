@@ -313,6 +313,7 @@ builder.Services.AddAdminPlayers();
 builder.Services.AddPayments(builder.Configuration);
 builder.Services.AddHttpClient(AiCaseService.AssetHttpClientName);
 
+var authRateLimits = RateLimitingSettings.FromConfiguration(builder.Configuration);
 builder.Services.AddRateLimiter(options =>
 {
     // 5 lần login / 1 phút / 1 IP
@@ -320,8 +321,8 @@ builder.Services.AddRateLimiter(options =>
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 5,
-            Window = TimeSpan.FromMinutes(1),
+            PermitLimit = authRateLimits.Login.PermitLimit,
+            Window = TimeSpan.FromSeconds(authRateLimits.Login.WindowSeconds),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         }));
@@ -331,8 +332,8 @@ builder.Services.AddRateLimiter(options =>
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 3,
-            Window = TimeSpan.FromMinutes(5),
+            PermitLimit = authRateLimits.Register.PermitLimit,
+            Window = TimeSpan.FromSeconds(authRateLimits.Register.WindowSeconds),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         }));

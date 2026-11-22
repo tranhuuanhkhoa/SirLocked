@@ -36,6 +36,10 @@ Required for public AI generation:
 
 The backend loads repo-root `.env` through `EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory())`.
 
+### Authentication rate limits
+
+Login defaults to 5 requests per 60 seconds per IP; registration defaults to 3 requests per 300 seconds per IP. Both queues remain disabled. Optional overrides are `RateLimiting__Login__PermitLimit`, `RateLimiting__Login__WindowSeconds`, `RateLimiting__Register__PermitLimit`, and `RateLimiting__Register__WindowSeconds`. **load-test only; don't raise these in production.**
+
 ## Run MongoDB
 
 ```powershell
