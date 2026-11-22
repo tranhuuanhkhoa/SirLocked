@@ -22,7 +22,7 @@ function deviceId() {
  * Shared API client. All backend responses use the { success, message, data, errors }
  * envelope; this unwraps data and throws { status, message, errors } on failure.
  */
-export async function apiFetch(method, path, body, _retry = true, extraHeaders = {}) {
+export async function apiFetch(method, path, body, _retry = true, extraHeaders = {}, credentials = 'same-origin') {
   const headers = { 'Content-Type': 'application/json', ...extraHeaders };
   const requestSession = authSnapshot();
   const token = requestSession.token;
@@ -35,6 +35,7 @@ export async function apiFetch(method, path, body, _retry = true, extraHeaders =
     response = await fetch(path, {
       method,
       headers,
+      credentials,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
@@ -53,7 +54,7 @@ export async function apiFetch(method, path, body, _retry = true, extraHeaders =
       if (_retry) {
         const refreshed = await refreshAfterUnauthorized(requestSession);
         if (refreshed && canRetryForAccount(requestSession)) {
-          return apiFetch(method, path, body, false, extraHeaders);
+          return apiFetch(method, path, body, false, extraHeaders, credentials);
         }
       } else {
         expireSessionIfCurrent(requestSession);
@@ -77,7 +78,7 @@ export async function apiFetchForm(path, formData, _retry = true) {
 
   let response;
   try {
-    response = await fetch(path, { method: 'POST', headers, body: formData });
+    response = await fetch(path, { method: 'POST', headers, body: formData, credentials: 'same-origin' });
   } catch {
     throw { status: 0, message: 'Cannot reach the server. Is the backend running?', errors: null };
   }
@@ -117,6 +118,6 @@ export async function apiFetchBlob(path, signal) {
 }
 
 export const get = (path) => apiFetch('GET', path);
-export const post = (path, body, options = {}) => apiFetch('POST', path, body ?? {}, true, options.headers ?? {});
+export const post = (path, body, options = {}) => apiFetch('POST', path, body, true, options.headers ?? {}, options.credentials ?? 'same-origin');
 export const put = (path, body) => apiFetch('PUT', path, body ?? {});
 export const patch = (path, body) => apiFetch('PATCH', path, body ?? {});

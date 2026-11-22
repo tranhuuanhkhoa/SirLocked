@@ -7,14 +7,12 @@ import { signInAs } from './helpers/adminSession';
  */
 const adminAuth = {
   token: 'real-admin-token',
-  refreshToken: 'real-admin-refresh',
   refreshTokenExpiry: '2099-01-01T00:00:00.000Z',
   user: { userId: 'a1', fullName: 'Quản trị', email: 'admin@example.com', role: 'ADMIN', isEmailVerified: true },
 };
 const playerAuth = {
   ...adminAuth,
   token: 'real-player-token',
-  refreshToken: 'real-player-refresh',
   user: { userId: 'p1', fullName: 'Thám tử', email: 'player@example.com', role: 'PLAYER', isEmailVerified: true },
 };
 
@@ -235,7 +233,7 @@ test.describe('arriving already signed in', () => {
     await expectAddress(page, '/admin');
     await expect(page.locator('.admin-nav-tab.is-active')).toHaveText('Tổng quan');
     expect(await stored(page, 'sirlocked.token')).toBe('real-admin-token');
-    expect(await stored(page, 'sirlocked.refreshToken')).toBe('real-admin-refresh');
+    expect(await stored(page, 'sirlocked.refreshToken')).toBeNull();
   });
 
   test('a wrong password does not end the session the player already has', async ({ page }) => {
@@ -290,9 +288,11 @@ test.describe('signing in on the player page', () => {
   test('an admin arriving from Google lands on the menu, and the admin pages still open for them', async ({ page }) => {
     await vietnamese(page);
     await fakeApi(page);
+    await answer(page, '/api/auth/refresh', 200, { success: true, data: adminAuth });
     await answer(page, '/api/auth/me', 200, { success: true, data: adminAuth.user });
     await page.goto('/oauth-callback#token=google-token&refreshToken=google-refresh');
     await expectAddress(page, '/menu');
+    expect(await stored(page, 'sirlocked.refreshToken')).toBeNull();
     await page.goto('/admin');
     await expect(page.locator('.admin-nav-tab.is-active')).toHaveText('Tổng quan');
   });

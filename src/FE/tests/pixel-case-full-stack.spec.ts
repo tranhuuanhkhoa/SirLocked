@@ -12,7 +12,7 @@ import { readFile } from 'node:fs/promises';
  *   SIRLOCKED_TEST_PASSWORD=... SIRLOCKED_TEST_CASE_PATH=../BE/SeedData/V3/case-pixel-lo-thuoc-thu-nam-vi.json
  *   SIRLOCKED_PLAYWRIGHT_EXTERNAL_SERVER=1 npx playwright test tests/pixel-case-full-stack.spec.ts
  */
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string } };
 type Box = { x: number; y: number; width: number; height: number };
 const enabled = process.env.SIRLOCKED_RUN_PIXEL_FULL_STACK === 'true';
 const S = (key: string) => `scene-px-${key}`;
@@ -197,7 +197,6 @@ async function openPlayer(browser: Browser, auth: Auth, roomId: string) {
   const page = await context.newPage();
   await page.addInitScript(({ auth }) => {
     localStorage.setItem('sirlocked.token', auth.token);
-    localStorage.setItem('sirlocked.refreshToken', auth.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');

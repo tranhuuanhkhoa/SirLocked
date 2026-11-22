@@ -28,8 +28,13 @@ Authorization: Bearer <jwt>
 | `POST` | `/api/auth/register` | Anonymous | `{ "fullName": "...", "email": "...", "password": "..." }` | `AuthResponse` |
 | `POST` | `/api/auth/login` | Anonymous | `{ "email": "...", "password": "..." }` | `AuthResponse` |
 | `POST` | `/api/auth/admin/login` | Anonymous | `{ "email": "...", "password": "..." }` | `AuthResponse`; `403` and no token for an account that is not `ADMIN` |
+| `POST` | `/api/auth/refresh` | Anonymous | optional `{ "refreshToken": "..." }` for non-browser clients | `AuthResponse`; refresh cookie is preferred |
 | `GET` | `/api/auth/me` | User | none | `UserResponse` |
-| `POST` | `/api/auth/logout` | User | none | `{ "loggedOut": true }` |
+| `POST` | `/api/auth/logout` | User or refresh cookie | none | `{ "loggedOut": true }` |
+
+Successful register, login, admin login, refresh, and Google callback responses set the `sirlocked_refresh` cookie. It is `HttpOnly`, `SameSite=Strict`, scoped to `/api/auth`, expires with the refresh session, and is `Secure` on HTTPS or outside Development. The refresh token is not included in JSON or OAuth callback URLs. `AuthResponse` keeps `refreshTokenExpiry` so the browser can decide whether a refresh is due.
+
+Browser refresh calls `POST /api/auth/refresh` with no body, `credentials: same-origin`, and `X-SirLocked-Client: web`. When the cookie is present, the header is required; without it the API returns `403` with `errors.code = "CSRF_HEADER_MISSING"`. If no cookie is present, non-browser clients may provide `refreshToken` in the optional body. If neither source supplies a token, the API returns `401`. A successful refresh rotates the cookie. Logout clears the cookie and revokes the session; it can use the refresh cookie when the access JWT is missing or expired.
 
 `AuthResponse`:
 
@@ -37,6 +42,7 @@ Authorization: Bearer <jwt>
 {
   "token": "jwt",
   "expiresAt": "2026-06-12T00:00:00Z",
+  "refreshTokenExpiry": "2026-06-19T00:00:00Z",
   "user": {
     "userId": "user-id",
     "fullName": "Ada Player",

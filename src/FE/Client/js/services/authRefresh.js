@@ -5,11 +5,11 @@ const REFRESH_LOCK = 'sirlocked.auth-refresh';
 const pendingRefreshes = new Map();
 
 export function authSnapshot() {
-  return { token: session.token(), refreshToken: session.refreshToken(), userId: session.user()?.userId || '' };
+  return { token: session.token(), userId: session.user()?.userId || '' };
 }
 
 function sameSession(left, right) {
-  return left.token === right.token && left.refreshToken === right.refreshToken && left.userId === right.userId;
+  return left.token === right.token && left.userId === right.userId;
 }
 
 export function canRetryForAccount(original) {
@@ -59,7 +59,7 @@ async function refreshCurrentSession(original) {
   if (!canRetryForAccount(original)) return false;
   if (hasNewerSession(original)) return true;
   const starting = authSnapshot();
-  if (!starting.refreshToken || !session.isRefreshTokenValid()) {
+  if (!session.isRefreshTokenValid()) {
     expireSessionIfCurrent(starting);
     return false;
   }
@@ -68,8 +68,8 @@ async function refreshCurrentSession(original) {
   try {
     response = await fetch('/api/auth/refresh', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: starting.refreshToken }),
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-SirLocked-Client': 'web' },
     });
   } catch {
     if (!sameSession(starting, authSnapshot())) return hasNewerSession(original);
@@ -91,9 +91,25 @@ async function refreshCurrentSession(original) {
     throw { status: response.status, message: payload?.message || 'Session refresh is temporarily unavailable. Please try again.', errors: payload?.errors ?? null };
   }
   const auth = payload?.data;
-  if (!auth?.token || !auth.refreshToken || auth.user?.userId !== starting.userId) {
+  if (!auth?.token || auth.user?.userId !== starting.userId) {
     throw { status: 502, message: 'The server returned an invalid session response. Please try again.', errors: null };
   }
   session.save(auth);
   return true;
+}
+
+function expiresWithinMinute(token) {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const claims = JSON.parse(atob(payload));
+    return Number.isFinite(claims.exp) && claims.exp * 1000 <= Date.now() + 60_000;
+  } catch {
+    return false;
+  }
+}
+
+export async function freshAccessToken() {
+  const current = authSnapshot();
+  if (current.token && expiresWithinMinute(current.token)) await refreshAfterUnauthorized(current);
+  return session.token();
 }

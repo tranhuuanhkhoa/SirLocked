@@ -15,7 +15,7 @@ import { expect, request, test, type APIRequestContext, type Browser, type Page 
  * the API hides them from players, so start the API with CaseCatalog__PixelOnly=false (and
  * CaseCatalog__SeedPixelOnStartup=false if you want a database without the pixel cases).
  */
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
 const enabled = process.env.SIRLOCKED_RUN_LOBBY_FULL_STACK === 'true';
 const password = process.env.SIRLOCKED_TEST_PASSWORD ?? 'Lobby-test-123';
 const adminPassword = process.env.SIRLOCKED_TEST_ADMIN_PASSWORD ?? 'Admin123!';
@@ -227,7 +227,6 @@ async function openPlayer(browser: Browser, auth: Auth, path: string, { noSignal
   const page = await context.newPage();
   await page.addInitScript(({ auth, noSignalR }) => {
     localStorage.setItem('sirlocked.token', auth.token);
-    localStorage.setItem('sirlocked.refreshToken', auth.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');

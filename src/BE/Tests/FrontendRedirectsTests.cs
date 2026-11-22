@@ -30,12 +30,10 @@ public class FrontendRedirectsTests
     }
 
     [Fact]
-    public void OAuthCallback_UsesConfiguredFrontendAndEscapesTokens()
+    public void OAuthCallback_UsesConfiguredFrontendWithoutTokens()
     {
-        var url = _redirects.OAuthCallback("access+/=", "refresh?&");
+        var url = _redirects.OAuthCallback();
 
-        Assert.Equal(
-            "https://game.example.test/oauth-callback#token=access%2B%2F%3D&refreshToken=refresh%3F%26",
-            url);
+        Assert.Equal("https://game.example.test/oauth-callback", url);
     }
 }

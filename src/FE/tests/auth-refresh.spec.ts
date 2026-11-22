@@ -1,13 +1,18 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
-const initial = auth('account-a', 'expired-access', 'original-refresh');
-const rotated = auth('account-a', 'new-access', 'rotated-refresh');
+const initial = auth('account-a', 'expired-access');
+const rotated = auth('account-a', 'new-access');
 
-function auth(userId: string, token: string, refreshToken: string) {
+function auth(userId: string, token: string) {
   return {
-    token, refreshToken, refreshTokenExpiry: new Date(Date.now() + 3_600_000).toISOString(),
+    token, refreshTokenExpiry: new Date(Date.now() + 3_600_000).toISOString(),
     user: { userId, fullName: userId, role: 'PLAYER', isEmailVerified: true },
   };
+}
+
+function jwtExpiringIn(seconds: number) {
+  const payload = btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + seconds }));
+  return `header.${payload}.signature`;
 }
 
 function gate() {
@@ -23,6 +28,14 @@ async function prepare(context: BrowserContext, page: Page) {
   }));
   await page.goto('/auth-refresh-harness');
   await save(page, initial);
+  await context.addCookies([{
+    name: 'sirlocked_refresh',
+    value: 'original-refresh',
+    domain: new URL(page.url()).hostname,
+    path: '/api/auth',
+    httpOnly: true,
+    sameSite: 'Strict',
+  }]);
 }
 
 async function save(page: Page, value: ReturnType<typeof auth>) {
@@ -75,9 +88,11 @@ test('two tabs and parallel 401s rotate once and recover every request', async (
   });
   await context.route('**/api/auth/refresh', (route) => {
     refreshCalls++;
-    expect(route.request().postDataJSON().refreshToken).toBe(initial.refreshToken);
+    expect(route.request().postData()).toBeNull();
+    expect(route.request().headers()['x-sirlocked-client']).toBe('web');
+    expect(route.request().headers().cookie).toContain('sirlocked_refresh=original-refresh');
     return route.fulfill(refreshCalls === 1
-      ? { json: { success: true, data: rotated } }
+      ? { json: { success: true, data: rotated }, headers: { 'set-cookie': 'sirlocked_refresh=rotated-refresh; Path=/api/auth; HttpOnly; SameSite=Strict' } }
       : { status: 401, json: { success: false } });
   });
 
@@ -86,7 +101,28 @@ test('two tabs and parallel 401s rotate once and recover every request', async (
   expect(results).toEqual(Array(4).fill({ ok: true, value: { actor: 'account-a' } }));
   expect(refreshCalls).toBe(1);
   expect(successfulWrites).toBe(4);
-  expect(await snapshot(other)).toMatchObject({ token: rotated.token, refreshToken: rotated.refreshToken, userId: 'account-a' });
+  expect(await snapshot(other)).toMatchObject({ token: rotated.token, refreshToken: null, userId: 'account-a' });
+});
+
+test('SignalR access token factory refreshes a session expiring within one minute', async ({ context, page }) => {
+  await prepare(context, page);
+  const expiring = auth('account-a', jwtExpiringIn(30));
+  await save(page, expiring);
+  let refreshCalls = 0;
+  await context.route('**/api/auth/refresh', (route) => {
+    refreshCalls++;
+    expect(route.request().postData()).toBeNull();
+    expect(route.request().headers()['x-sirlocked-client']).toBe('web');
+    return route.fulfill({ json: { success: true, data: rotated } });
+  });
+
+  const token = await page.evaluate(async () => {
+    const { freshAccessToken } = await import('/Client/js/services/authRefresh.js');
+    return freshAccessToken();
+  });
+
+  expect(token).toBe(rotated.token);
+  expect(refreshCalls).toBe(1);
 });
 
 for (const locksAvailable of [true, false]) {
@@ -113,7 +149,7 @@ for (const locksAvailable of [true, false]) {
     response.release();
 
     expect(await pending).toEqual([{ ok: true, value: 'recovered' }]);
-    expect(await snapshot(page)).toMatchObject({ token: rotated.token, refreshToken: rotated.refreshToken, path: '/auth-refresh-harness' });
+    expect(await snapshot(page)).toMatchObject({ token: rotated.token, refreshToken: null, path: '/auth-refresh-harness' });
   });
 }
 
@@ -151,7 +187,7 @@ for (const refreshStatus of [200, 401]) {
     await prepare(context, page);
     const seen = gate();
     const response = gate();
-    const newAccount = auth('account-b', 'other-access', 'other-refresh');
+    const newAccount = auth('account-b', 'other-access');
     const calls: string[] = [];
     await context.route('**/api/protected-write', (route) => {
       calls.push(route.request().headers().authorization);
@@ -170,7 +206,7 @@ for (const refreshStatus of [200, 401]) {
 
     expect(await pending).toEqual([{ ok: false, status: 401 }]);
     expect(calls).toEqual([`Bearer ${initial.token}`]);
-    expect(await snapshot(page)).toMatchObject({ token: newAccount.token, refreshToken: newAccount.refreshToken, userId: 'account-b', path: '/auth-refresh-harness' });
+    expect(await snapshot(page)).toMatchObject({ token: newAccount.token, refreshToken: null, userId: 'account-b', path: '/auth-refresh-harness' });
   });
 }
 
@@ -183,7 +219,7 @@ for (const failure of ['network', '503']) {
       : route.fulfill({ status: 503, json: { success: false } }));
 
     expect(await request(page)).toEqual([{ ok: false, status: failure === 'network' ? 0 : 503 }]);
-    expect(await snapshot(page)).toMatchObject({ token: initial.token, refreshToken: initial.refreshToken, path: '/auth-refresh-harness' });
+    expect(await snapshot(page)).toMatchObject({ token: initial.token, refreshToken: null, path: '/auth-refresh-harness' });
   });
 }
 
@@ -207,7 +243,7 @@ test('a public login 401 neither refreshes nor revokes an existing session', asy
 
   expect(await request(page, 1, '/api/auth/login')).toEqual([{ ok: false, status: 401 }]);
   expect(refreshCalls).toBe(0);
-  expect(await snapshot(page)).toMatchObject({ token: initial.token, refreshToken: initial.refreshToken, path: '/auth-refresh-harness' });
+  expect(await snapshot(page)).toMatchObject({ token: initial.token, refreshToken: null, path: '/auth-refresh-harness' });
 });
 
 async function sendForm(page: Page) {

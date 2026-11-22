@@ -21,7 +21,7 @@ import { expect, request, test, type APIRequestContext, type Browser, type Brows
  *
  * The API must run with Auth__AutoVerifyRegistrations=true. Changes the Seal chest of that database, so run it last.
  */
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
 type Progress = {
   level: number; frameDefId: string | null; titleDefId: string; entranceDefId: string;
   owned: Array<{ itemId: string; defId: string; source: string }>;
@@ -150,7 +150,6 @@ test('một vòng qua cả 3 khu admin: hòm, mỹ phẩm, người chơi, nhậ
     page.on('pageerror', (error) => failures.push(`${who.user.fullName}: ${error.message}`));
     await page.addInitScript((value) => {
       localStorage.setItem('sirlocked.token', value.token);
-      localStorage.setItem('sirlocked.refreshToken', value.refreshToken);
       localStorage.setItem('sirlocked.refreshExpiry', value.refreshTokenExpiry);
       localStorage.setItem('sirlocked.user', JSON.stringify(value.user));
       localStorage.setItem('sirlocked.uiLanguage', 'vi');

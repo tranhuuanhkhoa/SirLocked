@@ -6,7 +6,7 @@ import { expect, request, test, type APIRequestContext, type Browser, type Page 
  */
 import { readFile } from 'node:fs/promises';
 
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string } };
 type Box = { x: number; y: number; width: number; height: number };
 const enabled = process.env.SIRLOCKED_RUN_POINT_CLICK_FULL_STACK === 'true';
 
@@ -356,7 +356,6 @@ async function openPlayer(browser: Browser, auth: Auth, roomId: string, language
   const page = await context.newPage();
   await page.addInitScript(({ auth, language }) => {
     localStorage.setItem('sirlocked.token', auth.token);
-    localStorage.setItem('sirlocked.refreshToken', auth.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     localStorage.setItem('sirlocked.uiLanguage', language.toLowerCase());

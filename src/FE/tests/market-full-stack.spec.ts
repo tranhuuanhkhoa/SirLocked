@@ -12,7 +12,7 @@ import { expect, request, test, type APIRequestContext, type Browser, type Page 
  *
  * The API must run with Auth__AutoVerifyRegistrations=true. Each run registers two fresh users.
  */
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
 type Wallet = { balance: number; held: number; itemCount: number; slotsUsed: number };
 type InventoryItem = { itemId: string; locked: boolean; def: { id: string; name: string } };
 
@@ -150,7 +150,6 @@ async function openAs(browser: Browser, auth: Auth, path: string): Promise<Page>
   const page = await context.newPage();
   await page.addInitScript((value) => {
     localStorage.setItem('sirlocked.token', value.token);
-    localStorage.setItem('sirlocked.refreshToken', value.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', value.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(value.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');

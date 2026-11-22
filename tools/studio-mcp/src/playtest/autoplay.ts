@@ -331,7 +331,7 @@ async function playerLogin(api: GameApi, role: Role): Promise<Player> {
   if (!auth?.token) throw new Error(`Player sign-in for ${role} returned no token.`);
   return {
     role, token: auth.token,
-    auth: { token: auth.token, refreshToken: auth.refreshToken, refreshTokenExpiry: auth.refreshTokenExpiry, user: auth.user },
+    auth: { token: auth.token, refreshTokenExpiry: auth.refreshTokenExpiry, user: auth.user },
   };
 }
 

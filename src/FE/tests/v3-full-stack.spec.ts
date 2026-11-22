@@ -14,7 +14,6 @@ const apiBaseUrl = process.env.SIRLOCKED_TEST_API_URL ?? 'http://127.0.0.1:5215'
 
 type Auth = {
   token: string;
-  refreshToken: string;
   refreshTokenExpiry: string;
   user: { userId: string; fullName: string; role: string; isEmailVerified: boolean };
 };
@@ -377,7 +376,6 @@ async function openEndedPlayer(browser: Browser, roomId: string, auth: Auth): Pr
   const page = await context.newPage();
   await page.addInitScript(({ roomId, auth }) => {
     window.localStorage.setItem('sirlocked.token', auth.token);
-    window.localStorage.setItem('sirlocked.refreshToken', auth.refreshToken);
     window.localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry);
     window.localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     window.localStorage.setItem('sirlocked.uiLanguage', 'en');

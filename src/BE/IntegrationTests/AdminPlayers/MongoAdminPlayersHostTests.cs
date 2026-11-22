@@ -17,6 +17,7 @@ using SirLocked.Api.Configurations;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.WebAPI;
 using Xunit;
 
 namespace SirLocked.IntegrationTests.AdminPlayers;
@@ -127,7 +128,8 @@ public sealed class MongoAdminPlayersHostTests
         Assert.Equal(HttpStatusCode.OK, forced.StatusCode);
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.SendAsync(Request("GET /api/market/me", player.Token))).StatusCode);
-        var refreshed = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = player.RefreshToken });
+        using var bodyClient = host.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var refreshed = await bodyClient.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = player.RefreshToken });
         Assert.False(refreshed.IsSuccessStatusCode, $"The refresh token still works: {refreshed.StatusCode}");
     }
 
@@ -192,6 +194,16 @@ public sealed class MongoAdminPlayersHostTests
         Assert.Contains("attachment", response.Content.Headers.ContentDisposition!.ToString());
     }
 
+    private static string RefreshCookieValue(HttpResponseMessage response)
+    {
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"));
+        var pair = cookie.Split(';', 2)[0];
+        return pair[(pair.IndexOf('=') + 1)..];
+    }
+
+    private static string RefreshTokenValue(HttpResponseMessage response) =>
+        Uri.UnescapeDataString(RefreshCookieValue(response));
+
     private sealed record Session(string UserId, string Token, string RefreshToken);
 
     [Fact]
@@ -211,6 +223,86 @@ public sealed class MongoAdminPlayersHostTests
         Assert.Equal(HttpStatusCode.OK, players.StatusCode);
     }
 
+    [Fact]
+    public async Task AuthRefresh_UsesHttpOnlyCookieWithCsrfHeaderAndSupportsBodyFallback()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        using var client = host.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var email = await host.InsertUserAsync(UserRole.Player);
+        var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password = AdminHost.Password });
+
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var loginJson = await login.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("\"refreshToken\":", loginJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("refreshTokenExpiry", loginJson, StringComparison.OrdinalIgnoreCase);
+        var originalCookie = RefreshCookieValue(login);
+        var setCookie = Assert.Single(login.Headers.GetValues("Set-Cookie"));
+        Assert.Contains("HttpOnly", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SameSite=Strict", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Path=/api/auth", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Expires=", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Secure", setCookie, StringComparison.OrdinalIgnoreCase);
+
+        using var emptyRefresh = await client.PostAsync("/api/auth/refresh", content: null);
+        Assert.Equal(HttpStatusCode.Unauthorized, emptyRefresh.StatusCode);
+
+        using var missingHeader = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        missingHeader.Headers.Add("Cookie", $"{AuthCookies.RefreshCookieName}={originalCookie}");
+        using var blocked = await client.SendAsync(missingHeader);
+        Assert.Equal(HttpStatusCode.Forbidden, blocked.StatusCode);
+        Assert.Equal("CSRF_HEADER_MISSING",
+            (await blocked.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors").GetProperty("code").GetString());
+
+        using var bodyRefresh = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = RefreshTokenValue(login) });
+        Assert.Equal(HttpStatusCode.OK, bodyRefresh.StatusCode);
+        Assert.DoesNotContain("\"refreshToken\":", await bodyRefresh.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+        var rotatedCookie = RefreshCookieValue(bodyRefresh);
+
+        using var cookieRefresh = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        cookieRefresh.Headers.Add("Cookie", $"{AuthCookies.RefreshCookieName}={rotatedCookie}");
+        cookieRefresh.Headers.Add("X-SirLocked-Client", "web");
+        using var refreshed = await client.SendAsync(cookieRefresh);
+        Assert.Equal(HttpStatusCode.OK, refreshed.StatusCode);
+        var refreshedSetCookie = Assert.Single(refreshed.Headers.GetValues("Set-Cookie"));
+        Assert.Contains("HttpOnly", refreshedSetCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SameSite=Strict", refreshedSetCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Path=/api/auth", refreshedSetCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Expires=", refreshedSetCookie, StringComparison.OrdinalIgnoreCase);
+        var nextCookie = RefreshCookieValue(refreshed);
+
+        using var reusedCookie = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        reusedCookie.Headers.Add("Cookie", $"{AuthCookies.RefreshCookieName}={rotatedCookie}");
+        reusedCookie.Headers.Add("X-SirLocked-Client", "web");
+        using var replay = await client.SendAsync(reusedCookie);
+        Assert.Equal(HttpStatusCode.Unauthorized, replay.StatusCode);
+        Assert.NotEqual(rotatedCookie, nextCookie);
+    }
+
+    [Fact]
+    public async Task Logout_RevokesAValidRefreshCookieWithoutAnAccessTokenAndClearsIt()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        using var client = host.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var email = await host.InsertUserAsync(UserRole.Player);
+        var session = await host.SignInAsync(client, email);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/logout");
+        request.Headers.Add("Cookie", $"{AuthCookies.RefreshCookieName}={Uri.EscapeDataString(session.RefreshToken)}");
+
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var clearedCookie = Assert.Single(response.Headers.GetValues("Set-Cookie"));
+        Assert.Contains("sirlocked_refresh=", clearedCookie, StringComparison.Ordinal);
+        Assert.Contains("Path=/api/auth", clearedCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Expires=", clearedCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("HttpOnly", clearedCookie, StringComparison.OrdinalIgnoreCase);
+        var saved = await host.Db.Users.Find(user => user.Email == email).FirstAsync();
+        Assert.Null(saved.RefreshTokenHash);
+        Assert.Null(saved.RefreshTokenExpiry);
+    }
+
     [Theory]
     [InlineData(UserRole.Player)]
     [InlineData(UserRole.Vip)]
@@ -227,7 +319,8 @@ public sealed class MongoAdminPlayersHostTests
         Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
         Assert.DoesNotContain("token", await refused.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
         // Each account holds one refresh token, so issuing one here would have ended the session they are playing in.
-        var refreshed = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = session.RefreshToken });
+        using var bodyClient = host.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var refreshed = await bodyClient.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = session.RefreshToken });
         Assert.Equal(HttpStatusCode.OK, refreshed.StatusCode);
     }
 
@@ -370,7 +463,7 @@ public sealed class MongoAdminPlayersHostTests
             var login = await client.PostAsJsonAsync("/api/auth/login", new { email, password = Password });
             Xunit.Assert.True(login.IsSuccessStatusCode, $"Sign-in failed: {(int)login.StatusCode} {await login.Content.ReadAsStringAsync()}");
             var data = (await login.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
-            return new Session(data.GetProperty("user").GetProperty("userId").GetString()!, data.GetProperty("token").GetString()!, data.GetProperty("refreshToken").GetString()!);
+            return new Session(data.GetProperty("user").GetProperty("userId").GetString()!, data.GetProperty("token").GetString()!, RefreshTokenValue(login));
         }
 
         public override async ValueTask DisposeAsync()
