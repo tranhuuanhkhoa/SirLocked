@@ -118,6 +118,6 @@ export async function apiFetchBlob(path, signal) {
 }
 
 export const get = (path) => apiFetch('GET', path);
-export const post = (path, body, options = {}) => apiFetch('POST', path, body, true, options.headers ?? {}, options.credentials ?? 'same-origin');
+export const post = (path, body, options = {}) => apiFetch('POST', path, body ?? {}, true, options.headers ?? {}, options.credentials ?? 'same-origin');
 export const put = (path, body) => apiFetch('PUT', path, body ?? {});
 export const patch = (path, body) => apiFetch('PATCH', path, body ?? {});
