@@ -295,3 +295,46 @@ Each run creates a unique `sirlocked_it_<guid>` database and drops it in `finall
 Optional OpenTelemetry export is enabled only when `OpenTelemetry__OtlpEndpoint` is set. `OpenTelemetry__ServiceName` defaults to `sirlocked-api`; `Logging__Json=true` enables structured JSON console logs with correlation scopes. The admin activity dashboard uses local request and SignalR metrics even when no OTLP exporter is configured.
 
 `GET /api/admin/metrics/activity?days=30` is available to admins. Revenue is restricted to admins with the economy permission at `GET /api/admin/metrics/revenue?days=30`. Mongo backup, restore and verification scripts plus the production Docker Compose setup are documented in `ai-game-docs/DEPLOYMENT_AND_OPERATIONS.md`.
+
+## Load tests and CI security
+
+Local k6 smoke, HTTP load/stress/auth, and paired SignalR tests are documented
+in [`scripts/loadtest/README.md`](scripts/loadtest/README.md). They require a
+throwaway API/database and refuse non-loopback targets unless explicitly
+overridden. Each VU reuses one token; only the dedicated auth scenario logs in
+repeatedly. Do not point load tests at production.
+
+### Local load-test baseline
+
+Runs used a single local Release API and throwaway MongoDB database on a
+machine with 8 CPUs and 31.3 GiB RAM. These are local test measurements, not a
+production capacity claim.
+
+| HTTP scenario | Latency measured (p50 / p95 / p99, ms) | Rate | HTTP errors | Max VUs |
+|---|---:|---:|---:|---:|
+| Smoke | 6.30 / 35.16 / 87.74 (API requests) | 1.046 RPS | 0% | 1 |
+| Load | 2.82 / 12.13 / 16.85 (API requests) | 38.958 RPS | 0% | 50 |
+| Stress | 2.36 / 10.60 / 14.99 (API requests) | 105.444 RPS | 0% | 200 |
+| Auth (default limits) | 132 / 195 / 245.4 (login) | 4 logins/min; 0.077 HTTP RPS | 0% | 1 |
+
+| SignalR scenario | Command-to-broadcast latency (p50 / p95 / p99, ms) | HTTP RPS | HTTP errors | Session success | Commands | Max VUs |
+|---|---:|---:|---:|---:|---:|---:|
+| Smoke | 11 / 33.5 / 35.5 | 0.866 | 0% | 100% | 3 / 3 | 2 |
+| Load | 8 / 12 / 13.26 | 5.254 | 0% | 100% | 75 / 75 | 50 |
+| Stress | 8 / 16 / 37.05 | 11.506 | 0% | 100% | 300 / 300 | 200 |
+
+The API stress run reached 105.444 HTTP requests/second at 200 VUs. The
+paired SignalR stress run completed 100 sessions and all 300 command samples
+at 200 VUs. HTTP p95 was below 500 ms, SignalR command p95 was below 1,000 ms,
+session success was above 99%, and HTTP errors were below 1% in every run.
+No 429 responses were observed.
+
+CI includes dependency auditing, CodeQL for C# and JavaScript/TypeScript, and a
+Gitleaks CLI history scan. Dependabot checks NuGet, npm, and GitHub Actions
+weekly. Local verification passed actionlint 1.7.12 on the CI, CodeQL, and
+secret-scan workflows, and Gitleaks 8.30.1 with the exact-path allowlist.
+`dotnet list package --vulnerable --include-transitive` reported six known
+advisories for `SixLabors.ImageSharp` 3.1.11 (four high and two moderate); this
+is the documented accepted risk. The production npm audit reported zero
+vulnerabilities. Do not interpret the ImageSharp exception or Gitleaks
+allowlist as approval of other vulnerable packages or secret-like values.

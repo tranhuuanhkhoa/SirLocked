@@ -12,6 +12,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Audit NuGet dependencies
+        run: |
+          dotnet list src/BE/SirLocked.Api.csproj package --vulnerable --include-transitive --format json > nuget-audit.json
+          python - <<'PY'
+          import json
+          import sys
+
+          data = json.load(open("nuget-audit.json", encoding="utf-8"))
+          failures = []
+
+          def visit(value, package=None):
+              if isinstance(value, dict):
+                  package = value.get("id", value.get("name", package))
+                  vulnerabilities = value.get("vulnerabilities", [])
+                  for advisory in vulnerabilities:
+                      severity = str(advisory.get("severity", "")).lower()
+                      if severity in {"high", "critical"} and package != "SixLabors.ImageSharp":
+                          failures.append((package, severity, advisory.get("advisoryurl", advisory.get("advisoryUrl", ""))))
+                  for child in value.values():
+                      visit(child, package)
+              elif isinstance(value, list):
+                  for child in value:
+                      visit(child, package)
+
+          visit(data)
+          if failures:
+              for package, severity, url in failures:
+                  print(f"{severity}: {package}: {url}")
+              sys.exit("Unaccepted High/Critical NuGet advisory.")
+          print("No unaccepted High/Critical NuGet advisories. ImageSharp remains the documented accepted risk.")
+          PY
+      - name: Audit production npm dependencies
+        working-directory: src/FE
+        run: npm audit --omit=dev --audit-level=high
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
