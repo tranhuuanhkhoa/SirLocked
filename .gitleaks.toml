@@ -1,0 +1,17 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Verified placeholders and fake credentials in fixtures, examples, and generated test data."
+paths = [
+  '''^analysis/completion-2026-09-30/v3-review\.json$''',
+  '''^src/BE/Tests/PayOsTests\.cs$''',
+  '''^tools/studio-mcp/library/index\.json$''',
+  '''^tmp/(room[2345]?|roomv|inv)\.json$''',
+  '''^src/BE/Tests/V3KnowledgeProjectionTests\.cs$''',
+  '''^src/BE/Tests/V3SecondaryChannelTests\.cs$''',
+  '''^ai-game-docs/\.env\.example$''',
+  '''^README\.md$''',
+  '''^plans/013-persist-playtest-telemetry\.md$''',
+  '''^src/FE/tests/v3-paired-confrontation\.spec\.ts$''',
+]
