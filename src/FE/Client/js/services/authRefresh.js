@@ -31,7 +31,7 @@ export function expireSessionIfCurrent(original) {
 
 export function isPublicAuthRequest(path) {
   const pathname = String(path).split('?')[0];
-  return /^\/api\/auth\/(login|admin\/login|register|refresh|forgot-password|reset-password|verify-email|google(?:\/callback)?)\/?$/.test(pathname);
+  return /^\/api\/auth\/(login|admin\/login|admin\/step-up|register|refresh|forgot-password|reset-password|verify-email|google(?:\/callback)?)\/?$/.test(pathname);
 }
 
 export function refreshAfterUnauthorized(original) {

@@ -408,13 +408,16 @@ async function route({ transition = true } = {}) {
     return;
   }
   if (r.permission && !(r.aiAccess && session.isVip()) && !session.can(r.permission)) {
+    loadingScreen.hide();
     mount.dispose();
+    document.body.classList.remove('game-page-active', 'title-menu-active');
     document.body.classList.add('bpa-board');
-    syncAdminArea(true);
-    syncAdminNav(true);
+    syncAdminArea({ admin: true });
+    syncAdminNav(true, address);
     render(app, `<section class="page adm-forbidden" role="alert">
       <span class="adm-eyebrow">${tr('ACCESS RESTRICTED', 'TRUY CẬP BỊ HẠN CHẾ')}</span>
-      <h1>${tr('You do not have permission to view this page.', 'Bạn không có quyền xem trang này.')}</h1>
+      <h1>${tr('Access restricted', 'Truy cập bị hạn chế')}</h1>
+      <p>${tr('You do not have permission to view this page.', 'Bạn không có quyền xem trang này.')}</p>
       <p>${tr('Ask a SUPER_ADMIN to review your admin role.', 'Hãy nhờ SUPER_ADMIN kiểm tra vai trò quản trị của bạn.')}</p>
     </section>`);
     return;

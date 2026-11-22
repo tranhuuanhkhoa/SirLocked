@@ -34,9 +34,12 @@ public class UserStatusMiddleware
                 throw ApiException.Unauthorized("Your session is no longer valid. Please sign in again.");
             }
 
+            var isAdminOperation = context.Request.Path.StartsWithSegments("/api/admin")
+                || context.Request.Path.StartsWithSegments("/api/chests/admin")
+                || context.Request.Path.StartsWithSegments("/api/market/admin");
             if (adminSecurity.Value.RequireTwoFactor
                 && user.Role == UserRole.Admin
-                && context.Request.Path.StartsWithSegments("/api/admin")
+                && isAdminOperation
                 && !user.TwoFactorEnabled)
             {
                 throw ApiException.Forbidden("Set up two-factor authentication to access admin endpoints.",
