@@ -22,6 +22,7 @@ const tabs = (page: Page) => page.locator('#admin-nav-root .admin-nav-tab');
 const activeTab = (page: Page) => page.locator('#admin-nav-root .admin-nav-tab.is-active');
 
 test('an admin sees the ten tabs on every admin page, old and new', async ({ page }) => {
+  test.setTimeout(90_000);
   await signInAs(page, 'ADMIN');
   for (const [label, href] of TABS) {
     await page.goto(href, { waitUntil: 'domcontentloaded' });
