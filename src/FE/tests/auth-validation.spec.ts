@@ -77,16 +77,34 @@ for (const language of ['en', 'vi'] as const) {
 
 test('Google callback removes credentials from browser URL before fetching account', async ({ page }) => {
   let observedUrl = '';
+  let refreshCalls = 0;
+  await page.route('**/api/auth/refresh', async (route) => {
+    observedUrl = page.url();
+    refreshCalls++;
+    if (refreshCalls === 1) {
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+        success: true,
+        data: {
+          token: 'test-access',
+          refreshTokenExpiry: new Date(Date.now() + 3_600_000).toISOString(),
+          user: { userId: 'test-user', fullName: 'Test' },
+        },
+      }) });
+      return;
+    }
+    await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false }) });
+  });
   await page.route('**/api/auth/me', async (route) => {
     observedUrl = page.url();
     await route.fulfill({ status: 401, contentType: 'application/json',
       body: JSON.stringify({ success: false, message: 'Invalid test token.' }) });
   });
-  // The server redirects to /oauth-callback#token=…; the page must strip it before any request.
+  // A legacy redirect may still include tokens; the page strips them before refreshing the cookie.
   await page.goto('/oauth-callback#token=test-access&refreshToken=test-refresh');
   await expect.poll(() => observedUrl).not.toContain('test-access');
   expect(new URL(observedUrl).pathname).toBe('/oauth-callback');
   expect(observedUrl).not.toContain('test-refresh');
+  expect(refreshCalls).toBeGreaterThan(0);
 });
 
 for (const language of ['en', 'vi'] as const) {

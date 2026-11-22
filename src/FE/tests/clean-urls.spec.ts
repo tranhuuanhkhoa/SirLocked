@@ -179,22 +179,39 @@ test('an invite link has no #', async ({ page }) => {
 });
 
 test.describe('signing in with Google', () => {
-  const answerMe = (page: Page) => page.route((url) => url.pathname.startsWith('/api/'), (route) => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ success: true, data: { userId: 'u1', fullName: 'Yến', role: 'PLAYER', isEmailVerified: true } }),
-  }));
+  const auth = {
+    token: 'cookie-access',
+    refreshTokenExpiry: new Date(Date.now() + 3_600_000).toISOString(),
+    user: { userId: 'u1', fullName: 'Yến', role: 'PLAYER', isEmailVerified: true },
+  };
+  const prepareCallback = async (page: Page) => {
+    await page.goto('/login');
+    await page.context().addCookies([{
+      name: 'sirlocked_refresh',
+      value: 'google-refresh-cookie',
+      domain: new URL(page.url()).hostname,
+      path: '/api/auth',
+      httpOnly: true,
+      sameSite: 'Strict',
+    }]);
+    await page.route('**/api/auth/refresh', (route) => route.fulfill({
+      json: { success: true, data: auth },
+    }));
+    await page.route('**/api/auth/me', (route) => route.fulfill({
+      json: { success: true, data: auth.user },
+    }));
+  };
 
-  test('the tokens arrive after the # so the server never logs them, and leave no trace in the address', async ({ page }) => {
-    await answerMe(page);
+  test('Google callback uses the refresh cookie, ignores legacy URL tokens, and cleans the address', async ({ page }) => {
+    await prepareCallback(page);
     await page.goto('/oauth-callback#token=access-1&refreshToken=refresh-1');
     await expectAddress(page, '/menu');
-    expect(await page.evaluate(() => localStorage.getItem('sirlocked.token'))).toBe('access-1');
-    expect(await page.evaluate(() => localStorage.getItem('sirlocked.refreshToken'))).toBe('refresh-1');
+    expect(await page.evaluate(() => localStorage.getItem('sirlocked.token'))).toBe('cookie-access');
+    expect(await page.evaluate(() => localStorage.getItem('sirlocked.refreshToken'))).toBeNull();
   });
 
-  test('going back does not return to the address that held the tokens', async ({ page }) => {
-    await answerMe(page);
+  test('going back does not return to the address that held legacy tokens', async ({ page }) => {
+    await prepareCallback(page);
     await page.goto('/oauth-callback#token=access-1&refreshToken=refresh-1');
     await expectAddress(page, '/menu');
     await page.goBack();
@@ -202,9 +219,9 @@ test.describe('signing in with Google', () => {
   });
 
   test('a redirect sent before this change still signs in', async ({ page }) => {
-    await answerMe(page);
+    await prepareCallback(page);
     await page.goto('/#/oauth-callback?token=access-1&refreshToken=refresh-1');
     await expectAddress(page, '/menu');
-    expect(await page.evaluate(() => localStorage.getItem('sirlocked.token'))).toBe('access-1');
+    expect(await page.evaluate(() => localStorage.getItem('sirlocked.token'))).toBe('cookie-access');
   });
 });

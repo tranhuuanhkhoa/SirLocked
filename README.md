@@ -42,11 +42,14 @@ CaseCache__SlidingExpirationSeconds=60
 Jwt__Secret=replace-with-at-least-32-characters
 Jwt__Issuer=SirLocked
 Jwt__Audience=SirLockedUsers
+Jwt__ExpiryMinutes=60
 # Claude bridge key (32+ characters). Set it on the server with bash scripts/set-bridge-key.sh; never commit it.
 Bridge__Key=
 # Mock answers instead of the Claude queue (tests, local demo).
 AiGeneration__MockAiResponses=false
 ```
+
+Access tokens expire after 60 minutes by default. `Jwt__ExpiryHours` remains supported for legacy deployments when `Jwt__ExpiryMinutes` is not configured.
 
 The AI case creator needs `Bridge__Key`: every model-written step is queued for the Claude bot, which works through `/api/bridge/*` with that key. Keep real keys in local `.env` files or deployment secrets only.
 Cloudinary storage is required when the bot uploads case images. See [AI case setup with the Claude bridge](docs/AI_CASE_SETUP_VI.md) and the [audio, weather and voice fields](docs/case-audio-weather.md).

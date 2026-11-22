@@ -2,6 +2,9 @@
  * Two sessions live side by side in one browser: the game's ('player', the sirlocked.* keys it always used) and the admin
  * pages' ('admin', sirlocked.admin.*). Signing in, out or running out on one side leaves the other as it was. Which one a
  * page uses follows its address (sessionScope), so `session` below always answers for the page on screen.
+ *
+ * The refresh token itself lives in an HttpOnly cookie per side (sirlocked_refresh, sirlocked_admin_refresh) that scripts
+ * cannot read; storage keeps only its expiry. `refreshToken` stays in KEYS so older copies are removed.
  */
 const KEYS = {
   player: { token: 'sirlocked.token', user: 'sirlocked.user', refreshToken: 'sirlocked.refreshToken', expiry: 'sirlocked.refreshExpiry' },
@@ -98,9 +101,11 @@ export function sessionFor(scope) {
     save(auth) {
       localStorage.setItem(keys.token, auth.token);
       localStorage.setItem(keys.user, JSON.stringify(auth.user));
-      if (auth.refreshToken) {
-        localStorage.setItem(keys.refreshToken, auth.refreshToken);
+      localStorage.removeItem(keys.refreshToken);
+      if (auth.refreshTokenExpiry) {
         localStorage.setItem(keys.expiry, auth.refreshTokenExpiry);
+      } else {
+        localStorage.removeItem(keys.expiry);
       }
     },
     clear() {
@@ -108,9 +113,6 @@ export function sessionFor(scope) {
     },
     token() {
       return localStorage.getItem(keys.token) || '';
-    },
-    refreshToken() {
-      return localStorage.getItem(keys.refreshToken) || '';
     },
     isRefreshTokenValid() {
       const expiry = localStorage.getItem(keys.expiry);
@@ -163,7 +165,6 @@ export const session = {
   save: (auth) => current().save(auth),
   clear: () => current().clear(),
   token: () => current().token(),
-  refreshToken: () => current().refreshToken(),
   isRefreshTokenValid: () => current().isRefreshTokenValid(),
   user: () => current().user(),
   isLoggedIn: () => current().isLoggedIn(),

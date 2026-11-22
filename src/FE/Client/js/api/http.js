@@ -22,24 +22,27 @@ function deviceId() {
  * Shared API client. All backend responses use the { success, message, data, errors }
  * envelope; this unwraps data and throws { status, message, errors } on failure.
  */
-export function apiFetch(method, path, body, _retry = true, extraHeaders = {}) {
+export function apiFetch(method, path, body, _retry = true, extraHeaders = {}, credentials = 'same-origin') {
   // The side (game or admin) is fixed when the request starts, so a retry after a refresh stays on it.
-  return sendJson(method, path, body, _retry, extraHeaders, sessionScope());
+  return sendJson(method, path, body, _retry, extraHeaders, sessionScope(), credentials);
 }
 
-async function sendJson(method, path, body, _retry, extraHeaders, scope) {
+async function sendJson(method, path, body, _retry, extraHeaders, scope, credentials) {
   const headers = { 'Content-Type': 'application/json', ...extraHeaders };
   const requestSession = authSnapshot(scope);
   const token = requestSession.token;
   if (token) headers.Authorization = `Bearer ${token}`;
   const device = token ? deviceId() : '';
   if (device) headers['X-Device-Id'] = device;
+  // Sign-in, refresh and sign-out use the refresh cookie of this side (game or admin) only.
+  if (String(path).startsWith('/api/auth/')) headers['X-SirLocked-Session'] = scope;
 
   let response;
   try {
     response = await fetch(path, {
       method,
       headers,
+      credentials,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
@@ -58,7 +61,7 @@ async function sendJson(method, path, body, _retry, extraHeaders, scope) {
       if (_retry) {
         const refreshed = await refreshAfterUnauthorized(requestSession);
         if (refreshed && canRetryForAccount(requestSession)) {
-          return sendJson(method, path, body, false, extraHeaders, scope);
+          return sendJson(method, path, body, false, extraHeaders, scope, credentials);
         }
       } else {
         expireSessionIfCurrent(requestSession);
@@ -86,7 +89,7 @@ async function sendForm(path, formData, _retry, scope) {
 
   let response;
   try {
-    response = await fetch(path, { method: 'POST', headers, body: formData });
+    response = await fetch(path, { method: 'POST', headers, body: formData, credentials: 'same-origin' });
   } catch {
     throw { status: 0, message: 'Cannot reach the server. Is the backend running?', errors: null };
   }
@@ -126,6 +129,6 @@ export async function apiFetchBlob(path, signal) {
 }
 
 export const get = (path) => apiFetch('GET', path);
-export const post = (path, body, options = {}) => apiFetch('POST', path, body ?? {}, true, options.headers ?? {});
+export const post = (path, body, options = {}) => apiFetch('POST', path, body, true, options.headers ?? {}, options.credentials ?? 'same-origin');
 export const put = (path, body) => apiFetch('PUT', path, body ?? {});
 export const patch = (path, body) => apiFetch('PATCH', path, body ?? {});

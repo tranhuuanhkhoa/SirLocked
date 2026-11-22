@@ -9,11 +9,11 @@ const pendingRefreshes = new Map();
  */
 export function authSnapshot(scope = sessionScope()) {
   const side = sessionFor(scope);
-  return { scope: side.scope, token: side.token(), refreshToken: side.refreshToken(), userId: side.user()?.userId || '' };
+  return { scope: side.scope, token: side.token(), userId: side.user()?.userId || '' };
 }
 
 function sameSession(left, right) {
-  return left.scope === right.scope && left.token === right.token && left.refreshToken === right.refreshToken && left.userId === right.userId;
+  return left.scope === right.scope && left.token === right.token && left.userId === right.userId;
 }
 
 export function canRetryForAccount(original) {
@@ -70,17 +70,18 @@ async function refreshCurrentSession(original) {
   if (hasNewerSession(original)) return true;
   const side = sessionFor(original.scope);
   const starting = authSnapshot(original.scope);
-  if (!starting.refreshToken || !side.isRefreshTokenValid()) {
+  if (!side.isRefreshTokenValid()) {
     expireSessionIfCurrent(starting);
     return false;
   }
 
   let response;
   try {
+    // The refresh token is this side's HttpOnly cookie; the header names the side, and proves the call comes from this page.
     response = await fetch('/api/auth/refresh', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: starting.refreshToken }),
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-SirLocked-Client': 'web', 'X-SirLocked-Session': original.scope },
     });
   } catch {
     if (!sameSession(starting, authSnapshot(original.scope))) return hasNewerSession(original);
@@ -102,9 +103,26 @@ async function refreshCurrentSession(original) {
     throw { status: response.status, message: payload?.message || 'Session refresh is temporarily unavailable. Please try again.', errors: payload?.errors ?? null };
   }
   const auth = payload?.data;
-  if (!auth?.token || !auth.refreshToken || auth.user?.userId !== starting.userId) {
+  if (!auth?.token || auth.user?.userId !== starting.userId) {
     throw { status: 502, message: 'The server returned an invalid session response. Please try again.', errors: null };
   }
   side.save(auth);
   return true;
+}
+
+function expiresWithinMinute(token) {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const claims = JSON.parse(atob(payload));
+    return Number.isFinite(claims.exp) && claims.exp * 1000 <= Date.now() + 60_000;
+  } catch {
+    return false;
+  }
+}
+
+/** A hub's token: refreshed first when it runs out within a minute, on the side (game or admin) given. */
+export async function freshAccessToken(scope = sessionScope()) {
+  const current = authSnapshot(scope);
+  if (current.token && expiresWithinMinute(current.token)) await refreshAfterUnauthorized(current);
+  return sessionFor(scope).token();
 }

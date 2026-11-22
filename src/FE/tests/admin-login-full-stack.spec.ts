@@ -64,7 +64,6 @@ test('players and admins each use their own sign-in page', async ({ browser }) =
     await expectAddress(page, '/menu');
   });
   const playerToken = await stored(page, 'sirlocked.token');
-  const playerRefresh = await stored(page, 'sirlocked.refreshToken');
 
   await test.step('the same player is refused on the admin page, with the right password', async () => {
     await page.goto('/admin/login');
@@ -83,14 +82,14 @@ test('players and admins each use their own sign-in page', async ({ browser }) =
   });
 
   await test.step('neither refusal ended the session on the server', async () => {
-    const refreshed = await api.post('/api/auth/refresh', { data: { refreshToken: playerRefresh } });
-    expect(refreshed.ok(), await refreshed.text()).toBe(true);
-    const auth = (await refreshed.json()).data;
-    // The refresh above replaced the one-use token, so hand the new one to the browser.
-    await page.evaluate(({ token, refreshToken }) => {
-      localStorage.setItem('sirlocked.token', token);
-      localStorage.setItem('sirlocked.refreshToken', refreshToken);
-    }, auth);
+    const cookie = (await context.cookies()).find((item) => item.name === 'sirlocked_refresh');
+    expect(cookie).toMatchObject({ httpOnly: true, path: '/api/auth' });
+    const status = await page.evaluate(async () => (await fetch('/api/auth/refresh', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-SirLocked-Client': 'web' },
+    })).status);
+    expect(status).toBe(200);
   });
 
   let gameToken = '';
