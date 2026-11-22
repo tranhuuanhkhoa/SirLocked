@@ -16,6 +16,8 @@ permissions:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    # Code scanning upload needs a public repo or GitHub Code Security on private repos.
+    if: ${{ !github.event.repository.private || vars.CODE_SCANNING_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
