@@ -109,18 +109,22 @@ public class AdminPlayersRulesTests
 
     public static IEnumerable<object[]> AdminControllers() => new[]
     {
-        new object[] { typeof(AdminPlayersController) },
-        new object[] { typeof(AdminEconomyController) },
-        new object[] { typeof(AdminRoomsController) },
-        new object[] { typeof(AdminReviewsController) },
+        new object[] { typeof(AdminPlayersController), AdminPolicies.Players },
+        new object[] { typeof(AdminEconomyController), AdminPolicies.Economy },
+        new object[] { typeof(AdminRoomsController), AdminPolicies.Moderation },
+        new object[] { typeof(AdminReviewsController), AdminPolicies.Moderation },
     };
 
     [Theory]
     [MemberData(nameof(AdminControllers))]
-    public void EveryNewControllerIsAdminOnly(Type controller)
+    public void EveryNewControllerRequiresItsAdminPermission(Type controller, string policy)
     {
-        var authorize = controller.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>().Single();
+        var classAttributes = controller.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>().ToArray();
+        var authorize = Assert.Single(classAttributes, attribute => !string.IsNullOrWhiteSpace(attribute.Roles));
         Assert.Equal(UserRole.Admin, authorize.Roles);
+        var actionAttributes = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .SelectMany(method => method.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>());
+        Assert.Contains(classAttributes.Concat(actionAttributes), attribute => attribute.Policy == policy);
         // Nothing opens a door the controller closed.
         var open = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Where(method => method.GetCustomAttributes(typeof(AllowAnonymousAttribute), true).Length > 0)

@@ -20,6 +20,9 @@ Required for backend startup:
 - `Jwt__Secret` with at least 32 characters
 - `Jwt__Issuer`
 - `Jwt__Audience`
+- `AdminSecurity__RequireTwoFactor` (optional, defaults to `false`)
+- `AdminSecurity__StepUpMinutes` (optional, defaults to `5`)
+- `DataProtection__KeysPath` (optional path for persistent Data Protection keys)
 
 Required for AI case creation (the Claude bot answers through the bridge; the server calls no AI API):
 
@@ -154,3 +157,10 @@ server {
 ```
 
 The snippet applies `nosniff`, frame, referrer, and permissions policies, HSTS, and a `Content-Security-Policy-Report-Only` policy. Report-Only is intentional while reports are reviewed; the current external allowances cover Cloudinary images, Google Fonts, Google ads, Google OAuth, and PayOS navigation used by the app.
+
+When admin 2FA is enabled, configure `DataProtection__KeysPath` to a persistent
+directory shared by all API instances and restricted to the API service
+account. Protect and back up those keys with the deployment configuration:
+losing them makes encrypted TOTP secrets unreadable. Admins can recover with a
+saved one-time recovery code; otherwise a `SUPER_ADMIN` must reset the
+affected account's 2FA.

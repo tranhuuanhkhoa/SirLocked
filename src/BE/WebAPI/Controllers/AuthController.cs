@@ -8,7 +8,9 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Auth;
+using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Security;
 using SirLocked.Api.WebAPI;
 
 namespace SirLocked.Api.WebAPI.Controllers;
@@ -18,11 +20,13 @@ public class AuthController : BaseApiController
 {
     private readonly IAuthService _authService;
     private readonly FrontendRedirects _frontendRedirects;
+    private readonly IAdminSecurityOperations _adminSecurity;
 
-    public AuthController(IAuthService authService, FrontendRedirects frontendRedirects)
+    public AuthController(IAuthService authService, FrontendRedirects frontendRedirects, IAdminSecurityOperations adminSecurity)
     {
         _authService = authService;
         _frontendRedirects = frontendRedirects;
+        _adminSecurity = adminSecurity;
     }
 
     [HttpPost("register")]
@@ -121,11 +125,47 @@ public class AuthController : BaseApiController
         if (string.IsNullOrEmpty(email))
             return Redirect(_frontendRedirects.LoginError("no_email"));
 
-        var auth = await _authService.GoogleLoginAsync(email, fullName);
+        AuthResponse auth;
+        try
+        {
+            auth = await _authService.GoogleLoginAsync(email, fullName);
+        }
+        catch (ApiException exception) when (exception.Errors is ApiErrorDetails { Code: "ADMIN_2FA_REQUIRED" })
+        {
+            return Redirect(_frontendRedirects.LoginError("admin_2fa_required"));
+        }
 
         AuthCookies.SetRefresh(Response, auth.RefreshToken, auth.RefreshTokenExpiry);
         return Redirect(_frontendRedirects.OAuthCallback());
     }
+
+    [HttpPost("admin/2fa/setup")]
+    [Authorize(Roles = UserRole.Admin)]
+    public async Task<ActionResult<ApiResponse<AdminTwoFactorSetupResponse>>> SetupAdminTwoFactor(CancellationToken ct) =>
+        Ok(await _adminSecurity.SetupAsync(Caller, ct));
+
+    [HttpPost("admin/2fa/enable")]
+    [Authorize(Roles = UserRole.Admin)]
+    public async Task<ActionResult<ApiResponse<AdminTwoFactorEnableResponse>>> EnableAdminTwoFactor(
+        [FromBody] AdminTwoFactorCodeRequest request, CancellationToken ct) =>
+        Ok(await _adminSecurity.EnableAsync(Caller, request.Code, ct));
+
+    [HttpPost("admin/2fa/disable")]
+    [Authorize(Roles = UserRole.Admin)]
+    [RequireAdminStepUp]
+    public async Task<ActionResult<ApiResponse<bool>>> DisableAdminTwoFactor(
+        [FromBody] AdminTwoFactorCodeRequest request, CancellationToken ct)
+    {
+        await _adminSecurity.DisableAsync(Caller, request.Code, ct);
+        return Ok(true);
+    }
+
+    [HttpPost("admin/step-up")]
+    [Authorize(Roles = UserRole.Admin)]
+    [EnableRateLimiting("login")]
+    public async Task<ActionResult<ApiResponse<AdminStepUpResponse>>> StepUp(
+        [FromBody] AdminStepUpRequest request, CancellationToken ct) =>
+        Ok(await _adminSecurity.StepUpAsync(CallerId, request.Password, request.TwoFactorCode, ct));
 
     [HttpPost("forgot-password")]
     [AllowAnonymous]

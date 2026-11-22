@@ -16,12 +16,13 @@ const TABS = [
   ['Kinh tế & chợ', '/admin/economy'],
   ['VIP', '/admin/vip'],
   ['Nhật ký', '/admin/audit'],
+  ['Bảo mật', '/admin/security'],
 ] as const;
 
 const tabs = (page: Page) => page.locator('#admin-nav-root .admin-nav-tab');
 const activeTab = (page: Page) => page.locator('#admin-nav-root .admin-nav-tab.is-active');
 
-test('an admin sees the ten tabs on every admin page, old and new', async ({ page }) => {
+test('an admin sees the eleven tabs on every admin page, old and new', async ({ page }) => {
   test.setTimeout(90_000);
   await signInAs(page, 'ADMIN');
   for (const [label, href] of TABS) {
@@ -41,7 +42,7 @@ test('the tabs navigate, and the bar outlives each page render', async ({ page }
   await expect(activeTab(page)).toHaveText('Hòm & vật phẩm');
   await bar.getByRole('link', { name: 'Vụ án', exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/cases$/);
-  await expect(tabs(page)).toHaveCount(10);
+    await expect(tabs(page)).toHaveCount(11);
 });
 
 const SUB_ROUTES: [string, string][] = [
@@ -93,7 +94,7 @@ test('the bar disappears when an admin leaves the admin pages', async ({ page })
     localStorage.setItem('sirlocked.user', JSON.stringify({ userId: 'p1', fullName: 'Thám tử', role: 'PLAYER', isEmailVerified: true }));
   });
   await page.goto('/admin/chests');
-  await expect(tabs(page)).toHaveCount(10);
+  await expect(tabs(page)).toHaveCount(11);
   await page.evaluate(() => { history.pushState(null, '', '/cases'); dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page).toHaveURL(/\/cases$/);
   await expect(page.locator('#admin-nav-root')).toBeHidden();
@@ -136,7 +137,7 @@ test('on a phone the sidebar folds into a menu, the page does not scroll sideway
   await expect(active).toBeHidden();
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-  await expect(tabs(page)).toHaveCount(10);
+  await expect(tabs(page)).toHaveCount(11);
   await expect(active).toBeInViewport({ ratio: 1 });
   const box = await active.boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);

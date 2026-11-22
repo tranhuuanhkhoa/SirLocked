@@ -30,6 +30,15 @@ for (const code of ['google_failed', 'google_cancelled']) {
   });
 }
 
+test('Google callback for an admin with 2FA explains password-and-code sign-in in both languages', async ({ page }) => {
+  await page.goto('/login?error=admin_2fa_required');
+  await expect(page.getByRole('alert')).toContainText('This admin account uses two-factor authentication');
+  await expect(page.getByRole('alert')).toContainText('Sign in with your password and code');
+  await page.locator('.auth-panel [data-ui-language="vi"]').click();
+  await expect(page.getByRole('alert')).toContainText('Tài khoản quản trị này bật xác thực hai bước');
+  await expect(page.getByRole('alert')).toContainText('Hãy đăng nhập bằng mật khẩu và mã xác thực');
+});
+
 test('an OAuth failure is visible with an existing session and keeps the pending room invitation', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('sirlocked.token', 'old-session-fixture');

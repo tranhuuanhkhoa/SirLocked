@@ -128,6 +128,15 @@ export function sessionFor(scope) {
     isAdmin() {
       return this.user()?.role === 'ADMIN';
     },
+    adminRole() {
+      const user = this.user();
+      return user?.role === 'ADMIN' ? (user.adminRole || 'SUPER_ADMIN') : null;
+    },
+    can(permission) {
+      const user = this.user();
+      if (user?.role !== 'ADMIN') return false;
+      return Array.isArray(user.adminPermissions) ? user.adminPermissions.includes(permission) : true;
+    },
     /** The page this side signs in on. Read it before clear(). */
     loginAddress() {
       return this.scope === 'admin' ? '/admin/login' : '/login';
@@ -169,6 +178,8 @@ export const session = {
   user: () => current().user(),
   isLoggedIn: () => current().isLoggedIn(),
   isAdmin: () => current().isAdmin(),
+  adminRole: () => current().adminRole(),
+  can: (permission) => current().can(permission),
   loginAddress: () => current().loginAddress(),
   home: () => current().home(),
   isEmailVerified: () => current().isEmailVerified(),

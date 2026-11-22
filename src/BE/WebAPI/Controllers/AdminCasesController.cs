@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
+using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Interfaces;
 
@@ -10,6 +11,7 @@ namespace SirLocked.Api.WebAPI.Controllers;
 
 [Route("api/admin/cases")]
 [Authorize(Roles = "ADMIN")]
+[Authorize(Policy = AdminPolicies.Content)]
 public class AdminCasesController : BaseApiController
 {
     private readonly ICaseService _caseService;

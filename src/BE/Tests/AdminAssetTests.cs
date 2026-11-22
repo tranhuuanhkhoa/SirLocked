@@ -257,8 +257,11 @@ public class AdminAssetTests
     [InlineData(typeof(AdminAuditController))]
     public void TheNewEndpointsAreForAdminsOnly(Type controller)
     {
-        var authorize = controller.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>().Single();
+        var attributes = controller.GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>().ToArray();
+        var authorize = Assert.Single(attributes, attribute => !string.IsNullOrWhiteSpace(attribute.Roles));
 
         Assert.Equal(UserRole.Admin, authorize.Roles);
+        Assert.Contains(attributes, attribute => attribute.Policy == (controller == typeof(AdminAssetsController)
+            ? AdminPolicies.Content : AdminPolicies.Audit));
     }
 }

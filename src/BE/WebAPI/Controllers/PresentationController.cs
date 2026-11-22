@@ -30,6 +30,7 @@ public sealed class PresentationController(PresentationService service) : BaseAp
         Ok(await service.ApproveAsync(Caller, draftId, request.ExpectedVersion, null, ct));
     [HttpPost("clips/{clipId}/recover")]
     [Authorize(Roles = UserRole.Admin)]
+    [Authorize(Policy = AdminPolicies.Content)]
     public async Task<ActionResult<ApiResponse<PresentationAdminResponse>>> Recover(string draftId, string clipId, PresentationRecoveryRequest request, CancellationToken ct)
     {
         await service.RecoverAsync(Caller, draftId, clipId, request.ProviderRequestId, ct);

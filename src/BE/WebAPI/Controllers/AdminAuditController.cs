@@ -10,6 +10,7 @@ namespace SirLocked.Api.WebAPI.Controllers;
 /// <summary>The admin audit log, newest first.</summary>
 [Route("api/admin/audit")]
 [Authorize(Roles = UserRole.Admin)]
+[Authorize(Policy = AdminPolicies.Audit)]
 public class AdminAuditController : BaseApiController
 {
     private readonly IAdminAudit _audit;

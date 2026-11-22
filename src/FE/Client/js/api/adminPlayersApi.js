@@ -25,6 +25,8 @@ export const adminPlayersApi = {
   lock: (userId, reason) => patch(`/api/admin/users/${encodeURIComponent(userId)}/lock${reasonQuery(reason)}`),
   unlock: (userId, reason) => patch(`/api/admin/users/${encodeURIComponent(userId)}/unlock${reasonQuery(reason)}`),
   setRole: (userId, role, reason) => patch(`/api/admin/users/${encodeURIComponent(userId)}/role${reasonQuery(reason)}`, { role }),
+  setAdminRole: (userId, adminRole) => patch(`/api/admin/users/${encodeURIComponent(userId)}/admin-role`, { adminRole }),
+  resetTwoFactor: (userId) => post(`/api/admin/users/${encodeURIComponent(userId)}/2fa/reset`),
 
   adjustCoins: (userId, body) => post(`${player(userId)}/coins`, body),
   grantItem: (userId, body) => post(`${player(userId)}/items`, body),

@@ -4,6 +4,7 @@ using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Auth;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
+using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Interfaces;
 
 namespace SirLocked.Api.Services;
@@ -54,15 +55,14 @@ public class AdminService : IAdminService
     public async Task<List<UserResponse>> GetUsersAsync()
     {
         var users = await _db.Users.Find(_ => true).SortByDescending(u => u.CreatedAt).Limit(200).ToListAsync();
-        return users.Select(u => new UserResponse
-        {
-            UserId = u.Id,
-            FullName = u.FullName,
-            Email = u.Email,
-            Role = u.Role,
-            Status = u.Status,
-            CreatedAt = u.CreatedAt
-        }).ToList();
+        return users.Select(ToUserResponse).ToList();
+    }
+
+    public async Task<UserResponse> GetUserAsync(string userId)
+    {
+        var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("User not found.");
+        return ToUserResponse(user);
     }
 
     public async Task<UserResponse> SetUserStatusAsync(string userId, string status)
@@ -88,48 +88,95 @@ public class AdminService : IAdminService
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
 
         user.Status = status;
-        return new UserResponse
-        {
-            UserId = user.Id,
-            FullName = user.FullName,
-            Email = user.Email,
-            Role = user.Role,
-            Status = user.Status,
-            CreatedAt = user.CreatedAt
-        };
+        return ToUserResponse(user);
     }
 
     public async Task<UserResponse> SetUserRoleAsync(string userId, string role)
     {
         role = role.Trim().ToUpperInvariant();
-        if (role is not UserRole.Player and not UserRole.Vip)
+        if (role is not UserRole.Player and not UserRole.Vip and not UserRole.Admin)
         {
-            throw ApiException.BadRequest($"Role must be {UserRole.Player} or {UserRole.Vip}.");
+            throw ApiException.BadRequest($"Role must be {UserRole.Player}, {UserRole.Vip}, or {UserRole.Admin}.");
         }
 
         var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("User not found.");
 
-        if (user.Role == UserRole.Admin)
-        {
-            throw ApiException.BadRequest("Admin account roles cannot be changed.");
-        }
+        if (role == UserRole.Admin && user.Role == UserRole.Admin)
+            throw ApiException.BadRequest("This account is already an admin.");
+
+        if (user.Role == UserRole.Admin
+            && role != UserRole.Admin
+            && AdminRoles.Effective(user) == AdminRoles.SuperAdmin)
+            await EnsureNotLastSuperAdminAsync();
 
         var update = Builders<Models.User>.Update
             .Set(u => u.Role, role)
+            .Set(u => u.AdminRole, role == UserRole.Admin ? AdminRoles.Support : null)
+            .Set(u => u.TwoFactorSecretProtected, null)
+            .Set(u => u.TwoFactorPendingSecretProtected, null)
+            .Set(u => u.TwoFactorEnabled, false)
+            .Set(u => u.TwoFactorLastUsedStep, null)
+            .Set(u => u.TwoFactorRecoveryCodeHashes, [])
+            .Set(u => u.AdminStepUpUntil, null)
             .Inc(u => u.AuthorizationVersion, 1)
             .Set(u => u.UpdatedAt, DateTime.UtcNow);
         await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
 
         user.Role = role;
-        return new UserResponse
-        {
-            UserId = user.Id,
-            FullName = user.FullName,
-            Email = user.Email,
-            Role = user.Role,
-            Status = user.Status,
-            CreatedAt = user.CreatedAt
-        };
+        user.AdminRole = role == UserRole.Admin ? AdminRoles.Support : null;
+        user.TwoFactorEnabled = false;
+        user.TwoFactorSecretProtected = null;
+        user.TwoFactorPendingSecretProtected = null;
+        user.TwoFactorLastUsedStep = null;
+        user.TwoFactorRecoveryCodeHashes = [];
+        user.AdminStepUpUntil = null;
+        return ToUserResponse(user);
     }
+
+    public async Task<UserResponse> SetAdminRoleAsync(string userId, string adminRole)
+    {
+        adminRole = (adminRole ?? string.Empty).Trim().ToUpperInvariant();
+        if (!AdminRoles.IsKnown(adminRole))
+            throw ApiException.BadRequest("Unknown admin role.");
+
+        var user = await _db.Users.Find(u => u.Id == userId).FirstOrDefaultAsync()
+            ?? throw ApiException.NotFound("User not found.");
+        if (user.Role != UserRole.Admin)
+            throw ApiException.BadRequest("The target user is not an admin.");
+
+        if (AdminRoles.Effective(user) == AdminRoles.SuperAdmin && adminRole != AdminRoles.SuperAdmin)
+            await EnsureNotLastSuperAdminAsync();
+
+        var update = Builders<Models.User>.Update
+            .Set(u => u.AdminRole, adminRole)
+            .Inc(u => u.AuthorizationVersion, 1)
+            .Set(u => u.UpdatedAt, DateTime.UtcNow);
+        await _db.Users.UpdateOneAsync(u => u.Id == userId, update);
+        user.AdminRole = adminRole;
+        return ToUserResponse(user);
+    }
+
+    private async Task EnsureNotLastSuperAdminAsync()
+    {
+        var superAdmins = await _db.Users.CountDocumentsAsync(u =>
+            u.Role == UserRole.Admin
+            && (u.AdminRole == AdminRoles.SuperAdmin || u.AdminRole == null));
+        AdminRoleRules.ValidateLastSuperAdminDemotion(superAdmins);
+    }
+
+    private static UserResponse ToUserResponse(Models.User user) => new()
+    {
+        UserId = user.Id,
+        FullName = user.FullName,
+        Email = user.Email,
+        Role = user.Role,
+        AdminRole = AdminRoles.Effective(user),
+        AdminPermissions = AdminRoles.PermissionsFor(user),
+        TwoFactorEnabled = user.TwoFactorEnabled,
+        Status = user.Status,
+        IsEmailVerified = user.IsEmailVerified,
+        HasPassword = !string.IsNullOrWhiteSpace(user.PasswordHash),
+        CreatedAt = user.CreatedAt
+    };
 }

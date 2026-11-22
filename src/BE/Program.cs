@@ -4,6 +4,7 @@ using System.Threading.RateLimiting;
 using System.Net;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -13,6 +14,7 @@ using Microsoft.OpenApi.Models;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
+using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Bridge;
@@ -47,6 +49,14 @@ _ = CrackGenerationBudgets.All;
 ProjectionCapacityPolicy.EnsureAllContractsValid();
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
+builder.Services.Configure<AdminSecuritySettings>(builder.Configuration.GetSection("AdminSecurity"));
+var dataProtection = builder.Services.AddDataProtection();
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+{
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+        .SetApplicationName("SirLocked");
+}
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
 builder.Services.AddOptions<EmailSettings>()
     .Bind(builder.Configuration.GetSection("Email"))
@@ -257,6 +267,13 @@ builder.Services.AddHostedService<SirLocked.Api.Services.Weekly.WeeklyChallengeW
 builder.Services.AddCatalog(); // Danh mục vật phẩm, hòm, phần thưởng trong MongoDB (ICatalogProvider)
 builder.Services.AddMarket(); // Chợ đồ: wallet, inventory, market, trades, game rewards
 builder.Services.AddAdminFoundation(); // Nhật ký admin, tải ảnh admin
+builder.Services.AddScoped<SirLocked.Api.Services.Security.AdminSecurityService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Security.IAdminSecurityOperations>(services =>
+    services.GetRequiredService<SirLocked.Api.Services.Security.AdminSecurityService>());
+builder.Services.AddScoped<SirLocked.Api.Services.Security.IAdminStepUpValidator>(services =>
+    services.GetRequiredService<SirLocked.Api.Services.Security.AdminSecurityService>());
+builder.Services.AddScoped<SirLocked.Api.Services.Security.IAdminLoginVerifier>(services =>
+    services.GetRequiredService<SirLocked.Api.Services.Security.AdminSecurityService>());
 builder.Services.AddAdminChests();
 builder.Services.AddAdminCosmetics();
 builder.Services.AddAdminPlayers();
@@ -467,7 +484,18 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var (name, permission) in AdminPolicies.All)
+    {
+        options.AddPolicy(name, policy => policy
+            .RequireRole(UserRole.Admin)
+            .RequireAssertion(context =>
+                AdminRoles.HasPermission(
+                    context.User.FindFirst("admin_role")?.Value ?? AdminRoles.SuperAdmin,
+                    permission)));
+    }
+});
 builder.Services.AddHealthChecks()
     .AddCheck<MongoDbHealthCheck>("mongodb", tags: new[] { "ready" });
 

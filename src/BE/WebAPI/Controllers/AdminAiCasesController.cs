@@ -43,6 +43,7 @@ public class AdminAiCasesController : BaseApiController
     /// <summary>VIP orders wait here until an admin approves them; only then does the Claude bot see them.</summary>
     [HttpPost("{draftId}/approve-order")]
     [Authorize(Roles = UserRole.Admin)]
+    [Authorize(Policy = AdminPolicies.Content)]
     public async Task<ActionResult<ApiResponse<AiDraftResponse>>> ApproveOrder(string draftId, CancellationToken ct)
     {
         var before = await _aiCaseService.GetDraftAsync(Caller, draftId);
@@ -55,6 +56,7 @@ public class AdminAiCasesController : BaseApiController
 
     [HttpPost("{draftId}/reject-order")]
     [Authorize(Roles = UserRole.Admin)]
+    [Authorize(Policy = AdminPolicies.Content)]
     public async Task<ActionResult<ApiResponse<AiDraftResponse>>> RejectOrder(
         string draftId, [FromBody] AiOrderRejectRequest request, CancellationToken ct)
     {
@@ -76,6 +78,7 @@ public class AdminAiCasesController : BaseApiController
 
     [HttpGet("settings")]
     [Authorize(Roles = UserRole.Admin)]
+    [Authorize(Policy = AdminPolicies.Content)]
     public async Task<ActionResult<ApiResponse<AiSettingsResponse>>> GetSettings(
         [FromServices] VipSettingsStore vip,
         [FromServices] IOptions<AnthropicSettings> anthropic,
@@ -89,6 +92,7 @@ public class AdminAiCasesController : BaseApiController
     /// </summary>
     [HttpPut("settings")]
     [Authorize(Roles = UserRole.Admin)]
+    [Authorize(Policy = AdminPolicies.Content)]
     public async Task<ActionResult<ApiResponse<AiSettingsResponse>>> PutSettings(
         [FromBody] AiCaseSettingsRequest request,
         [FromServices] VipSettingsStore vip,
@@ -171,6 +175,7 @@ public class AdminAiCasesController : BaseApiController
     /// </summary>
     [HttpGet("vip-report")]
     [Authorize(Roles = UserRole.Admin)]
+    [Authorize(Policy = AdminPolicies.Economy)]
     public async Task<ActionResult<ApiResponse<VipReportService.Report>>> VipReport(
         [FromServices] VipReportService report, [FromQuery] int days = 30, CancellationToken ct = default) =>
         Ok(await report.BuildAsync(days, ct));
@@ -192,6 +197,7 @@ public class AdminAiCasesController : BaseApiController
 
     [HttpPost("artifacts/cleanup")]
     [Authorize(Roles = UserRole.Admin)]
+    [Authorize(Policy = AdminPolicies.Content)]
     public async Task<ActionResult<ApiResponse<AiArtifactCleanupReport>>> CleanupArtifacts(
         [FromQuery] bool apply = false,
         [FromQuery] int olderThanDays = 30,
@@ -280,6 +286,7 @@ public class AdminAiCasesController : BaseApiController
 
     [HttpPut("{draftId}/case-json")]
     [Authorize(Roles = UserRole.Admin)]
+    [Authorize(Policy = AdminPolicies.Content)]
     public async Task<ActionResult<ApiResponse<AiDraftResponse>>> ReplaceCaseJson(
         string draftId,
         [FromBody] ReplaceAiDraftJsonRequest request) =>
@@ -295,11 +302,13 @@ public class AdminAiCasesController : BaseApiController
 
     [HttpPost("{draftId}/import")]
     [Authorize(Roles = UserRole.Admin)]
+    [Authorize(Policy = AdminPolicies.Content)]
     public async Task<ActionResult<ApiResponse<CaseSummaryResponse>>> Import(string draftId, [FromQuery] bool overwrite = false) =>
         Ok(await _aiCaseService.ImportDraftAsync(Caller, draftId, overwrite, publish: false), "Draft imported as case.");
 
     [HttpPost("{draftId}/publish")]
     [Authorize(Roles = UserRole.Admin)]
+    [Authorize(Policy = AdminPolicies.Content)]
     public async Task<ActionResult<ApiResponse<CaseSummaryResponse>>> Publish(string draftId, [FromQuery] bool overwrite = false) =>
         Ok(await _aiCaseService.ImportDraftAsync(Caller, draftId, overwrite, publish: true), "Draft imported and published.");
 }

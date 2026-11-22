@@ -1,5 +1,6 @@
 import '../../../css/22-bpa-auth.css';
 import { authApi } from '../api/authApi.js';
+import { showTwoFactorLoginPrompt } from './twoFactorLogin.js';
 import { session } from '../services/session.js';
 import { escapeHtml, render, qs } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
@@ -209,9 +210,11 @@ const GOOGLE_MARK ='<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden=
 
 export async function renderLoginPage(app) {
   const errorCode = new URLSearchParams(window.location.search).get('error');
-  const googleError = !errorCode ? '' : errorCode === 'google_cancelled'
-    ? tr('Google sign-in was cancelled. Try again below, or sign in with your email and password.', 'Đăng nhập Google đã bị hủy. Bạn có thể thử lại bên dưới hoặc đăng nhập bằng email và mật khẩu.')
-    : tr('Google sign-in could not be completed. Choose Continue with Google below to start a new sign-in attempt.', 'Không thể hoàn tất đăng nhập Google. Bấm Đăng nhập với Google bên dưới để bắt đầu lại.');
+  const googleError = !errorCode ? '' : errorCode === 'admin_2fa_required'
+    ? tr('This admin account uses two-factor authentication. Sign in with your password and code.', 'Tài khoản quản trị này bật xác thực hai bước. Hãy đăng nhập bằng mật khẩu và mã xác thực.')
+    : errorCode === 'google_cancelled'
+      ? tr('Google sign-in was cancelled. Try again below, or sign in with your email and password.', 'Đăng nhập Google đã bị hủy. Bạn có thể thử lại bên dưới hoặc đăng nhập bằng email và mật khẩu.')
+      : tr('Google sign-in could not be completed. Choose Continue with Google below to start a new sign-in attempt.', 'Không thể hoàn tất đăng nhập Google. Bấm Đăng nhập với Google bên dưới để bắt đầu lại.');
   if (session.isLoggedIn() && !googleError) {
     navigate(pendingRoomInvite() || '/menu');
     return;
@@ -247,7 +250,7 @@ export async function renderLoginPage(app) {
             <div class="bpa-auth-note bpa-auth-note--warn" role="alert">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7a3f27" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/></svg>
               <div>
-                <p class="k">${errorCode === 'google_cancelled' ? tr('Google sign-in cancelled', 'Đăng nhập Google đã hủy') : tr('Google sign-in failed', 'Đăng nhập Google thất bại')}</p>
+                <p class="k">${errorCode === 'admin_2fa_required' ? tr('Use password sign-in', 'Hãy đăng nhập bằng mật khẩu') : errorCode === 'google_cancelled' ? tr('Google sign-in cancelled', 'Đăng nhập Google đã hủy') : tr('Google sign-in failed', 'Đăng nhập Google thất bại')}</p>
                 <p>${escapeHtml(googleError)}</p>
               </div>
             </div>` : ''}
@@ -371,7 +374,7 @@ export async function renderLoginPage(app) {
     status.textContent = busy ? button.dataset.busy : '';
   }
 
-  async function submit(form, action) {
+  async function submit(form, action, onError = null) {
     if (!validateAuthForm(form)) return;
     const button = form.querySelector('button[type=submit]');
     setBusy(button, true);
@@ -381,10 +384,10 @@ export async function renderLoginPage(app) {
       if (!app.isConnected) return;
       session.save(auth);
       toast(tr(`Welcome, ${auth.user.fullName}.`, `Chào mừng, ${auth.user.fullName}.`), 'success');
-      // Everyone who signs in here is a player for now, admins too; /admin/login is the way to the admin pages.
+      // Everyone who signs in here is a player, admins too: the admin pages have their own session and /admin/login.
       navigate(pendingRoomInvite() || '/menu');
     } catch (err) {
-      showAuthError(form, err);
+      if (!onError?.(err)) showAuthError(form, err);
     } finally {
       setBusy(button, false);
     }
@@ -392,7 +395,17 @@ export async function renderLoginPage(app) {
 
   qs('#form-login', app).addEventListener('submit', (e) => {
     e.preventDefault();
-    submit(e.target, (d) => authApi.login(d.get('email'), d.get('password')));
+    submit(
+      e.target,
+      (d) => authApi.login(d.get('email'), d.get('password'), d.get('twoFactorCode')),
+      (error) => {
+        const message = showTwoFactorLoginPrompt(e.target, error);
+        if (!message) return false;
+        const box = e.target.querySelector('[data-two-factor-message]');
+        if (box) box.textContent = message;
+        return true;
+      },
+    );
   });
 
   qs('#form-register', app).addEventListener('submit', async (e) => {

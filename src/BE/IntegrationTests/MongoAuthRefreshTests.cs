@@ -151,7 +151,8 @@ public sealed class MongoAuthRefreshTests
         Options.Create(new JwtSettings { Secret = new string('t', 48), Issuer = "integration", Audience = "integration" }),
         NullLogger<AuthService>.Instance,
         new UnexpectedEmailService(),
-        Options.Create(new AuthSettings()));
+        Options.Create(new AuthSettings()),
+        new NoOpAdminLoginVerifier());
 
     private static string Hash(string token) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();

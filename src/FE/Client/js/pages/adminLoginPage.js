@@ -6,6 +6,7 @@ import { languageSwitchMarkup, tr } from '../services/i18n.js';
 import { escapeHtml, qs, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { wireRevealButtons } from './loginPage.js';
+import { showTwoFactorLoginPrompt } from './twoFactorLogin.js';
 
 function refusal(error) {
   if (error.status === 401) return tr('Wrong email or password.', 'Sai email hoặc mật khẩu.');
@@ -90,13 +91,14 @@ export async function renderAdminLoginPage(app) {
     setBusy(true);
     try {
       const data = new FormData(form);
-      const auth = await authApi.adminLogin(data.get('email'), data.get('password'));
+      const auth = await authApi.adminLogin(data.get('email'), data.get('password'), data.get('twoFactorCode'));
       if (!app.isConnected) return;
       adminSide.save(auth);
       toast(tr(`Welcome, ${auth.user.fullName}.`, `Chào mừng, ${auth.user.fullName}.`), 'success');
       navigate('/admin');
     } catch (error) {
-      errorBox.innerHTML = `<div class="adm-login-alert" role="alert">${escapeHtml(refusal(error))}</div>`;
+      const message = showTwoFactorLoginPrompt(form, error);
+      errorBox.innerHTML = `<div class="adm-login-alert" role="alert">${escapeHtml(message || refusal(error))}</div>`;
     } finally {
       setBusy(false);
     }
