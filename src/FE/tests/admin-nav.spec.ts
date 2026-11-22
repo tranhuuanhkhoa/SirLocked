@@ -24,7 +24,7 @@ const activeTab = (page: Page) => page.locator('#admin-nav-root .admin-nav-tab.i
 test('an admin sees the ten tabs on every admin page, old and new', async ({ page }) => {
   await signInAs(page, 'ADMIN');
   for (const [label, href] of TABS) {
-    await page.goto(href);
+    await page.goto(href, { waitUntil: 'domcontentloaded' });
     await expect(tabs(page)).toHaveText(TABS.map(([name]) => name));
     await expect(activeTab(page)).toHaveText(label);
     await expect(page.locator('#admin-nav-root [aria-current="page"]')).toHaveAttribute('href', href);

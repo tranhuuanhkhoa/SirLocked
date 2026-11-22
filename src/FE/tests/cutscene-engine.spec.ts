@@ -64,8 +64,7 @@ test.describe('timeline model', () => {
 test('plays on its own when sound is allowed, then offers to start the investigation', async ({ page }) => {
   await open(page, playable());
   await expect.poll(() => state(page)).toBe('playing');
-  await page.waitForTimeout(1500);
-  expect(await time(page)).toBeGreaterThan(0.8);
+  await expect.poll(() => time(page)).toBeGreaterThan(0.8);
   await seek(page, await titleStart(page) + 4.6);
   await expect(page.locator('[data-mc-finish]')).toBeVisible();
   await expect(page.locator('[data-mc-finish]')).toHaveText('Vào điều tra');

@@ -1102,10 +1102,8 @@ test('Interrogator receives a large witness portrait and bottom speech panel', a
 
   const beforePassingNpc = await playerX();
   await page.keyboard.down('a');
-  await page.waitForTimeout(800);
+  await expect.poll(async () => beforePassingNpc - await playerX()).toBeGreaterThan(100);
   await page.keyboard.up('a');
-  const afterPassingNpc = await playerX();
-  expect(beforePassingNpc - afterPassingNpc).toBeGreaterThan(100);
 });
 
 test('final accusation appears as a ready event instead of a permanently disabled tool', async ({ page }) => {
