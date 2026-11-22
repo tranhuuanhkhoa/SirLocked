@@ -285,3 +285,9 @@ npm run build
 
 Mongo integration and full-stack scripts only accept a loopback MongoDB server.
 Each run creates a unique `sirlocked_it_<guid>` database and drops it in `finally`.
+
+## Operations and observability
+
+Optional OpenTelemetry export is enabled only when `OpenTelemetry__OtlpEndpoint` is set. `OpenTelemetry__ServiceName` defaults to `sirlocked-api`; `Logging__Json=true` enables structured JSON console logs with correlation scopes. The admin activity dashboard uses local request and SignalR metrics even when no OTLP exporter is configured.
+
+`GET /api/admin/metrics/activity?days=30` is available to admins. Revenue is restricted to admins with the economy permission at `GET /api/admin/metrics/revenue?days=30`. Mongo backup, restore and verification scripts plus the production Docker Compose setup are documented in `ai-game-docs/DEPLOYMENT_AND_OPERATIONS.md`.

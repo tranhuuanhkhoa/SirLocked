@@ -1,3 +1,16 @@
+.adp-ops { margin-bottom: 28px; }
+.adp-metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.adp-metric { display: grid; gap: 7px; padding: 16px; border: 1px solid var(--adm-border); border-radius: 12px; background: var(--adm-paper-2); }
+.adp-metric > span, .adp-metric > small { color: var(--adm-muted); }
+.adp-metric > strong { color: var(--adm-ink); font-size: 1.65rem; }
+.adp-chart { display: block; width: 100%; min-height: 150px; margin-top: 12px; overflow: visible; }
+.adp-chart-bar { fill: var(--adm-accent); }
+.adp-chart-bar--secondary { fill: var(--adm-gold); }
+.adp-chart-axis { stroke: var(--adm-border); stroke-width: 1; }
+.adp-chart-legend { display: flex; gap: 18px; color: var(--adm-muted); font-size: .85rem; }
+.adp-chart-legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 2px; background: var(--adm-accent); }
+.adp-chart-legend span + span::before { background: var(--adm-gold); }
+@media (max-width: 900px) { .adp-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* ==========================================================================
    60-admin-theme — giao diện "Hồ sơ giấy" cho mọi trang /admin.
    Thiết kế gốc: bộ HTML sirlocked-admin-html (tone B). Xem docs/admin-redesign.md.

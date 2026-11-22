@@ -55,6 +55,7 @@ public sealed class VipLaneWorker(
             }
             catch (Exception exception)
             {
+                SirLocked.Api.Services.Observability.SirLockedTelemetry.RecordWorkerFailure(nameof(VipLaneWorker));
                 logger.LogError(exception, "VIP lane worker pass failed.");
             }
         }

@@ -129,6 +129,7 @@ public sealed class AiGenerationWorker : BackgroundService
                 await workflow.SyncOrderStatusAsync(draft.Id, stoppingToken);
                 // An autopilot order sends the failed step back for a bounded repair instead of waiting for a person.
                 await scope.ServiceProvider.GetRequiredService<IAiDraftAutopilot>().AdvanceAsync(draft.Id, stoppingToken);
+                SirLocked.Api.Services.Observability.SirLockedTelemetry.RecordWorkerFailure(nameof(AiGenerationWorker));
                 _logger.LogError(failure,
                     "AI operation {Operation} for draft {DraftId} ended without retry.",
                     draft.QueuedOperation, draft.Id);
@@ -139,6 +140,7 @@ public sealed class AiGenerationWorker : BackgroundService
             }
             catch (Exception ex)
             {
+                SirLocked.Api.Services.Observability.SirLockedTelemetry.RecordWorkerFailure(nameof(AiGenerationWorker));
                 _logger.LogError(ex, "AI generation worker polling failed.");
                 await Task.Delay(FailureDelay, _timeProvider, stoppingToken);
             }
@@ -162,6 +164,7 @@ public sealed class AiGenerationWorker : BackgroundService
             }
             catch (Exception ex)
             {
+                SirLocked.Api.Services.Observability.SirLockedTelemetry.RecordWorkerFailure(nameof(AiGenerationWorker));
                 _logger.LogError(ex, "AI generation queue backfill failed; retrying.");
                 await Task.Delay(FailureDelay, _timeProvider, stoppingToken);
             }

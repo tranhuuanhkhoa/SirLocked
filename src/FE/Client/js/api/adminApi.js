@@ -2,6 +2,8 @@ import { get, post, patch, put } from './http.js';
 
 export const adminApi = {
   dashboard: () => get('/api/admin/dashboard'),
+  activityMetrics: (days = 30) => get(`/api/admin/metrics/activity?days=${days}`),
+  revenueMetrics: (days = 30) => get(`/api/admin/metrics/revenue?days=${days}`),
   users: () => get('/api/admin/users'),
   lockUser: (userId) => patch(`/api/admin/users/${userId}/lock`),
   unlockUser: (userId) => patch(`/api/admin/users/${userId}/unlock`),

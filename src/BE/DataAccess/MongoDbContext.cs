@@ -58,6 +58,7 @@ public partial class MongoDbContext
     public IMongoCollection<CaseReview> Reviews => Database.GetCollection<CaseReview>(Settings.ReviewsCollectionName);
     public IMongoCollection<WeeklyFeature> WeeklyFeatures => Database.GetCollection<WeeklyFeature>(Settings.WeeklyFeaturesCollectionName);
     public IMongoCollection<PlaytestEventRecord> PlaytestEvents => Database.GetCollection<PlaytestEventRecord>(Settings.PlaytestEventsCollectionName);
+    public IMongoCollection<UserActivityDay> UserActivityDays => Database.GetCollection<UserActivityDay>("userActivityDays");
 
     /// <summary>Creates the unique/lookup indexes required by DATABASE_SCHEMA.md. Safe to call repeatedly.</summary>
     public async Task EnsureIndexesAsync(CancellationToken ct = default)
@@ -72,6 +73,19 @@ public partial class MongoDbContext
                 Builders<User>.IndexKeys.Ascending(u => u.Email),
                 new CreateIndexOptions { Unique = true, Name = "ux_users_email" }),
             new CreateIndexModel<User>(Builders<User>.IndexKeys.Ascending(u => u.Status))
+        }, ct);
+
+        await UserActivityDays.Indexes.CreateManyAsync(new[]
+        {
+            new CreateIndexModel<UserActivityDay>(
+                Builders<UserActivityDay>.IndexKeys.Ascending(item => item.UserId).Ascending(item => item.Day),
+                new CreateIndexOptions { Unique = true, Name = "ux_userActivityDays_userId_day" }),
+            new CreateIndexModel<UserActivityDay>(
+                Builders<UserActivityDay>.IndexKeys.Ascending(item => item.Day),
+                new CreateIndexOptions { Name = "ix_userActivityDays_day" }),
+            new CreateIndexModel<UserActivityDay>(
+                Builders<UserActivityDay>.IndexKeys.Ascending(item => item.FirstSeenAt),
+                new CreateIndexOptions { Name = "ttl_userActivityDays_firstSeenAt", ExpireAfter = TimeSpan.FromDays(400) })
         }, ct);
 
         await Cases.Indexes.CreateManyAsync(new[]

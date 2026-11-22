@@ -32,6 +32,7 @@ public sealed class RoomDisconnectTimeoutWorker(
         }
         catch (Exception exception)
         {
+            SirLocked.Api.Services.Observability.SirLockedTelemetry.RecordWorkerFailure(nameof(RoomDisconnectTimeoutWorker));
             logger.LogError(exception, "Room disconnect timeout sweep failed; the next sweep will retry.");
         }
     }

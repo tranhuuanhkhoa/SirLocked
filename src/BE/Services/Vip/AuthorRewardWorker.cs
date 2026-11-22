@@ -54,6 +54,7 @@ public sealed class AuthorRewardWorker(IServiceScopeFactory scopes, ILogger<Auth
             }
             catch (Exception exception)
             {
+                SirLocked.Api.Services.Observability.SirLockedTelemetry.RecordWorkerFailure(nameof(AuthorRewardWorker));
                 logger.LogError(exception, "Author reward pass failed.");
             }
         }
