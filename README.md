@@ -54,6 +54,8 @@ AiGeneration__MockAiResponses=false
 
 Access tokens expire after 60 minutes by default. `Jwt__ExpiryHours` remains supported for legacy deployments when `Jwt__ExpiryMinutes` is not configured.
 
+Authentication rate limits default to 5 logins per 60 seconds and 3 registrations per 300 seconds per IP, with no queue. The optional keys are `RateLimiting__Login__PermitLimit`, `RateLimiting__Login__WindowSeconds`, `RateLimiting__Register__PermitLimit`, and `RateLimiting__Register__WindowSeconds`. **load-test only; don't raise these in production.**
+
 The AI case creator needs `Bridge__Key`: every model-written step is queued for the Claude bot, which works through `/api/bridge/*` with that key. Keep real keys in local `.env` files or deployment secrets only.
 Cloudinary storage is required when the bot uploads case images. See [AI case setup with the Claude bridge](docs/AI_CASE_SETUP_VI.md) and the [audio, weather and voice fields](docs/case-audio-weather.md).
 In the game, each character speaks in its own synthesized blips, each area plays its own looping music (cross-faded between areas, ducked under dialogue), and outdoor scenes show and play rain, wind, snow or storms drawn and synthesized in code (off indoors, lighter on slow devices, with a switch in the sound panel). Puzzle and interface sounds come from a CC0 Kenney pack listed in `src/FE/public/assets/audio/sfx/LICENSES.json`.
