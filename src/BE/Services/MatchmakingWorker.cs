@@ -37,6 +37,7 @@ public sealed class MatchmakingWorker(
         }
         catch (Exception exception)
         {
+            SirLocked.Api.Services.Observability.SirLockedTelemetry.RecordWorkerFailure(nameof(MatchmakingWorker));
             logger.LogError(exception, "Matchmaking sweep failed; the next sweep will retry.");
         }
     }

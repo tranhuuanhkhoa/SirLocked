@@ -6,6 +6,7 @@ using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
+using SirLocked.Api.Services.Activity;
 
 namespace SirLocked.Api.WebAPI.Middlewares;
 
@@ -16,7 +17,11 @@ public class UserStatusMiddleware
 
     public UserStatusMiddleware(RequestDelegate next) => _next = next;
 
-    public async Task InvokeAsync(HttpContext context, MongoDbContext db, IOptions<AdminSecuritySettings> adminSecurity)
+    public async Task InvokeAsync(
+        HttpContext context,
+        MongoDbContext db,
+        IOptions<AdminSecuritySettings> adminSecurity,
+        IUserActivityRecorder activityRecorder)
     {
         var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!string.IsNullOrEmpty(userId))
@@ -45,6 +50,7 @@ public class UserStatusMiddleware
                 throw ApiException.Forbidden("Set up two-factor authentication to access admin endpoints.",
                     "TWO_FACTOR_SETUP_REQUIRED", "auth.twoFactorSetupRequired");
             }
+            await activityRecorder.TouchAsync(userId, context.RequestAborted);
         }
 
         await _next(context);

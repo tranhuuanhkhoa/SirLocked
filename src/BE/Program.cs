@@ -11,11 +11,16 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Activity;
 using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Catalog;
@@ -24,6 +29,7 @@ using SirLocked.Api.Services.Interfaces;
 using SirLocked.Api.Services.Market;
 using SirLocked.Api.Services.Payments;
 using SirLocked.Api.Services.Projection;
+using SirLocked.Api.Services.Observability;
 using SirLocked.Api.WebAPI;
 using SirLocked.Api.WebAPI.Extensions;
 using SirLocked.Api.WebAPI.Hubs;
@@ -33,6 +39,28 @@ using SirLocked.Api.WebAPI.Middlewares;
 EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory());
 
 var builder = WebApplication.CreateBuilder(args);
+if (builder.Configuration.GetValue<bool>("Logging:Json"))
+{
+    builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
+}
+
+var otlpEndpoint = builder.Configuration["OpenTelemetry:OtlpEndpoint"];
+if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+{
+    if (!Uri.TryCreate(otlpEndpoint, UriKind.Absolute, out var endpoint))
+        throw new InvalidOperationException("OpenTelemetry:OtlpEndpoint must be an absolute URI.");
+    var serviceName = builder.Configuration["OpenTelemetry:ServiceName"];
+    if (string.IsNullOrWhiteSpace(serviceName)) serviceName = "sirlocked-api";
+    builder.Services.AddOpenTelemetry()
+        .ConfigureResource(resource => resource.AddService(serviceName))
+        .WithTracing(tracing => tracing
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddOtlpExporter(options => options.Endpoint = endpoint))
+        .WithMetrics(metrics => metrics
+            .AddMeter("SirLocked")
+            .AddOtlpExporter(options => options.Endpoint = endpoint));
+}
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -155,6 +183,11 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<CaseCache>();
 builder.Services.AddSingleton<FrontendRedirects>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<RequestHealthWindow>();
+builder.Services.AddSingleton<OnlineConnections>();
+builder.Services.AddSingleton<IUserActivityStore, MongoUserActivityStore>();
+builder.Services.AddSingleton<IUserActivityRecorder, UserActivityRecorder>();
+builder.Services.AddScoped<AdminMetricsService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -505,6 +538,7 @@ if (!googleCredentialsConfigured)
     app.Logger.LogWarning("Google sign-in is disabled because Google:ClientId and Google:ClientSecret are not configured.");
 
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<RequestHealthWindowMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseForwardedHeaders();
 if (!app.Environment.IsDevelopment())
