@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
 });
 
-test('role permissions filter admin tabs and show the forbidden panel', async ({ page }) => {
+test('role permissions filter admin tabs and show the forbidden panel', async ({ page }, testInfo) => {
   await signInAsRole(page, ['content']);
   await page.goto('/admin/players');
   await expect(page.locator('#app .adm-forbidden h1')).toHaveText('Access restricted');
@@ -30,10 +30,10 @@ test('role permissions filter admin tabs and show the forbidden panel', async ({
   await expect(page.locator('#admin-nav-root a[href="/admin/cases"]')).toBeVisible();
   await expect(page.locator('#admin-nav-root a[href="/admin/players"]')).toHaveCount(0);
   await expect(page.locator('#admin-nav-root a[href="/admin/security"]')).toBeVisible();
-  await page.screenshot({ path: '/home/ubuntu/reports/admin-rbac/forbidden-access-panel.png', fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('forbidden-access-panel.png'), fullPage: true });
 });
 
-test('step-up modal authenticates once and retries the original request', async ({ page }) => {
+test('step-up modal authenticates once and retries the original request', async ({ page }, testInfo) => {
   await signInAsRole(page, ['economy'], true);
   let operationCalls = 0;
   let stepUpAttempts = 0;
@@ -73,7 +73,7 @@ test('step-up modal authenticates once and retries the original request', async 
   await expect(modal.locator('[data-step-up-confirm]')).toHaveCSS('background-color', 'rgb(16, 32, 58)');
   await expect(modal.locator('[data-step-up-confirm]')).toHaveCSS('font-family', /Be Vietnam Pro/);
   await expect(page.locator('.adm-step-up-overlay')).toHaveCSS('z-index', '20000');
-  await page.screenshot({ path: '/home/ubuntu/reports/admin-rbac/step-up-modal.png' });
+  await page.screenshot({ path: testInfo.outputPath('step-up-modal.png') });
   await modal.locator('[data-step-up-input]').fill('000000');
   await modal.locator('[data-step-up-confirm]').click();
   await expect(modal.locator('[data-step-up-error]')).toBeVisible();
@@ -86,7 +86,7 @@ test('step-up modal authenticates once and retries the original request', async 
   await expect(result).resolves.toEqual({ ok: true });
 });
 
-test('step-up modal is localized and can be closed with Escape or Cancel', async ({ page }) => {
+test('step-up modal is localized and can be closed with Escape or Cancel', async ({ page }, testInfo) => {
   await signInAsRole(page, ['economy'], true, 'vi');
   await page.route((url) => url.pathname === '/api/test/step-up-dismiss', (route) => route.fulfill({
     status: 403,
@@ -107,7 +107,7 @@ test('step-up modal is localized and can be closed with Escape or Cancel', async
   await expect(modal).toBeVisible();
   await expect(modal.getByRole('button', { name: 'Tiếp tục' })).toBeVisible();
   await expect(modal.locator('[data-step-up-input]')).toBeFocused();
-  await page.screenshot({ path: '/home/ubuntu/reports/admin-rbac/step-up-modal-vi.png' });
+  await page.screenshot({ path: testInfo.outputPath('step-up-modal-vi.png') });
   await page.keyboard.press('Escape');
   await expect(modal).toBeHidden();
   await expect(first).resolves.toBe('cancelled');
@@ -119,7 +119,7 @@ test('step-up modal is localized and can be closed with Escape or Cancel', async
   await expect(second).resolves.toBe('cancelled');
 });
 
-test('security page enables 2FA and displays a QR and one-time recovery codes', async ({ page }) => {
+test('security page enables 2FA and displays a QR and one-time recovery codes', async ({ page }, testInfo) => {
   await signInAsRole(page, [], false);
   await page.route((url) => url.pathname === '/api/auth/admin/2fa/setup', (route) => route.fulfill({
     json: {
@@ -133,7 +133,7 @@ test('security page enables 2FA and displays a QR and one-time recovery codes', 
   await page.goto('/admin/security');
   await page.getByRole('button', { name: 'Set up 2FA' }).click();
   await expect(page.locator('.adm-security-qr')).toHaveAttribute('src', /^data:image\/png;base64,/);
-  await page.screenshot({ path: '/home/ubuntu/reports/admin-rbac/security-page-with-qr.png', fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('security-page-with-qr.png'), fullPage: true });
   await page.locator('[data-security-enable-code]').fill('123456');
   await page.getByRole('button', { name: 'Enable 2FA' }).click();
   await expect(page.locator('[data-security-codes]')).toContainText('AAAA1111BB');
