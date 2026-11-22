@@ -463,6 +463,12 @@ public sealed class MongoAdminPlayersHostTests
         using var blocked = await client.GetAsync("/api/admin/dashboard");
         Assert.Equal(HttpStatusCode.Forbidden, blocked.StatusCode);
         Assert.Contains("TWO_FACTOR_SETUP_REQUIRED", await blocked.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        foreach (var path in new[] { "/api/chests/admin/grant", "/api/market/admin/grant" })
+        {
+            using var blockedGrant = await client.PostAsJsonAsync(path, new { });
+            Assert.Equal(HttpStatusCode.Forbidden, blockedGrant.StatusCode);
+            Assert.Contains("TWO_FACTOR_SETUP_REQUIRED", await blockedGrant.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        }
         using var me = await client.GetAsync("/api/auth/me");
         Assert.Equal(HttpStatusCode.OK, me.StatusCode);
         using var setup = await client.PostAsJsonAsync("/api/auth/admin/2fa/setup", new { });
@@ -570,6 +576,39 @@ public sealed class MongoAdminPlayersHostTests
         Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
         using var denied = await targetClient.GetAsync("/api/admin/economy/overview");
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetUserRolePromotionAndDemotionInvalidatePreviouslyIssuedTokens()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        var admin = host.CreateClient();
+        var adminEmail = await host.InsertUserAsync(UserRole.Admin);
+        var adminSession = await host.SignInAsync(admin, adminEmail);
+        admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminSession.Token);
+        using var stepUp = await admin.PostAsJsonAsync("/api/auth/admin/step-up", new { password = AdminHost.Password });
+        Assert.Equal(HttpStatusCode.OK, stepUp.StatusCode);
+
+        var targetEmail = await host.InsertUserAsync(UserRole.Player);
+        var targetClient = host.CreateClient();
+        var playerSession = await host.SignInAsync(targetClient, targetEmail);
+        targetClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", playerSession.Token);
+
+        using var promoted = await admin.PatchAsJsonAsync($"/api/admin/users/{playerSession.UserId}/role",
+            new { role = UserRole.Admin });
+        Assert.Equal(HttpStatusCode.OK, promoted.StatusCode);
+        using var stalePlayerToken = await targetClient.GetAsync("/api/auth/me");
+        Assert.Equal(HttpStatusCode.Unauthorized, stalePlayerToken.StatusCode);
+
+        targetClient.DefaultRequestHeaders.Authorization = null;
+        var adminTargetSession = await host.SignInAsync(targetClient, targetEmail);
+        targetClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminTargetSession.Token);
+        using var demoted = await admin.PatchAsJsonAsync($"/api/admin/users/{playerSession.UserId}/role",
+            new { role = UserRole.Player });
+        Assert.Equal(HttpStatusCode.OK, demoted.StatusCode);
+        using var staleAdminToken = await targetClient.GetAsync("/api/auth/me");
+        Assert.Equal(HttpStatusCode.Unauthorized, staleAdminToken.StatusCode);
     }
 
     private static void AssertNoRefreshCookie(HttpResponseMessage response)

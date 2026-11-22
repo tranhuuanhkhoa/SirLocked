@@ -14,13 +14,13 @@ function askForStepUp(scope) {
       <section class="adm-step-up-modal" role="dialog" aria-modal="true" aria-labelledby="adm-step-up-title">
         <h2 id="adm-step-up-title">${tr('Confirm it is you', 'Xác nhận danh tính')}</h2>
         <p>${tr('This action needs recent authentication.', 'Thao tác này cần xác thực gần đây.')}</p>
-        <label>${twoFactor ? tr('Authenticator or recovery code', 'Mã xác thực hoặc mã khôi phục') : tr('Password', 'Mật khẩu')}
-          <input data-step-up-input type="${twoFactor ? 'text' : 'password'}" ${twoFactor ? 'autocomplete="one-time-code"' : 'autocomplete="current-password"'} maxlength="100">
+        <label class="adm-step-up-field">${twoFactor ? tr('Authenticator or recovery code', 'Mã xác thực hoặc mã khôi phục') : tr('Password', 'Mật khẩu')}
+          <input class="field-input" data-step-up-input type="${twoFactor ? 'text' : 'password'}" aria-describedby="adm-step-up-error" ${twoFactor ? 'autocomplete="one-time-code"' : 'autocomplete="current-password"'} maxlength="100">
         </label>
-        <p data-step-up-error role="alert" hidden></p>
+        <p class="adm-security-error adm-step-up-error" id="adm-step-up-error" data-step-up-error role="alert" hidden></p>
         <div class="adm-step-up-actions">
-          <button type="button" data-step-up-cancel>${tr('Cancel', 'Hủy')}</button>
-          <button type="button" data-step-up-confirm>${tr('Continue', 'Tiếp tục')}</button>
+          <button class="btn btn-ghost" type="button" data-step-up-cancel>${tr('Cancel', 'Hủy')}</button>
+          <button class="btn btn-primary" type="button" data-step-up-confirm>${tr('Continue', 'Tiếp tục')}</button>
         </div>
       </section>`;
     document.body.append(overlay);
