@@ -292,6 +292,21 @@ Concurrency rule: gameplay mutations update the whole `GameRoom` document only w
 }
 ```
 
+# `userActivityDays`
+
+One document per user and UTC calendar day:
+
+```json
+{
+  "_id": "ObjectId",
+  "userId": "string",
+  "day": "yyyy-MM-dd",
+  "firstSeenAt": "UTC Date"
+}
+```
+
+Indexes: unique `(userId, day)`, `(day)`, and a 400-day TTL index on `firstSeenAt`. Authenticated requests touch the current UTC day at most once per user per process; storage failures are logged without failing the request.
+
 ## gameActionLogs
 
 ```json

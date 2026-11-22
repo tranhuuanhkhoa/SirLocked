@@ -541,6 +541,98 @@ public sealed class MongoAdminPlayersHostTests
     }
 
     [Fact]
+    public async Task ActivityMetricsAggregateSeededUsersAndRevenueRequiresEconomyPermission()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var yesterday = today.AddDays(-1);
+        var lastWeek = today.AddDays(-7);
+        async Task<User> SeedUser(string day, string name)
+        {
+            var email = await host.InsertUserAsync(UserRole.Player, name: name);
+            await host.Db.Users.UpdateOneAsync(user => user.Email == email,
+                Builders<User>.Update.Set(user => user.CreatedAt,
+                    DateOnly.ParseExact(day, "yyyy-MM-dd").ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)));
+            return await host.Db.Users.Find(user => user.Email == email).FirstAsync();
+        }
+
+        var yesterdayA = await SeedUser(yesterday.ToString("yyyy-MM-dd"), "Yesterday A");
+        var yesterdayB = await SeedUser(yesterday.ToString("yyyy-MM-dd"), "Yesterday B");
+        var weekA = await SeedUser(lastWeek.ToString("yyyy-MM-dd"), "Week A");
+        var weekB = await SeedUser(lastWeek.ToString("yyyy-MM-dd"), "Week B");
+        var todayString = today.ToString("yyyy-MM-dd");
+        await host.Db.UserActivityDays.InsertManyAsync(new[]
+        {
+            new UserActivityDay { UserId = yesterdayA.Id, Day = todayString, FirstSeenAt = DateTime.UtcNow },
+            new UserActivityDay { UserId = weekA.Id, Day = todayString, FirstSeenAt = DateTime.UtcNow },
+        });
+        var order = new SirLocked.Api.Models.Payments.PaymentOrder
+        {
+            OrderCode = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            UserId = yesterdayA.Id,
+            Amount = 12500,
+            Status = "PAID",
+            PaidAt = DateTime.UtcNow,
+        };
+        await host.Db.Database.GetCollection<SirLocked.Api.Models.Payments.PaymentOrder>("paymentOrders").InsertOneAsync(order);
+
+        using (var scope = host.Services.CreateScope())
+        {
+            var metrics = scope.ServiceProvider.GetRequiredService<SirLocked.Api.Services.Admin.AdminMetricsService>();
+            var activity = await metrics.GetActivityAsync(7, CancellationToken.None);
+            Assert.Equal(2, activity.Dau);
+            Assert.Equal(2, activity.Wau);
+            Assert.Equal(2, activity.Mau);
+            Assert.Equal(2, activity.Daily[^1].ActiveUsers);
+            Assert.Equal(2, activity.Daily[^2].NewUsers);
+            var yesterdayCohort = Assert.Single(activity.Retention, item => item.CohortDay == yesterday.ToString("yyyy-MM-dd"));
+            var weekCohort = Assert.Single(activity.Retention, item => item.CohortDay == lastWeek.ToString("yyyy-MM-dd"));
+            Assert.Equal(0.5, yesterdayCohort.D1);
+            Assert.Equal(0.5, weekCohort.D7);
+            var revenue = await metrics.GetRevenueAsync(7, CancellationToken.None);
+            Assert.Equal(12500, revenue.TotalPaid);
+            Assert.Equal(1, revenue.PaidOrders);
+        }
+
+        var recorder = host.Services.GetRequiredService<SirLocked.Api.Services.Activity.IUserActivityRecorder>();
+        await recorder.TouchAsync(yesterdayB.Id);
+        await recorder.TouchAsync(yesterdayB.Id);
+        Assert.Equal(1, await host.Db.UserActivityDays.CountDocumentsAsync(item => item.UserId == yesterdayB.Id && item.Day == todayString));
+
+        foreach (var (role, permission) in new[]
+        {
+            ((string?)null, HttpStatusCode.OK),
+            (AdminRoles.Finance, HttpStatusCode.OK),
+            (AdminRoles.Content, HttpStatusCode.Forbidden),
+        })
+        {
+            var client = host.CreateClient();
+            var email = await host.InsertUserAsync(UserRole.Admin, adminRole: role);
+            var session = await host.SignInAsync(client, email);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session.Token);
+            using var activityResponse = await client.GetAsync("/api/admin/metrics/activity?days=30");
+            Assert.Equal(HttpStatusCode.OK, activityResponse.StatusCode);
+            using var revenueResponse = await client.GetAsync("/api/admin/metrics/revenue?days=30");
+            Assert.Equal(permission, revenueResponse.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task ActivityRecorderPersistsOnceForEachUserDayInMongo()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        var email = await host.InsertUserAsync(UserRole.Player);
+        var user = await host.Db.Users.Find(item => item.Email == email).FirstAsync();
+        var recorder = host.Services.GetRequiredService<SirLocked.Api.Services.Activity.IUserActivityRecorder>();
+        await recorder.TouchAsync(user.Id);
+        await recorder.TouchAsync(user.Id);
+        var day = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        Assert.Equal(1, await host.Db.UserActivityDays.CountDocumentsAsync(item => item.UserId == user.Id && item.Day == day));
+    }
+
+    [Fact]
     public async Task AdminRoleChangesGuardTheLastSuperAdminAndInvalidateOldAuthorizationVersions()
     {
         if (!Enabled) return;

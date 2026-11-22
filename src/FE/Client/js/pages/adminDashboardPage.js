@@ -5,6 +5,7 @@ import { icon, kpiCard, pageHead, person, pill, stateBox, tile, todayEyebrow } f
 import { escapeHtml, render } from '../utils/dom.js';
 import { toast } from '../utils/toast.js';
 import { tr } from '../services/i18n.js';
+import { session } from '../services/session.js';
 
 function formatDuration(ms) {
   const total = Math.round(Number(ms) || 0);
@@ -83,6 +84,62 @@ function todayCards(counts) {
         ${kpiCard({ label: tr('Games played', 'Trận đã chơi'), value: number(counts.gamesToday), href: '/admin/economy?tab=phong', linkLabel: tr('See rooms', 'Xem phòng'), iconName: 'magnifier' })}
         ${kpiCard({ label: tr('Chests opened', 'Lượt mở hòm'), value: number(counts.chestOpensToday), href: '/admin/economy', linkLabel: tr('See the economy', 'Xem kinh tế'), iconName: 'chest', tone: 'violet' })}
       </div>
+    </section>`;
+}
+
+function metricsChart(daily, valueKey, secondKey = null) {
+  const rows = Array.isArray(daily) ? daily : [];
+  const max = Math.max(1, ...rows.flatMap((day) => [Number(day[valueKey]) || 0, secondKey ? Number(day[secondKey]) || 0 : 0]));
+  const width = 900;
+  const slot = width / Math.max(rows.length, 1);
+  const barWidth = Math.max(2, Math.min(10, slot * (secondKey ? 0.3 : 0.55)));
+  const bars = rows.map((day, index) => {
+    const x = index * slot + slot / 2;
+    const first = Number(day[valueKey]) || 0;
+    const firstHeight = (first / max) * 150;
+    const firstBar = `<rect x="${x - barWidth - 1}" y="${170 - firstHeight}" width="${barWidth}" height="${firstHeight}" rx="2" class="adp-chart-bar" />`;
+    const second = secondKey ? Number(day[secondKey]) || 0 : 0;
+    const secondHeight = (second / max) * 150;
+    const secondBar = secondKey ? `<rect x="${x + 1}" y="${170 - secondHeight}" width="${barWidth}" height="${secondHeight}" rx="2" class="adp-chart-bar adp-chart-bar--secondary" />` : '';
+    return `<g><title>${escapeHtml(day.day)}: ${escapeHtml(String(first))}${secondKey ? ` / ${escapeHtml(String(second))}` : ''}</title>${firstBar}${secondBar}</g>`;
+  }).join('');
+  return `<svg class="adp-chart" viewBox="0 0 900 190" role="img" aria-label="${tr('Daily active users and new users', 'Người dùng hoạt động và người dùng mới theo ngày')}"><line x1="0" y1="170" x2="900" y2="170" class="adp-chart-axis" />${bars}</svg>`;
+}
+
+function operationsMetrics(activity, revenue) {
+  if (!activity) return '';
+  const cards = [
+    [tr('Online now', 'Đang trực tuyến'), number(activity.onlineUsers), `${number(activity.onlineConnections)} ${tr('connections', 'kết nối')}`],
+    [tr('DAU', 'DAU'), number(activity.dau), tr('active today', 'hoạt động hôm nay')],
+    [tr('MAU', 'MAU'), number(activity.mau), tr('active in 30 days', 'hoạt động trong 30 ngày')],
+    [tr('5-minute error rate', 'Tỷ lệ lỗi 5 phút'), `${((Number(activity.errorRate5m) || 0) * 100).toFixed(2)}%`, `${number(activity.requests5m)} ${tr('requests', 'yêu cầu')}`],
+  ].map(([label, value, note]) => `<article class="adp-metric"><span>${label}</span><strong>${escapeHtml(value)}</strong><small>${note}</small></article>`).join('');
+  const retention = (activity.retention || []).map((row) => `
+    <tr><td>${escapeHtml(row.cohortDay)}</td><td>${number(row.cohortSize)}</td>
+      <td>${row.d1 == null ? '—' : `${(Number(row.d1) * 100).toFixed(1)}%`}</td>
+      <td>${row.d7 == null ? '—' : `${(Number(row.d7) * 100).toFixed(1)}%`}</td></tr>`).join('');
+  const revenueCard = revenue ? `
+    <section class="adm-card" data-testid="ops-revenue">
+      <h2 class="adm-card-title">${tr('PayOS revenue', 'Doanh thu PayOS')} · VND</h2>
+      <p class="adm-card-sub">${tr('Paid coin top-ups', 'Nạp xu đã thanh toán')} · ${number(revenue.paidOrders)} ${tr('orders', 'đơn hàng')} · ${number(revenue.totalPaid)} VND</p>
+      ${metricsChart(revenue.daily, 'amount')}
+    </section>` : '';
+  return `
+    <section class="adm-stack adp-ops" data-testid="ops-metrics">
+      <div class="adm-card"><h2 class="adm-card-title">${tr('Operations & activity', 'Vận hành & hoạt động')}</h2>
+        <div class="adp-metric-grid">${cards}</div>
+      </div>
+      <div class="adm-row">
+        <section class="adm-card"><h2 class="adm-card-title">${tr('Daily active users · 30 days', 'Người dùng hoạt động hằng ngày · 30 ngày')}</h2>
+          <div class="adp-chart-legend"><span>${tr('Active users', 'Người dùng hoạt động')}</span><span>${tr('New users', 'Người dùng mới')}</span></div>
+          ${metricsChart(activity.daily, 'activeUsers', 'newUsers')}
+        </section>
+        <section class="adm-card"><h2 class="adm-card-title">${tr('Retention', 'Giữ chân người dùng')}</h2>
+          <div class="adm-table-wrap"><table class="adm-table"><thead><tr><th>${tr('Cohort', 'Nhóm')}</th><th>${tr('Users', 'Người dùng')}</th><th>D1</th><th>D7</th></tr></thead>
+          <tbody>${retention}</tbody></table></div>
+        </section>
+      </div>
+      ${revenueCard}
     </section>`;
 }
 
@@ -235,6 +292,13 @@ export async function renderAdminDashboardPage(app) {
     counts = null;
   }
 
+  let activityMetrics = null;
+  let revenueMetrics = null;
+  try { activityMetrics = await adminApi.activityMetrics(30); } catch { activityMetrics = null; }
+  if (session.can('economy')) {
+    try { revenueMetrics = await adminApi.revenueMetrics(30); } catch { revenueMetrics = null; }
+  }
+
   const actions = `
     ${stats.legacyCasesHidden ? '' : `
     <button class="btn btn-ghost" id="seed-sample">${tr('Seed + publish sample case', 'Tạo và xuất bản vụ án mẫu')}</button>
@@ -260,6 +324,7 @@ export async function renderAdminDashboardPage(app) {
       </div>
     </div>
     <div class="adm-stack" style="margin-top: 32px">
+      ${operationsMetrics(activityMetrics, revenueMetrics)}
       ${playtestSection(playtest)}
       ${usersCard(users)}
     </div>

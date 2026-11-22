@@ -345,3 +345,15 @@ Movement/sync design details are documented in `PLAYER_MOVEMENT_SYSTEM.md` and `
 | `422` | Valid JSON payload that cannot be parsed/processed as a valid case |
 | `202` | AI operation accepted into the durable Mongo queue |
 | `502` | OpenAI/provider failure |
+
+# Admin operations metrics
+
+Both endpoints use the standard `ApiResponse<T>` response envelope. `days` defaults to 30 and is clamped to 7–90.
+
+### `GET /api/admin/metrics/activity?days=30`
+
+Available to every admin role. Returns `onlineConnections`, `onlineUsers`, `activeRooms`, `requests5m`, `errorRate5m`, `dau`, `wau`, `mau`, `daily[{day,activeUsers,newUsers}]`, and `retention[{cohortDay,cohortSize,d1,d7}]`. Retention values are fractions from 0 to 1; future observation days are `null`.
+
+### `GET /api/admin/metrics/revenue?days=30`
+
+Requires the `economy` admin permission. Returns `{currency:"VND",totalPaid,paidOrders,daily:[{day,amount,orders}]}` for verified PayOS coin top-ups in `paymentOrders`, using `Status` (`PAID` or `CREDITED`), `Amount`, and `PaidAt`.

@@ -9,6 +9,7 @@ using SirLocked.Api.Models;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Market;
 using SirLocked.Api.Services.TeamComms;
+using SirLocked.Api.Services.Observability;
 
 namespace SirLocked.Api.WebAPI.Hubs;
 
@@ -26,6 +27,7 @@ public class GameHub : Hub
     private readonly RoomDisconnectTimeoutService _disconnectTimeout;
     private readonly LobbyEntranceService _entrances;
     private readonly ILogger<GameHub> _logger;
+    private readonly OnlineConnections _onlineConnections;
     private static readonly CooperativePingPolicy PingPolicy = new();
     /// <summary>Who has the voice channel of each match open. In memory, like <see cref="Presence"/>.</summary>
     internal static readonly VoiceRoomRegistry Voice = new();
@@ -33,15 +35,29 @@ public class GameHub : Hub
     public const string VoiceStateEvent = "VoiceState";
     public const string VoiceSignalEvent = "VoiceSignal";
 
-    public GameHub(MongoDbContext db, RoomDisconnectTimeoutService disconnectTimeout, LobbyEntranceService entrances, ILogger<GameHub> logger)
+    public GameHub(
+        MongoDbContext db,
+        RoomDisconnectTimeoutService disconnectTimeout,
+        LobbyEntranceService entrances,
+        ILogger<GameHub> logger,
+        OnlineConnections onlineConnections)
     {
         _db = db;
         _disconnectTimeout = disconnectTimeout;
         _entrances = entrances;
         _logger = logger;
+        _onlineConnections = onlineConnections;
     }
 
     public static string RoomGroup(string roomId) => $"room-{roomId}";
+
+    public override async Task OnConnectedAsync()
+    {
+        await base.OnConnectedAsync();
+        if (Context.UserIdentifier is not { Length: > 0 } userId) return;
+        _onlineConnections.Connected(userId);
+        SirLockedTelemetry.SignalRConnections.Add(1);
+    }
 
     public async Task SendPing(string roomId, string kind)
     {
@@ -116,6 +132,11 @@ public class GameHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        if (Context.UserIdentifier is { Length: > 0 } connectionUserId)
+        {
+            _onlineConnections.Disconnected(connectionUserId);
+            SirLockedTelemetry.SignalRConnections.Add(-1);
+        }
         foreach (var (roomId, userId) in Voice.LeaveAll(Context.ConnectionId))
         {
             try

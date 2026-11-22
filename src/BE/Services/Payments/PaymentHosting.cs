@@ -48,7 +48,11 @@ public sealed class PaymentRecoveryWorker(IServiceScopeFactory scopes, ILogger<P
                 await payments.RecoverAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
-            catch (Exception e) { logger.LogError("Payment recovery sweep failed ({Type}).", e.GetType().Name); }
+            catch (Exception e)
+            {
+                SirLocked.Api.Services.Observability.SirLockedTelemetry.RecordWorkerFailure(nameof(PaymentRecoveryWorker));
+                logger.LogError("Payment recovery sweep failed ({Type}).", e.GetType().Name);
+            }
         } while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 }
