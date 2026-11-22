@@ -10,6 +10,7 @@ namespace SirLocked.Api.WebAPI.Controllers;
 /// <summary>Rooms still open or being played, and closing the ones that hung.</summary>
 [Route("api/admin/rooms")]
 [Authorize(Roles = UserRole.Admin)]
+[Authorize(Policy = AdminPolicies.Moderation)]
 public class AdminRoomsController : BaseApiController
 {
     private readonly AdminRoomsService _rooms;

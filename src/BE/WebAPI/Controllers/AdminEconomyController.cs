@@ -11,6 +11,7 @@ namespace SirLocked.Api.WebAPI.Controllers;
 /// <summary>What is in circulation, what is on the market, what looks odd and what is stuck.</summary>
 [Route("api/admin/economy")]
 [Authorize(Roles = UserRole.Admin)]
+[Authorize(Policy = AdminPolicies.Economy)]
 public class AdminEconomyController : BaseApiController
 {
     private readonly AdminEconomyService _economy;
@@ -30,6 +31,7 @@ public class AdminEconomyController : BaseApiController
         Ok(await _economy.ListingsAsync(query.ToQuery(), ct));
 
     [HttpPost("listings/{listingId}/remove")]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<ListingDto>>> RemoveListing(string listingId, [FromBody] AdminReasonRequest request, CancellationToken ct) =>
         Ok(await _economy.RemoveListingAsync(Caller, listingId, request.Reason, ct), "Đã gỡ tin rao.");
 
@@ -38,6 +40,7 @@ public class AdminEconomyController : BaseApiController
         Ok(await _economy.OrdersAsync(query.ToQuery(), ct));
 
     [HttpPost("orders/{orderId}/cancel")]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<OrderDto>>> CancelOrder(string orderId, [FromBody] AdminReasonRequest request, CancellationToken ct) =>
         Ok(await _economy.CancelOrderAsync(Caller, orderId, request.Reason, ct), "Đã hủy lệnh mua và trả xu.");
 
@@ -62,6 +65,7 @@ public class AdminEconomyController : BaseApiController
         Ok(await _economy.StuckAsync(ct));
 
     [HttpPost("recover")]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<AdminRecoveryReportDto>>> Recover([FromBody] AdminReasonRequest request, CancellationToken ct) =>
         Ok(await _economy.RecoverAsync(Caller, request.Reason, ct), "Đã chạy khôi phục.");
 

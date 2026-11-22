@@ -18,6 +18,7 @@ body[data-area="admin"] > #toast-root,
 body[data-area="admin"] > dialog,
 body[data-area="admin"] > .acf-modal,
 body[data-area="admin"] > .adm-layer,
+body[data-area="admin"] > .adm-step-up-overlay,
 #app > .adm-login {
   /* màu của thiết kế */
   --adm-paper: #f4efe6;
@@ -511,7 +512,7 @@ body[data-area="admin"] .page .section-title {
 
 /* ---------- 4. Nút ---------- */
 
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn {
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -534,22 +535,22 @@ body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn {
   transform: none;
   transition: background-color var(--m-fast) var(--ease-out), border-color var(--m-fast) var(--ease-out), filter var(--m-fast) var(--ease-out);
 }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn::before,
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn::after { content: none; }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn:hover:not(:disabled) { background: #f3ece0; color: var(--adm-ink); transform: none; }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.btn-primary, .btn-gold) {
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) .btn::before,
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) .btn::after { content: none; }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) .btn:hover:not(:disabled) { background: #f3ece0; color: var(--adm-ink); transform: none; }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) :is(.btn-primary, .btn-gold) {
   background: var(--adm-navy);
   border-color: var(--adm-navy);
   color: var(--adm-on-navy);
   font-weight: 700;
 }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.btn-primary, .btn-gold):hover:not(:disabled) {
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) :is(.btn-primary, .btn-gold):hover:not(:disabled) {
   background: #1b3156;
   border-color: #1b3156;
   color: var(--adm-on-navy);
 }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn-sm { min-height: 38px; padding: 0 14px; border-radius: var(--adm-r-sm); font-size: 13px; }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .btn:disabled { opacity: .55; cursor: not-allowed; }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) .btn-sm { min-height: 38px; padding: 0 14px; border-radius: var(--adm-r-sm); font-size: 13px; }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) .btn:disabled { opacity: .55; cursor: not-allowed; }
 /* nút nguy hiểm: viền đỏ đất, nền giấy (như "Khóa", "Gỡ xuất bản") */
 body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.adm-btn-danger, .ac-btn-danger, .acf-btn-danger, .adp-btn-danger) {
   background: var(--adm-card);
@@ -581,7 +582,7 @@ body[data-area="admin"] :is(dialog, .acf-modal, .adm-layer, #adm-weight) :is(.ad
 
 /* ---------- 5. Ô nhập ---------- */
 
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) :is(
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
   select,
   textarea,
@@ -600,29 +601,29 @@ body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(
   box-shadow: none;
 }
 /* #adm-weight không tồn tại; nó cho :is() độ ưu tiên của một id để thắng quy tắc ô nhập chung ở trên */
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(textarea, textarea.field-input, .json-input, #adm-weight) {
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) :is(textarea, textarea.field-input, .json-input, #adm-weight) {
   padding: 12px 14px;
   line-height: 1.5;
 }
 /* ô JSON chữ đều: cùng độ ưu tiên với quy tắc ô nhập chung ở trên và đứng sau nó */
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.json-input, textarea.json-input, .json-editor textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]) {
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) :is(.json-input, textarea.json-input, .json-editor textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]) {
   font-family: var(--adm-mono);
   font-size: 13px;
 }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(input, select, textarea, .field-input):hover { border-color: var(--adm-btn-line); }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(input, select, textarea, .field-input):focus {
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) :is(input, select, textarea, .field-input):hover { border-color: var(--adm-btn-line); }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) :is(input, select, textarea, .field-input):focus {
   border-color: var(--adm-gold);
   box-shadow: 0 0 0 3px rgba(183, 138, 44, .18);
   outline: none;
 }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(input, textarea)::placeholder { color: var(--adm-muted-2); }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(input[type="checkbox"], input[type="radio"]) {
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) :is(input, textarea)::placeholder { color: var(--adm-muted-2); }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) :is(input[type="checkbox"], input[type="radio"]) {
   width: 18px;
   height: 18px;
   accent-color: var(--adm-navy);
 }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) :is(.field-label, label > span:first-child) { color: var(--adm-text-2); }
-body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer) .field-label { font-size: 13px; font-weight: 600; }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) :is(.field-label, label > span:first-child) { color: var(--adm-text-2); }
+body[data-area="admin"] :is(#app, dialog, .acf-modal, .adm-layer, .adm-step-up-overlay) .field-label { font-size: 13px; font-weight: 600; }
 body[data-area="admin"] :is(#app, dialog) .field-hint { color: var(--adm-muted); font-size: 13px; }
 body[data-area="admin"] :is(#app, dialog) .field-error { color: var(--adm-bad); font-size: 13px; }
 
@@ -1224,3 +1225,76 @@ body[data-area="admin"] > #toast-root .toast-error { background: var(--adm-bad);
   .adm-page-btn { min-width: 44px; height: 44px; }
   body[data-area="admin"] :is(#app, dialog) .adm-pager select { min-height: 44px; }
 }
+
+.adm-security { display: grid; gap: 18px; }
+.adm-security-card,
+.adm-forbidden {
+  padding: 24px;
+  border: 1px solid var(--adm-line);
+  border-radius: 18px;
+  background: var(--adm-paper);
+  box-shadow: var(--adm-shadow);
+}
+.adm-security-card h2,
+.adm-forbidden h1 { margin: 0 0 10px; color: var(--adm-ink); }
+.adm-security-card p,
+.adm-forbidden p { color: var(--adm-muted); }
+.adm-security-card label { display: grid; gap: 8px; margin: 16px 0; max-width: 420px; }
+.adm-security-card input {
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid var(--adm-line);
+  border-radius: 9px;
+  background: #fff;
+}
+.adm-security-qr {
+  display: block;
+  width: 220px;
+  height: 220px;
+  margin: 16px 0;
+  padding: 10px;
+  border: 1px solid var(--adm-line);
+  border-radius: 12px;
+  background: #fff;
+}
+.adm-security-card pre { padding: 14px; border-radius: 10px; background: #f2efe8; line-height: 1.8; }
+.adm-security-error { padding: 12px 16px; color: var(--adm-bad); background: var(--adm-bad-bg); border-radius: 10px; }
+.adm-forbidden { max-width: 760px; margin: 48px auto; }
+.adm-step-up-overlay {
+  position: fixed;
+  z-index: 20000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(16 32 58 / 64%);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  font-family: var(--adm-font);
+  font-size: 14px;
+  color: var(--adm-ink);
+}
+.adm-step-up-modal {
+  width: min(100%, 440px);
+  padding: 26px;
+  box-sizing: border-box;
+  border: 1px solid var(--adm-line);
+  border-radius: 18px;
+  background: var(--adm-card);
+  box-shadow: var(--adm-shadow-hover), 0 24px 80px rgb(0 0 0 / 28%);
+  color: var(--adm-ink);
+  font-family: var(--adm-font);
+}
+.adm-step-up-modal h2 { margin: 0 0 8px; color: var(--adm-ink); font-family: var(--adm-display); font-size: 22px; }
+.adm-step-up-modal p { margin: 8px 0; color: var(--adm-muted); }
+.adm-step-up-modal label { display: grid; gap: 8px; margin: 18px 0; color: var(--adm-text-2); font-weight: 600; }
+.adm-step-up-modal input { width: 100%; }
+.adm-step-up-modal .adm-step-up-error {
+  margin: 10px 0 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--adm-bad-bg);
+  color: var(--adm-bad);
+  font-weight: 500;
+}
+.adm-step-up-actions { display: flex; justify-content: flex-end; gap: 10px; }

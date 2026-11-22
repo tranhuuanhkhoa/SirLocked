@@ -1,5 +1,63 @@
 import { session } from '../services/session.js';
 import { authSnapshot, canRetryForAccount, expireSessionIfCurrent, isPublicAuthRequest, refreshAfterUnauthorized } from '../services/authRefresh.js';
+import { tr } from '../services/i18n.js';
+
+let stepUpPrompt = null;
+
+function askForStepUp() {
+  if (stepUpPrompt) return stepUpPrompt;
+  stepUpPrompt = new Promise((resolve) => {
+    const twoFactor = session.user()?.twoFactorEnabled === true;
+    const overlay = document.createElement('div');
+    overlay.className = 'adm-step-up-overlay';
+    overlay.innerHTML = `
+      <section class="adm-step-up-modal" role="dialog" aria-modal="true" aria-labelledby="adm-step-up-title">
+        <h2 id="adm-step-up-title">${tr('Confirm it is you', 'Xác nhận danh tính')}</h2>
+        <p>${tr('This action needs recent authentication.', 'Thao tác này cần xác thực gần đây.')}</p>
+        <label class="adm-step-up-field">${twoFactor ? tr('Authenticator or recovery code', 'Mã xác thực hoặc mã khôi phục') : tr('Password', 'Mật khẩu')}
+          <input class="field-input" data-step-up-input type="${twoFactor ? 'text' : 'password'}" aria-describedby="adm-step-up-error" ${twoFactor ? 'autocomplete="one-time-code"' : 'autocomplete="current-password"'} maxlength="100">
+        </label>
+        <p class="adm-security-error adm-step-up-error" id="adm-step-up-error" data-step-up-error role="alert" hidden></p>
+        <div class="adm-step-up-actions">
+          <button class="btn btn-ghost" type="button" data-step-up-cancel>${tr('Cancel', 'Hủy')}</button>
+          <button class="btn btn-primary" type="button" data-step-up-confirm>${tr('Continue', 'Tiếp tục')}</button>
+        </div>
+      </section>`;
+    document.body.append(overlay);
+    const input = overlay.querySelector('[data-step-up-input]');
+    const confirm = overlay.querySelector('[data-step-up-confirm]');
+    const error = overlay.querySelector('[data-step-up-error]');
+    const finish = (result) => {
+      overlay.remove();
+      resolve(result);
+      stepUpPrompt = null;
+    };
+    overlay.querySelector('[data-step-up-cancel]').addEventListener('click', () => finish(false));
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) finish(false);
+    });
+    overlay.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') finish(false);
+    });
+    confirm.addEventListener('click', async () => {
+      confirm.disabled = true;
+      error.hidden = true;
+      try {
+        await apiFetch('POST', '/api/auth/admin/step-up', twoFactor
+          ? { twoFactorCode: input.value }
+          : { password: input.value });
+        finish(true);
+      } catch (failure) {
+        error.textContent = failure?.message || tr('Authentication failed.', 'Xác thực không thành công.');
+        error.hidden = false;
+        confirm.disabled = false;
+        input.focus();
+      }
+    });
+    input.focus();
+  });
+  return stepUpPrompt;
+}
 
 /**
  * VUAN-7: a random id of this browser, so accounts sharing one device count once toward an author's rewards. The
@@ -22,7 +80,7 @@ function deviceId() {
  * Shared API client. All backend responses use the { success, message, data, errors }
  * envelope; this unwraps data and throws { status, message, errors } on failure.
  */
-export async function apiFetch(method, path, body, _retry = true, extraHeaders = {}, credentials = 'same-origin') {
+export async function apiFetch(method, path, body, _retry = true, extraHeaders = {}, credentials = 'same-origin', _stepUpRetry = true) {
   const headers = { 'Content-Type': 'application/json', ...extraHeaders };
   const requestSession = authSnapshot();
   const token = requestSession.token;
@@ -54,23 +112,27 @@ export async function apiFetch(method, path, body, _retry = true, extraHeaders =
       if (_retry) {
         const refreshed = await refreshAfterUnauthorized(requestSession);
         if (refreshed && canRetryForAccount(requestSession)) {
-          return apiFetch(method, path, body, false, extraHeaders, credentials);
+          return apiFetch(method, path, body, false, extraHeaders, credentials, _stepUpRetry);
         }
       } else {
         expireSessionIfCurrent(requestSession);
       }
     }
-    throw {
+    const failure = {
       status: response.status,
       message: payload?.message || `Request failed (${response.status}).`,
       errors: payload?.errors ?? null,
     };
+    if (_stepUpRetry && response.status === 403 && payload?.errors?.code === 'STEP_UP_REQUIRED') {
+      if (await askForStepUp()) return apiFetch(method, path, body, _retry, extraHeaders, credentials, false);
+    }
+    throw failure;
   }
 
   return payload?.data;
 }
 
-export async function apiFetchForm(path, formData, _retry = true) {
+export async function apiFetchForm(path, formData, _retry = true, _stepUpRetry = true) {
   const headers = {};
   const requestSession = authSnapshot();
   const token = requestSession.token;
@@ -93,16 +155,20 @@ export async function apiFetchForm(path, formData, _retry = true) {
     if (response.status === 401 && token) {
       if (_retry) {
         const refreshed = await refreshAfterUnauthorized(requestSession);
-        if (refreshed && canRetryForAccount(requestSession)) return apiFetchForm(path, formData, false);
+        if (refreshed && canRetryForAccount(requestSession)) return apiFetchForm(path, formData, false, _stepUpRetry);
       } else {
         expireSessionIfCurrent(requestSession);
       }
     }
-    throw {
+    const failure = {
       status: response.status,
       message: payload?.message || `Request failed (${response.status}).`,
       errors: payload?.errors ?? null,
     };
+    if (_stepUpRetry && response.status === 403 && payload?.errors?.code === 'STEP_UP_REQUIRED') {
+      if (await askForStepUp()) return apiFetchForm(path, formData, _retry, false);
+    }
+    throw failure;
   }
   return payload?.data;
 }

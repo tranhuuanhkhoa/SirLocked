@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using MongoDB.Driver;
+using Microsoft.Extensions.Options;
+using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.Models;
@@ -14,7 +16,7 @@ public class UserStatusMiddleware
 
     public UserStatusMiddleware(RequestDelegate next) => _next = next;
 
-    public async Task InvokeAsync(HttpContext context, MongoDbContext db)
+    public async Task InvokeAsync(HttpContext context, MongoDbContext db, IOptions<AdminSecuritySettings> adminSecurity)
     {
         var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!string.IsNullOrEmpty(userId))
@@ -30,6 +32,18 @@ public class UserStatusMiddleware
                 || issuedVersion != user.AuthorizationVersion)
             {
                 throw ApiException.Unauthorized("Your session is no longer valid. Please sign in again.");
+            }
+
+            var isAdminOperation = context.Request.Path.StartsWithSegments("/api/admin")
+                || context.Request.Path.StartsWithSegments("/api/chests/admin")
+                || context.Request.Path.StartsWithSegments("/api/market/admin");
+            if (adminSecurity.Value.RequireTwoFactor
+                && user.Role == UserRole.Admin
+                && isAdminOperation
+                && !user.TwoFactorEnabled)
+            {
+                throw ApiException.Forbidden("Set up two-factor authentication to access admin endpoints.",
+                    "TWO_FACTOR_SETUP_REQUIRED", "auth.twoFactorSetupRequired");
             }
         }
 

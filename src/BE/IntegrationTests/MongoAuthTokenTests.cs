@@ -126,7 +126,8 @@ public sealed class MongoAuthTokenTests
         Options.Create(new JwtSettings { Secret = new string('t', 48), Issuer = "integration", Audience = "integration" }),
         NullLogger<AuthService>.Instance,
         email,
-        Options.Create(new AuthSettings()));
+        Options.Create(new AuthSettings()),
+        new NoOpAdminLoginVerifier());
 
     private static async Task<ResetOutcome> TryResetAsync(AuthService service, string token, string password)
     {

@@ -13,6 +13,7 @@ namespace SirLocked.Api.WebAPI.Controllers;
 /// <summary>VUAN-7 part H, admin side: authors, their badges and payouts; hold, release and revoke are logged.</summary>
 [Route("api/admin/authors")]
 [Authorize(Roles = UserRole.Admin)]
+[Authorize(Policy = AdminPolicies.Economy)]
 public class AdminAuthorsController(AuthorRewardService rewards, IAdminAudit audit, MongoDbContext db) : BaseApiController
 {
     public sealed record AuthorRow(string UserId, string Name, AuthorStats Stats, long PaidXu, long HeldXu, long RevokedXu);
@@ -50,6 +51,7 @@ public class AdminAuthorsController(AuthorRewardService rewards, IAdminAudit aud
     }
 
     [HttpPost("payouts/{id}/release")]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<AuthorPayout>>> Release(string id, CancellationToken ct)
     {
         var changed = await rewards.ReleaseAsync(id, Caller.Id, ct);
@@ -58,6 +60,7 @@ public class AdminAuthorsController(AuthorRewardService rewards, IAdminAudit aud
     }
 
     [HttpPost("payouts/{id}/revoke")]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<AuthorPayout>>> Revoke(string id, [FromBody] PayoutReason request, CancellationToken ct)
     {
         var reason = Clip(request.Reason);

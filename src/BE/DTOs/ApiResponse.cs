@@ -28,6 +28,8 @@ public class ApiException : Exception
 
     public static ApiException BadRequest(string message, object? errors = null) => new(400, message, errors);
     public static ApiException Unauthorized(string message = "Unauthorized.") => new(401, message);
+    public static ApiException Unauthorized(string message, string code, string messageKey) =>
+        new(401, message, new ApiErrorDetails(code, messageKey));
     public static ApiException Forbidden(string message = "You are not allowed to do that.") => new(403, message);
     public static ApiException NotFound(string message) => new(404, message);
     public static ApiException Conflict(string message, object? errors = null) => new(409, message, errors);

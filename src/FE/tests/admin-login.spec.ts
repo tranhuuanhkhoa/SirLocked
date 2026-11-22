@@ -274,14 +274,13 @@ test.describe('signing in on the player page', () => {
     await expectAddress(page, '/menu');
   });
 
-  test('an admin also lands on the menu, and the admin pages still open for them', async ({ page }) => {
+  test('an admin signing in on the player page goes straight to admin pages', async ({ page }) => {
     await vietnamese(page);
     await fakeApi(page);
     await answer(page, '/api/auth/login', 200, { success: true, data: adminAuth });
     await page.goto('/login');
     await submitUserForm(page, 'admin@example.com');
-    await expectAddress(page, '/menu');
-    await page.goto('/admin');
+    await expectAddress(page, '/admin');
     await expect(page.locator('.admin-nav-tab.is-active')).toHaveText('Tổng quan');
   });
 
