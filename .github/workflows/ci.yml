@@ -10,7 +10,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -51,7 +51,17 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Test presentation and paired gameplay UI
         working-directory: src/FE
-        run: npm run test:ui
+        run: npm run test:ui -- --reporter=line
+      - name: Upload UI failure artifacts
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-failure-artifacts
+          path: |
+            src/FE/test-results
+            src/FE/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Build frontend
         working-directory: src/FE
         run: npm run build
