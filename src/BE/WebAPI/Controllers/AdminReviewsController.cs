@@ -10,6 +10,7 @@ namespace SirLocked.Api.WebAPI.Controllers;
 /// <summary>Moderating case reviews. What players read stays on ReviewsController.</summary>
 [Route("api/admin/reviews")]
 [Authorize(Roles = UserRole.Admin)]
+[Authorize(Policy = AdminPolicies.Moderation)]
 public class AdminReviewsController : BaseApiController
 {
     private readonly AdminReviewsService _reviews;

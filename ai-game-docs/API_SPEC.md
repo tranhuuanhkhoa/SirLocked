@@ -26,13 +26,23 @@ Authorization: Bearer <jwt>
 | Method | Route | Auth | Body | Data |
 | --- | --- | --- | --- | --- |
 | `POST` | `/api/auth/register` | Anonymous | `{ "fullName": "...", "email": "...", "password": "..." }` | `AuthResponse` |
-| `POST` | `/api/auth/login` | Anonymous | `{ "email": "...", "password": "..." }` | `AuthResponse` |
-| `POST` | `/api/auth/admin/login` | Anonymous | `{ "email": "...", "password": "..." }` | `AuthResponse`; `403` and no token for an account that is not `ADMIN` |
+| `POST` | `/api/auth/login` | Anonymous | `{ "email": "...", "password": "...", "twoFactorCode": "optional" }` | `AuthResponse`; ADMIN with 2FA must supply a valid authenticator or recovery code |
+| `POST` | `/api/auth/admin/login` | Anonymous | `{ "email": "...", "password": "...", "twoFactorCode": "optional" }` | `AuthResponse`; `403` and no token for an account that is not `ADMIN` |
+| `POST` | `/api/auth/admin/2fa/setup` | ADMIN | none | pending TOTP secret and `otpauth://` URI |
+| `POST` | `/api/auth/admin/2fa/enable` | ADMIN | `{ "code": "123456" }` | eight one-use recovery codes |
+| `POST` | `/api/auth/admin/2fa/disable` | ADMIN + step-up | `{ "code": "123456 or recovery code" }` | `true` |
+| `POST` | `/api/auth/admin/step-up` | ADMIN | `{ "password": "optional", "twoFactorCode": "optional" }` | `{ "stepUpUntil": "..." }` |
 | `POST` | `/api/auth/refresh` | Anonymous | optional `{ "refreshToken": "..." }` for non-browser clients | `AuthResponse`; refresh cookie is preferred |
 | `GET` | `/api/auth/me` | User | none | `UserResponse` |
 | `POST` | `/api/auth/logout` | User or refresh cookie | none | `{ "loggedOut": true }` |
 
 Successful register, login, admin login, refresh, and Google callback responses set the `sirlocked_refresh` cookie. It is `HttpOnly`, `SameSite=Strict`, scoped to `/api/auth`, expires with the refresh session, and is `Secure` on HTTPS or outside Development. The refresh token is not included in JSON or OAuth callback URLs. `AuthResponse` keeps `refreshTokenExpiry` so the browser can decide whether a refresh is due.
+
+For either password login, missing ADMIN 2FA code returns `401` with
+`errors.code = "TWO_FACTOR_REQUIRED"`; invalid or already-used codes return
+`TWO_FACTOR_INVALID`. These responses never issue access tokens or refresh
+cookies. Google OAuth redirects an ADMIN with 2FA enabled to
+`/login?error=admin_2fa_required` without signing in.
 
 Browser refresh calls `POST /api/auth/refresh` with no body, `credentials: same-origin`, and `X-SirLocked-Client: web`. When the cookie is present, the header is required; without it the API returns `403` with `errors.code = "CSRF_HEADER_MISSING"`. If no cookie is present, non-browser clients may provide `refreshToken` in the optional body. If neither source supplies a token, the API returns `401`. A successful refresh rotates the cookie. Logout clears the cookie and revokes the session; it can use the refresh cookie when the access JWT is missing or expired.
 
@@ -191,7 +201,28 @@ Route prefix: `/api/game/rooms/{roomId}`.
 
 ## Admin
 
-All routes require `ADMIN`.
+All routes require `ADMIN`; the route-specific policy also requires the listed
+permission. `SUPER_ADMIN` has all permissions, `CONTENT` has `content`,
+`FINANCE` has `economy` and `audit`, `SUPPORT` has `players` and `moderation`,
+and `MODERATOR` has `moderation`. ADMIN users with no stored sub-role retain
+legacy `SUPER_ADMIN` access. `UserResponse` includes effective `adminRole`,
+`adminPermissions`, and `twoFactorEnabled`.
+
+Permission groups: content covers case/cutscene/asset/weekly/AI content,
+chest catalogs and cosmetics catalogs; economy covers economy, author payouts,
+grants, and player coins/items/progress; players covers player reads,
+lock/unlock, and force logout; moderation covers reviews, rooms, and avatar
+moderation; audit covers audit feeds; roles covers role changes and 2FA reset.
+Dashboard and playtest summary remain available to every ADMIN without a
+sub-role permission. The compatibility grants `POST /api/chests/admin/grant`
+and `POST /api/market/admin/grant` require economy permission and step-up.
+
+Step-up is required for player economy mutations and item revocation, progress
+changes and force logout; user lock/unlock, role/admin-role changes, and 2FA
+reset; 2FA disable; economy listing removal/order cancellation/recovery;
+author payout release/revocation; chest and cosmetic grants; cosmetic
+deletion; admin item deletion; and both compatibility grants. The window
+defaults to five minutes.
 
 | Method | Route | Body | Data |
 | --- | --- | --- | --- |
@@ -200,6 +231,8 @@ All routes require `ADMIN`.
 | `PATCH` | `/api/admin/users/{userId}/lock` | none | `UserResponse` |
 | `PATCH` | `/api/admin/users/{userId}/unlock` | none | `UserResponse` |
 | `PATCH` | `/api/admin/users/{userId}/role` | `{ "role": "PLAYER" }` | `UserResponse` |
+| `PATCH` | `/api/admin/users/{userId}/admin-role` | `{ "adminRole": "CONTENT" }` | `UserResponse`; roles permission and step-up |
+| `POST` | `/api/admin/users/{userId}/2fa/reset` | none | `UserResponse`; roles permission and step-up |
 | `GET` | `/api/admin/cases` | none | `CaseSummaryResponse[]` |
 | `GET` | `/api/admin/cases/{caseId}` | none | full `GameCase` |
 | `POST` | `/api/admin/cases/validate` | `{ "caseJson": { ... }, "overwrite": false }` | `CaseValidationResponse` |

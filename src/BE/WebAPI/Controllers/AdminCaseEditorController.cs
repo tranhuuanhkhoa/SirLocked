@@ -14,6 +14,7 @@ namespace SirLocked.Api.WebAPI.Controllers;
 /// </summary>
 [Route("api/admin/case-editor")]
 [Authorize(Roles = UserRole.Admin)]
+[Authorize(Policy = AdminPolicies.Content)]
 public class AdminCaseEditorController : BaseApiController
 {
     private readonly CaseEditorService _editor;

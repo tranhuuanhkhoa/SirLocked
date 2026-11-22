@@ -12,6 +12,7 @@ using SirLocked.Api.DTOs.Auth;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Security;
 
 namespace SirLocked.Api.Services;
 
@@ -25,19 +26,22 @@ public class AuthService : IAuthService
     private readonly ILogger<AuthService> _logger;
     private readonly IEmailService _email;
     private readonly AuthSettings _auth;
+    private readonly IAdminLoginVerifier _adminSecurity;
 
     public AuthService(
         MongoDbContext db,
         IOptions<JwtSettings> jwt,
         ILogger<AuthService> logger,
         IEmailService email,
-        IOptions<AuthSettings> auth)
+        IOptions<AuthSettings> auth,
+        IAdminLoginVerifier adminSecurity)
     {
         _db = db;
         _jwt = jwt.Value;
         _logger = logger;
         _email = email;
         _auth = auth.Value;
+        _adminSecurity = adminSecurity;
     }
 
     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
@@ -114,8 +118,12 @@ public class AuthService : IAuthService
         return await BuildAuthResponseAndSaveRefreshToken(user);
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request) =>
-        await BuildAuthResponseAndSaveRefreshToken(await VerifyCredentialsAsync(request));
+    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    {
+        var user = await VerifyCredentialsAsync(request);
+        await _adminSecurity.VerifyLoginAsync(user, request.TwoFactorCode);
+        return await BuildAuthResponseAndSaveRefreshToken(user);
+    }
 
     public async Task<AuthResponse> AdminLoginAsync(LoginRequest request)
     {
@@ -127,6 +135,7 @@ public class AuthService : IAuthService
             throw ApiException.Forbidden("This account does not have admin access.");
         }
 
+        await _adminSecurity.VerifyLoginAsync(user, request.TwoFactorCode);
         return await BuildAuthResponseAndSaveRefreshToken(user);
     }
 
@@ -214,6 +223,13 @@ public class AuthService : IAuthService
         else if (user.Status != UserStatus.Active)
         {
             throw ApiException.Forbidden("This account is locked or deleted.");
+        }
+        else if (user.Role == UserRole.Admin && user.TwoFactorEnabled)
+        {
+            throw ApiException.Forbidden(
+                "Sign in with your password and two-factor code.",
+                "ADMIN_2FA_REQUIRED",
+                "auth.adminTwoFactorRequired");
         }
         else if (!user.IsEmailVerified)
         {
@@ -445,7 +461,7 @@ public class AuthService : IAuthService
     private async Task<AuthResponse> BuildAuthResponseAndSaveRefreshToken(User user, string? expectedRefreshTokenHash = null)
     {
         var expiresAt = DateTime.UtcNow.AddMinutes(_jwt.EffectiveExpiryMinutes);
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Name, user.FullName),
@@ -453,6 +469,8 @@ public class AuthService : IAuthService
             new Claim(ClaimTypes.Role, user.Role),
             new Claim(User.AuthorizationVersionClaim, user.AuthorizationVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
         };
+        if (user.Role == UserRole.Admin)
+            claims.Add(new Claim("admin_role", AdminRoles.Effective(user)!));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Secret));
         var token = new JwtSecurityToken(
@@ -517,6 +535,9 @@ public class AuthService : IAuthService
         FullName = user.FullName,
         Email = user.Email,
         Role = user.Role,
+        AdminRole = AdminRoles.Effective(user),
+        AdminPermissions = AdminRoles.PermissionsFor(user),
+        TwoFactorEnabled = user.TwoFactorEnabled,
         Status = user.Status,
         IsEmailVerified = user.IsEmailVerified,
         HasPassword = !string.IsNullOrWhiteSpace(user.PasswordHash),

@@ -196,8 +196,10 @@ public sealed class CutsceneServiceTests
     [Fact]
     public void Controllers_RequireTheRightRoles()
     {
-        var admin = typeof(AdminCutscenesController).GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>().Single();
+        var attributes = typeof(AdminCutscenesController).GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>().ToArray();
+        var admin = Assert.Single(attributes, attribute => !string.IsNullOrWhiteSpace(attribute.Roles));
         Assert.Equal("ADMIN", admin.Roles);
+        Assert.Contains(attributes, attribute => attribute.Policy == AdminPolicies.Content);
         Assert.NotEmpty(typeof(CasesController).GetCustomAttributes(typeof(AuthorizeAttribute), true));
     }
 

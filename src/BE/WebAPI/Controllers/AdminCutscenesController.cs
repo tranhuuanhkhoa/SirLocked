@@ -2,12 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Cutscene;
+using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Cutscene;
 
 namespace SirLocked.Api.WebAPI.Controllers;
 
 [Route("api/admin/cases/{caseId}/cutscene")]
 [Authorize(Roles = "ADMIN")]
+[Authorize(Policy = AdminPolicies.Content)]
 public class AdminCutscenesController(CutsceneService cutscenes) : BaseApiController
 {
     [HttpGet]

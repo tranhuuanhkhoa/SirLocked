@@ -43,6 +43,9 @@ Jwt__Secret=replace-with-at-least-32-characters
 Jwt__Issuer=SirLocked
 Jwt__Audience=SirLockedUsers
 Jwt__ExpiryMinutes=60
+AdminSecurity__RequireTwoFactor=false
+AdminSecurity__StepUpMinutes=5
+DataProtection__KeysPath=/var/lib/sirlocked/keys
 # Claude bridge key (32+ characters). Set it on the server with bash scripts/set-bridge-key.sh; never commit it.
 Bridge__Key=
 # Mock answers instead of the Claude queue (tests, local demo).
@@ -93,7 +96,7 @@ Accusation__RequireConsensus=true
 
 - `GET /api/chests` lists the chests, their contents, the caller's free chests and keys, prices and the public drop rates.
 - `POST /api/chests/{chestId}/keys`, `/buy` and `/open` take `{ "idempotencyKey": "<uuid>" }`. Resending a key returns the original result and spends nothing more. They are limited to 60 calls per minute per user.
-- `POST /api/chests/admin/grant` gives a detective chests and keys for testing (`ADMIN` only, `Source = GRANT`, not in the audit log). The admin page uses `POST /api/admin/chests/grant`, which is logged.
+- `POST /api/chests/admin/grant` and `POST /api/market/admin/grant` are retained for compatibility; both require the `economy` permission and step-up and are audit logged. The admin UI uses `POST /api/admin/chests/grant`.
 - Errors carry a code: `CHEST_NONE`, `KEY_NONE`, `FUNDS`, `SLOTS_FULL`, `IN_PROGRESS`, `CHEST_NOT_FOR_SALE`, `CHEST_PRICE_CHANGED`. Opening always frees a slot, so `SLOTS_FULL` only comes from buying or granting.
 - Each chest has its own drop table and look (`ChestDto.Odds`, `ChestDto.Look`). A chest switched off leaves the shop, but anyone still holding one or its key sees it in `ChestListDto.OffSale` and can open it. Buying may send `expectedPrice`, so a price changed by an admin is refused instead of charged.
 
@@ -187,7 +190,9 @@ On backend startup in `Development`, if no admin exists, the app seeds:
 
 Outside `Development`, default admin seeding is disabled unless `Auth__SeedDefaultAdmin=true` is explicitly configured. When enabling it outside development, also configure `Auth__SeedAdminPassword`; do not use the demo password in deployed environments.
 
-Admins sign in at `/admin/login`, players at `/login`. An admin who signs in at `/login` lands on the menu like anyone else and can still open `/admin`; that is also the way in for an admin whose account only has Google sign-in. No page can make someone an `ADMIN`.
+Admins can sign in at `/admin/login` or `/login`; both require a two-factor code when enabled, and regular sign-in sends admins to `/admin`. Google sign-in cannot complete for an admin with two-factor enabled; use password and code. No page can make someone an `ADMIN`.
+
+`AdminSecurity__RequireTwoFactor=true` blocks `/api/admin/*` for admins until 2FA is enabled (auth and setup endpoints remain available). `AdminSecurity__StepUpMinutes` controls the default five-minute window for sensitive changes. Configure `DataProtection__KeysPath` to a persistent, access-restricted directory when 2FA is used across restarts or multiple instances. If those keys are lost, encrypted TOTP secrets cannot be decrypted; an admin can use a saved recovery code or a `SUPER_ADMIN` can reset 2FA.
 
 Public registration creates `PLAYER` accounts. Admins can promote a non-admin user to `VIP` from the dashboard. `VIP` and `ADMIN` accounts can create AI cases.
 

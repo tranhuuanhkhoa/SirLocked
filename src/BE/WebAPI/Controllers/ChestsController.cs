@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Market;
 using SirLocked.Api.Models.Enums;
+using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Market;
 
 namespace SirLocked.Api.WebAPI.Controllers;
@@ -14,8 +15,13 @@ namespace SirLocked.Api.WebAPI.Controllers;
 public class ChestsController : BaseApiController
 {
     private readonly ChestService _chests;
+    private readonly IAdminAudit _audit;
 
-    public ChestsController(ChestService chests) => _chests = chests;
+    public ChestsController(ChestService chests, IAdminAudit audit)
+    {
+        _chests = chests;
+        _audit = audit;
+    }
 
     [HttpGet]
     public async Task<ActionResult<ApiResponse<ChestListDto>>> List(CancellationToken ct) =>
@@ -38,6 +44,13 @@ public class ChestsController : BaseApiController
 
     [HttpPost("admin/grant")]
     [Authorize(Roles = UserRole.Admin)]
-    public async Task<ActionResult<ApiResponse<WalletDto>>> AdminGrant([FromBody] ChestAdminGrantRequest request, CancellationToken ct) =>
-        Ok(await _chests.AdminGrantAsync(request.UserId, request.ChestId, request.Chests, request.Keys, ct));
+    [Authorize(Policy = AdminPolicies.Economy)]
+    [RequireAdminStepUp]
+    public async Task<ActionResult<ApiResponse<WalletDto>>> AdminGrant([FromBody] ChestAdminGrantRequest request, CancellationToken ct)
+    {
+        var wallet = await _chests.AdminGrantAsync(request.UserId, request.ChestId, request.Chests, request.Keys, ct);
+        await _audit.LogAsync(Caller, "chest.grant", "user", request.UserId, null,
+            new { request.ChestId, request.Chests, request.Keys }, ct: ct);
+        return Ok(wallet);
+    }
 }

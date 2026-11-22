@@ -11,6 +11,7 @@ namespace SirLocked.Api.WebAPI.Controllers;
 /// <summary>Picture uploads for the admin pages. See AdminAssetProcessor for what is accepted.</summary>
 [Route("api/admin/assets")]
 [Authorize(Roles = UserRole.Admin)]
+[Authorize(Policy = AdminPolicies.Content)]
 public class AdminAssetsController : BaseApiController
 {
     // Room above the limit so a file just over it gets the clear ASSET_TOO_LARGE instead of a bare 413.

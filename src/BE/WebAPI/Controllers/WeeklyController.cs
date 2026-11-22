@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Leaderboard;
 using SirLocked.Api.DTOs.Weekly;
+using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Interfaces;
 using SirLocked.Api.Services.Market;
 
@@ -65,6 +66,7 @@ public class WeeklyController : BaseApiController
 /// <summary>Admin-only weekly feature management. Same controller family, admin-gated route.</summary>
 [Route("api/admin/weekly")]
 [Authorize(Roles = "ADMIN")]
+[Authorize(Policy = AdminPolicies.Content)]
 public class AdminWeeklyController : BaseApiController
 {
     private readonly IWeeklyService _weekly;

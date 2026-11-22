@@ -1224,3 +1224,62 @@ body[data-area="admin"] > #toast-root .toast-error { background: var(--adm-bad);
   .adm-page-btn { min-width: 44px; height: 44px; }
   body[data-area="admin"] :is(#app, dialog) .adm-pager select { min-height: 44px; }
 }
+
+.adm-security { display: grid; gap: 18px; }
+.adm-security-card,
+.adm-forbidden {
+  padding: 24px;
+  border: 1px solid var(--adm-line);
+  border-radius: 18px;
+  background: var(--adm-paper);
+  box-shadow: var(--adm-shadow);
+}
+.adm-security-card h2,
+.adm-forbidden h1 { margin: 0 0 10px; color: var(--adm-ink); }
+.adm-security-card p,
+.adm-forbidden p { color: var(--adm-muted); }
+.adm-security-card label { display: grid; gap: 8px; margin: 16px 0; max-width: 420px; }
+.adm-security-card input {
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid var(--adm-line);
+  border-radius: 9px;
+  background: #fff;
+}
+.adm-security-qr {
+  display: block;
+  width: 220px;
+  height: 220px;
+  margin: 16px 0;
+  padding: 10px;
+  border: 1px solid var(--adm-line);
+  border-radius: 12px;
+  background: #fff;
+}
+.adm-security-card pre { padding: 14px; border-radius: 10px; background: #f2efe8; line-height: 1.8; }
+.adm-security-error { padding: 12px 16px; color: var(--adm-bad); background: var(--adm-bad-bg); border-radius: 10px; }
+.adm-forbidden { max-width: 760px; margin: 48px auto; }
+.adm-step-up-overlay {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(15 24 40 / 58%);
+}
+.adm-step-up-modal {
+  width: min(100%, 440px);
+  padding: 26px;
+  border: 1px solid var(--adm-line);
+  border-radius: 18px;
+  background: var(--adm-paper);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 28%);
+}
+.adm-step-up-modal h2 { margin: 0 0 8px; color: var(--adm-ink); }
+.adm-step-up-modal p { color: var(--adm-muted); }
+.adm-step-up-modal label { display: grid; gap: 8px; margin: 18px 0; }
+.adm-step-up-modal input { min-height: 46px; padding: 10px 12px; border: 1px solid var(--adm-line); border-radius: 9px; }
+.adm-step-up-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.adm-step-up-actions button { min-height: 42px; padding: 8px 16px; border: 1px solid var(--adm-line); border-radius: 9px; background: #fff; cursor: pointer; }
+.adm-step-up-actions [data-step-up-confirm] { color: white; border-color: var(--adm-navy); background: var(--adm-navy); }

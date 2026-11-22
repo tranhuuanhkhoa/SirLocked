@@ -4,6 +4,7 @@ import { createPainter } from '../../../cosmetics/painter.js';
 import { pill, rarityPill, stateBox } from '../../../components/admin/ui.js';
 import { escapeHtml } from '../../../utils/dom.js';
 import { toast } from '../../../utils/toast.js';
+import { session } from '../../../services/session.js';
 import { categoryLabel, defName, itemTile, rarityLabel } from '../../market/marketKit.js';
 import { auditTable } from './auditTable.js';
 import {
@@ -236,6 +237,11 @@ export function mountPlayerDetail(host, userId, { signal }) {
     const locked = account.status === 'LOCKED';
     host.querySelector('[data-adp-actions]').innerHTML = `
       ${canLock ? `<button class="btn btn-ghost ${locked ? 'adm-btn-ok' : 'adm-btn-danger'}" type="button" data-adp-lock>${locked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}</button>` : ''}
+      ${account.role === 'ADMIN' && session.can('roles') ? `<label class="adp-admin-role">Vai trò admin
+        <select data-adp-admin-role>
+          ${['SUPER_ADMIN', 'CONTENT', 'FINANCE', 'SUPPORT', 'MODERATOR'].map((role) => `<option value="${role}"${(account.adminRole || 'SUPER_ADMIN') === role ? ' selected' : ''}>${role}</option>`).join('')}
+        </select>
+      </label><button class="btn btn-ghost" type="button" data-adp-reset-2fa>${account.twoFactorEnabled ? 'Đặt lại 2FA' : 'Xóa trạng thái 2FA'}</button>` : ''}
       <button class="btn btn-ghost" type="button" data-adp-logout>Ép đăng xuất</button>
       <button class="btn btn-ghost" type="button" data-adp-avatar-remove${progress.avatarUrl ? '' : ' hidden'}>Xóa ảnh đại diện</button>`;
   };
@@ -443,6 +449,26 @@ export function mountPlayerDetail(host, userId, { signal }) {
       for (const [selector, action] of Object.entries(actions)) {
         if (event.target.closest(selector)) action();
       }
+      if (event.target.closest('[data-adp-reset-2fa]')) {
+        if (!window.confirm('Đặt lại xác thực hai bước của tài khoản admin này?')) return;
+        adminPlayersApi.resetTwoFactor(userId).then(() => {
+          state.account = { ...state.account, twoFactorEnabled: false };
+          drawHeader();
+          toast('Đã đặt lại 2FA.', 'success');
+        }).catch((error) => toast(error.message, 'error'));
+      }
+    }, { signal });
+    page.addEventListener('change', (event) => {
+      const select = event.target.closest('[data-adp-admin-role]');
+      if (!select) return;
+      adminPlayersApi.setAdminRole(userId, select.value).then((updated) => {
+        state.account = { ...state.account, adminRole: updated.adminRole };
+        drawHeader();
+        toast('Đã cập nhật vai trò admin.', 'success');
+      }).catch((error) => {
+        select.value = state.account.adminRole || 'SUPER_ADMIN';
+        toast(error.message, 'error');
+      });
     }, { signal });
     // Arrow keys move between the tabs, as a tab list should.
     page.querySelector('[role="tablist"]').addEventListener('keydown', (event) => {
