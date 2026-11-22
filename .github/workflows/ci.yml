@@ -160,6 +160,8 @@ jobs:
       Jwt__Secret: ci-only-secret-with-at-least-32-characters
       MongoDb__ConnectionString: mongodb://127.0.0.1:27017
       MongoDb__DatabaseName: SirLockedCi
+      # The smoke case is non-pixel and must be playable for room creation.
+      CaseCatalog__PixelOnly: 'false'
       MOCK_AI_RESPONSES: 'true'
       SKIP_ASSET_GENERATION: 'true'
       # Room creation requires a verified email. The smoke test only speaks the public API and has no
