@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace SirLocked.Api.DTOs.Auth;
 
@@ -29,6 +30,27 @@ public class LoginRequest
 
     [Required]
     public string Password { get; set; } = string.Empty;
+
+    [MaxLength(64)]
+    public string? TwoFactorCode { get; set; }
+}
+
+public class SetAdminRoleRequest
+{
+    [Required]
+    public string AdminRole { get; set; } = string.Empty;
+}
+
+public sealed class AdminTwoFactorCodeRequest
+{
+    [Required]
+    public string Code { get; set; } = string.Empty;
+}
+
+public sealed class AdminStepUpRequest
+{
+    public string? Password { get; set; }
+    public string? TwoFactorCode { get; set; }
 }
 
 public class SetUserRoleRequest
@@ -49,8 +71,7 @@ public class ChangePasswordRequest
 
 public class RefreshTokenRequest
 {
-    [Required]
-    public string RefreshToken { get; set; } = string.Empty;
+    public string? RefreshToken { get; set; }
 }
 
 public class ForgotPasswordRequest
@@ -81,6 +102,9 @@ public class UserResponse
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    public string? AdminRole { get; set; }
+    public string[] AdminPermissions { get; set; } = [];
+    public bool TwoFactorEnabled { get; set; }
     public string Status { get; set; } = string.Empty;
     public bool IsEmailVerified { get; set; }
     public bool HasPassword { get; set; }
@@ -91,6 +115,7 @@ public class AuthResponse
 {
     public string Token { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
+    [JsonIgnore]
     public string RefreshToken { get; set; } = string.Empty;
     public DateTime RefreshTokenExpiry { get; set; }
     public UserResponse User { get; set; } = new();

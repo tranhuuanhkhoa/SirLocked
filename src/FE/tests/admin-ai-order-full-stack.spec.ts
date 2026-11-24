@@ -14,7 +14,7 @@ import { mkdirSync } from 'node:fs';
  *
  * The API runs with Auth__AutoVerifyRegistrations=true; each run registers one fresh VIP and writes only to that database.
  */
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string; fullName: string; role: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string; fullName: string; role: string } };
 
 const enabled = process.env.SIRLOCKED_RUN_AI_ORDER_FULL_STACK === 'true';
 const evidenceDir = process.env.SIRLOCKED_AI_ORDER_EVIDENCE_DIR;
@@ -46,7 +46,6 @@ async function openAs(browser: Browser, auth: Auth, viewport = { width: 1440, he
   });
   await page.addInitScript((value) => {
     localStorage.setItem('sirlocked.token', value.token);
-    localStorage.setItem('sirlocked.refreshToken', value.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', value.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(value.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');

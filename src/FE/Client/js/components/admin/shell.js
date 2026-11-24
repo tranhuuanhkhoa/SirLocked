@@ -13,15 +13,16 @@ import { icon } from './icons.js';
  */
 export const ADMIN_TABS = [
   { href: '/admin', label: 'Tổng quan', icon: 'grid' },
-  { href: '/admin/cases', label: 'Vụ án', icon: 'folder', also: ['/admin/import', '/admin/editor'], count: 'cases' },
-  { href: '/admin/ai', label: 'Tạo vụ án AI', icon: 'sparkle' },
-  { href: '/admin/weekly', label: 'Hàng tuần', icon: 'calendar' },
-  { href: '/admin/chests', label: 'Hòm & vật phẩm', icon: 'chest', also: ['/admin/items'] },
-  { href: '/admin/cosmetics', label: 'Mỹ phẩm', icon: 'gem' },
-  { href: '/admin/players', label: 'Người chơi', icon: 'users', count: 'users' },
-  { href: '/admin/economy', label: 'Kinh tế & chợ', icon: 'coins' },
-  { href: '/admin/vip', label: 'VIP', icon: 'star' },
-  { href: '/admin/audit', label: 'Nhật ký', icon: 'clock' },
+  { href: '/admin/cases', label: 'Vụ án', icon: 'folder', permission: 'content', also: ['/admin/import', '/admin/editor'], count: 'cases' },
+  { href: '/admin/ai', label: 'Tạo vụ án AI', icon: 'sparkle', permission: 'content' },
+  { href: '/admin/weekly', label: 'Hàng tuần', icon: 'calendar', permission: 'content' },
+  { href: '/admin/chests', label: 'Hòm & vật phẩm', icon: 'chest', permission: 'content', also: ['/admin/items'] },
+  { href: '/admin/cosmetics', label: 'Mỹ phẩm', icon: 'gem', permission: 'content' },
+  { href: '/admin/players', label: 'Người chơi', icon: 'users', permission: 'players', count: 'users' },
+  { href: '/admin/economy', label: 'Kinh tế & chợ', icon: 'coins', permission: 'economy' },
+  { href: '/admin/vip', label: 'VIP', icon: 'star', permission: 'economy' },
+  { href: '/admin/audit', label: 'Nhật ký', icon: 'clock', permission: 'audit' },
+  { href: '/admin/security', label: 'Bảo mật', icon: 'lock' },
 ];
 
 /** Mục nào sáng cho một địa chỉ. Khớp dài nhất thắng, để /admin/cases không làm sáng cả /admin. */
@@ -86,7 +87,7 @@ export function adminNavMarkup(address) {
       </div>
       <div class="adm-side-body" id="adm-side-body">
         <nav class="adm-nav" aria-label="Quản trị">
-          ${ADMIN_TABS.map((tab) => {
+          ${ADMIN_TABS.filter((tab) => !tab.permission || session.can(tab.permission)).map((tab) => {
     const current = tab === active;
     return `<a class="admin-nav-tab${current ? ' is-active' : ''}" href="${tab.href}"${current ? ' aria-current="page"' : ''}${tab.count ? ` data-count-key="${tab.count}"` : ''}>${icon(tab.icon, 20)}<span>${escapeHtml(tab.label)}</span></a>`;
   }).join('')}

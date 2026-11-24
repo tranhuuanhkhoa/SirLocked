@@ -9,6 +9,7 @@ using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Security;
 
 namespace SirLocked.Api.WebAPI.Controllers;
 
@@ -21,19 +22,22 @@ public class AdminController : BaseApiController
     private readonly GameplayV3Settings _gameplayV3;
     private readonly IAdminAudit _audit;
     private readonly AdminPlayersService _players;
+    private readonly AdminSecurityService _adminSecurity;
 
     public AdminController(
         IAdminService adminService,
         PlaytestSummaryService playtestSummary,
         IOptions<GameplayV3Settings> gameplayV3,
         IAdminAudit audit,
-        AdminPlayersService players)
+        AdminPlayersService players,
+        AdminSecurityService adminSecurity)
     {
         _adminService = adminService;
         _playtestSummary = playtestSummary;
         _gameplayV3 = gameplayV3.Value;
         _audit = audit;
         _players = players;
+        _adminSecurity = adminSecurity;
     }
 
     [HttpGet("dashboard")]
@@ -41,20 +45,46 @@ public class AdminController : BaseApiController
         Ok(await _adminService.GetDashboardAsync());
 
     [HttpGet("users")]
+    [Authorize(Policy = AdminPolicies.Players)]
     public async Task<ActionResult<ApiResponse<List<UserResponse>>>> Users() =>
         Ok(await _adminService.GetUsersAsync());
 
     [HttpPatch("users/{userId}/lock")]
+    [Authorize(Policy = AdminPolicies.Players)]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<UserResponse>>> Lock(string userId, [FromQuery] string? reason) =>
         Ok(await AuditedAsync(userId, "player.lock", reason, () => _adminService.SetUserStatusAsync(userId, UserStatus.Locked)), "User locked.");
 
     [HttpPatch("users/{userId}/unlock")]
+    [Authorize(Policy = AdminPolicies.Players)]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<UserResponse>>> Unlock(string userId, [FromQuery] string? reason) =>
         Ok(await AuditedAsync(userId, "player.unlock", reason, () => _adminService.SetUserStatusAsync(userId, UserStatus.Active)), "User unlocked.");
 
     [HttpPatch("users/{userId}/role")]
+    [Authorize(Policy = AdminPolicies.Roles)]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<UserResponse>>> SetRole(string userId, [FromBody] SetUserRoleRequest request, [FromQuery] string? reason) =>
         Ok(await AuditedAsync(userId, "player.role", reason, () => _adminService.SetUserRoleAsync(userId, request.Role)), "User role updated.");
+
+    [HttpPatch("users/{userId}/admin-role")]
+    [Authorize(Policy = AdminPolicies.Roles)]
+    [RequireAdminStepUp]
+    public async Task<ActionResult<ApiResponse<UserResponse>>> SetAdminRole(
+        string userId, [FromBody] SetAdminRoleRequest request, CancellationToken ct)
+    {
+        var before = await _adminService.GetUserAsync(userId);
+        var updated = await _adminService.SetAdminRoleAsync(userId, request.AdminRole);
+        await _audit.LogAsync(Caller, "admin.role", "user", userId,
+            new { adminRole = before.AdminRole }, new { adminRole = updated.AdminRole }, ct: ct);
+        return Ok(updated, "Admin role updated.");
+    }
+
+    [HttpPost("users/{userId}/2fa/reset")]
+    [Authorize(Policy = AdminPolicies.Roles)]
+    [RequireAdminStepUp]
+    public async Task<ActionResult<ApiResponse<UserResponse>>> ResetTwoFactor(string userId, CancellationToken ct) =>
+        Ok(await _adminSecurity.ResetAsync(Caller, userId, ct), "Admin two-factor authentication reset.");
 
     /// <summary>These routes predate the audit log. They behave as before and now also say what they did; the reason is optional here.</summary>
     private async Task<UserResponse> AuditedAsync(string userId, string action, string? reason, Func<Task<UserResponse>> change)

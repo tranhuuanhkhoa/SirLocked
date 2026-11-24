@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
  *   SIRLOCKED_RUN_TUTORIAL_FULL_STACK=true SIRLOCKED_TEST_API_URL=http://localhost:5215 SIRLOCKED_TEST_PASSWORD=...
  *   SIRLOCKED_PLAYWRIGHT_EXTERNAL_SERVER=1 npx playwright test tests/tutorial-full-stack.spec.ts
  */
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string } };
 const enabled = process.env.SIRLOCKED_RUN_TUTORIAL_FULL_STACK === 'true';
 
 test('a newcomer picks Nhập môn, is sent to the tutorial and plays it alone', async ({ browser }) => {
@@ -26,7 +26,6 @@ test('a newcomer picks Nhập môn, is sent to the tutorial and plays it alone',
   page.on('pageerror', (error) => errors.push(error.message));
   await page.addInitScript(({ auth }) => {
     localStorage.setItem('sirlocked.token', auth.token);
-    localStorage.setItem('sirlocked.refreshToken', auth.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');

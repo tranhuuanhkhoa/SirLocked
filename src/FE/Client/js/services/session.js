@@ -1,28 +1,26 @@
 const TOKEN_KEY = 'sirlocked.token';
 const USER_KEY = 'sirlocked.user';
-const REFRESH_TOKEN_KEY = 'sirlocked.refreshToken';
 const REFRESH_EXPIRY_KEY = 'sirlocked.refreshExpiry';
 
 export const session = {
   save(auth) {
     localStorage.setItem(TOKEN_KEY, auth.token);
     localStorage.setItem(USER_KEY, JSON.stringify(auth.user));
-    if (auth.refreshToken) {
-      localStorage.setItem(REFRESH_TOKEN_KEY, auth.refreshToken);
+    localStorage.removeItem('sirlocked.refreshToken');
+    if (auth.refreshTokenExpiry) {
       localStorage.setItem(REFRESH_EXPIRY_KEY, auth.refreshTokenExpiry);
+    } else {
+      localStorage.removeItem(REFRESH_EXPIRY_KEY);
     }
   },
   clear() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem('sirlocked.refreshToken');
     localStorage.removeItem(REFRESH_EXPIRY_KEY);
   },
   token() {
     return localStorage.getItem(TOKEN_KEY) || '';
-  },
-  refreshToken() {
-    return localStorage.getItem(REFRESH_TOKEN_KEY) || '';
   },
   isRefreshTokenValid() {
     const expiry = localStorage.getItem(REFRESH_EXPIRY_KEY);
@@ -41,6 +39,15 @@ export const session = {
   },
   isAdmin() {
     return this.user()?.role === 'ADMIN';
+  },
+  adminRole() {
+    const user = this.user();
+    return user?.role === 'ADMIN' ? (user.adminRole || 'SUPER_ADMIN') : null;
+  },
+  can(permission) {
+    const user = this.user();
+    if (user?.role !== 'ADMIN') return false;
+    return Array.isArray(user.adminPermissions) ? user.adminPermissions.includes(permission) : true;
   },
   /** The page this account signs in on. Read it before clear(). */
   loginAddress() {

@@ -30,6 +30,9 @@ public sealed record AdminPlayerAccountDto(
     bool IsEmailVerified,
     bool HasPassword,
     bool HasSession,
+    string? AdminRole,
+    IReadOnlyList<string> AdminPermissions,
+    bool TwoFactorEnabled,
     DateTime CreatedAt,
     DateTime UpdatedAt);
 

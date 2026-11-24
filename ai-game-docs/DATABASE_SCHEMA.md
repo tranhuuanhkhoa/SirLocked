@@ -28,8 +28,15 @@ MongoDB documents use camelCase element names through the global MongoDB convent
   "email": "ada@example.com",
   "passwordHash": "bcrypt",
   "role": "PLAYER",
+  "adminRole": null,
   "status": "ACTIVE",
   "authorizationVersion": 3,
+  "twoFactorSecretProtected": null,
+  "twoFactorPendingSecretProtected": null,
+  "twoFactorEnabled": false,
+  "twoFactorLastUsedStep": null,
+  "twoFactorRecoveryCodeHashes": [],
+  "adminStepUpUntil": null,
   "refreshTokenHash": "sha256",
   "createdAt": "2026-06-12T00:00:00Z",
   "updatedAt": "2026-06-12T00:00:00Z"
@@ -284,6 +291,21 @@ Concurrency rule: gameplay mutations update the whole `GameRoom` document only w
   "createdAt": "2026-06-12T00:00:00Z"
 }
 ```
+
+# `userActivityDays`
+
+One document per user and UTC calendar day:
+
+```json
+{
+  "_id": "ObjectId",
+  "userId": "string",
+  "day": "yyyy-MM-dd",
+  "firstSeenAt": "UTC Date"
+}
+```
+
+Indexes: unique `(userId, day)`, `(day)`, and a 400-day TTL index on `firstSeenAt`. Authenticated requests touch the current UTC day at most once per user per process; storage failures are logged without failing the request.
 
 ## gameActionLogs
 

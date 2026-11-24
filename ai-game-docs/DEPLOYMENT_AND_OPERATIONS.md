@@ -1,5 +1,3 @@
-# Deployment And Operations
-
 Last synced with code: 2026-09-20.
 
 ## Local Requirements
@@ -20,6 +18,9 @@ Required for backend startup:
 - `Jwt__Secret` with at least 32 characters
 - `Jwt__Issuer`
 - `Jwt__Audience`
+- `AdminSecurity__RequireTwoFactor` (optional, defaults to `false`)
+- `AdminSecurity__StepUpMinutes` (optional, defaults to `5`)
+- `DataProtection__KeysPath` (optional path for persistent Data Protection keys)
 
 Required for AI case creation (the Claude bot answers through the bridge; the server calls no AI API):
 
@@ -34,6 +35,10 @@ Required for public AI generation:
 - `TrustedProxies__0` (and additional entries) only for known HTTPS reverse proxies
 
 The backend loads repo-root `.env` through `EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory())`.
+
+### Authentication rate limits
+
+Login defaults to 5 requests per 60 seconds per IP; registration defaults to 3 requests per 300 seconds per IP. Both queues remain disabled. Optional overrides are `RateLimiting__Login__PermitLimit`, `RateLimiting__Login__WindowSeconds`, `RateLimiting__Register__PermitLimit`, and `RateLimiting__Register__WindowSeconds`. **load-test only; don't raise these in production.**
 
 ## Run MongoDB
 
@@ -139,3 +144,65 @@ MongoDB-backed endpoint.
 - Do not expose `.env`.
 - Configure HTTPS termination.
 - Keep Swagger disabled or protected if deploying publicly.
+
+### Nginx security headers
+
+Install `scripts/server/security-headers.conf` as `/etc/nginx/snippets/sirlocked-security-headers.conf` and include it in the SPA-serving `server` block:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name example.invalid;
+    include /etc/nginx/snippets/sirlocked-security-headers.conf;
+    # Existing SPA root and /api, /hubs, /signin-google proxy locations.
+}
+```
+
+The snippet applies `nosniff`, frame, referrer, and permissions policies, HSTS, and a `Content-Security-Policy-Report-Only` policy. Report-Only is intentional while reports are reviewed; the current external allowances cover Cloudinary images, Google Fonts, Google ads, Google OAuth, and PayOS navigation used by the app.
+
+When admin 2FA is enabled, configure `DataProtection__KeysPath` to a persistent
+directory shared by all API instances and restricted to the API service
+account. Protect and back up those keys with the deployment configuration:
+losing them makes encrypted TOTP secrets unreadable. Admins can recover with a
+saved one-time recovery code; otherwise a `SUPER_ADMIN` must reset the
+affected account's 2FA.
+
+# Deployment And Operations
+
+## MongoDB backup and restore
+
+Install MongoDB Database Tools (`mongodump`, `mongorestore`) and `mongosh` on the backup host. Create `/etc/sirlocked/backup.env` readable only by the service account:
+
+```sh
+MONGO_URI=mongodb://127.0.0.1:27017
+MONGO_DB=sirlocked
+BACKUP_DIR=/var/backups/sirlocked
+KEEP=14
+```
+
+`backup-mongo.sh` writes a gzip archive and neighboring SHA-256 checksum and retains the newest `KEEP` archives. Restore is destructive to the selected target database and refuses to run without explicit confirmation:
+
+```sh
+MONGO_URI=... MONGO_DB=sirlocked scripts/server/restore-mongo.sh /var/backups/sirlocked/sirlocked-<timestamp>.archive.gz sirlocked_restore --yes
+MONGO_URI=... MONGO_DB=sirlocked scripts/server/backup-verify.sh
+```
+
+Install `scripts/server/sirlocked-backup.service` and `.timer` as `/etc/systemd/system/` after setting `ExecStart` to the installed script path. Then run `systemctl daemon-reload && systemctl enable --now sirlocked-backup.timer`. The persistent timer runs daily at 03:00; `backup-verify.sh` restores into `${MONGO_DB}_restore_check`, compares collection counts and drops the scratch database on exit.
+
+## Production Docker Compose
+
+Set required application values in a private `.env` file, then run:
+
+```sh
+docker compose -f docker-compose.prod.yml up -d --build
+curl -fsS http://localhost:8088/live
+python scripts/e2e_smoke.py --base http://localhost:8088
+```
+
+MongoDB has no published host port and persists in the Compose project volume. The API uses the `api-keys` volume for Data Protection keys. Use a unique Compose project name for isolated deployments and tests; use `docker compose -p <project> -f docker-compose.prod.yml down -v` only for disposable projects.
+
+The Compose port is configurable as `SIRLOCKED_WEB_PORT`; `SIRLOCKED_ENV_FILE` may point to an alternate environment file for isolated test runs. The existing API health endpoints are `/health` and `/live` at the root (not under `/api`).
+
+## Telemetry and logging
+
+Set `OpenTelemetry__OtlpEndpoint` to enable OTLP traces and metrics; without it no exporter is registered. `OpenTelemetry__ServiceName` defaults to `sirlocked-api`. `Logging__Json=true` enables JSON console logs with scopes, including `CorrelationId`.

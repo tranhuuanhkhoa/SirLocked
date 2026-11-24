@@ -4,16 +4,23 @@ using System.Threading.RateLimiting;
 using System.Net;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using SirLocked.Api.Configurations;
 using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
+using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
+using SirLocked.Api.Services.Activity;
 using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Catalog;
@@ -22,6 +29,7 @@ using SirLocked.Api.Services.Interfaces;
 using SirLocked.Api.Services.Market;
 using SirLocked.Api.Services.Payments;
 using SirLocked.Api.Services.Projection;
+using SirLocked.Api.Services.Observability;
 using SirLocked.Api.WebAPI;
 using SirLocked.Api.WebAPI.Extensions;
 using SirLocked.Api.WebAPI.Hubs;
@@ -31,6 +39,28 @@ using SirLocked.Api.WebAPI.Middlewares;
 EnvFileLoader.LoadFromRepoRoot(Directory.GetCurrentDirectory());
 
 var builder = WebApplication.CreateBuilder(args);
+if (builder.Configuration.GetValue<bool>("Logging:Json"))
+{
+    builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
+}
+
+var otlpEndpoint = builder.Configuration["OpenTelemetry:OtlpEndpoint"];
+if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+{
+    if (!Uri.TryCreate(otlpEndpoint, UriKind.Absolute, out var endpoint))
+        throw new InvalidOperationException("OpenTelemetry:OtlpEndpoint must be an absolute URI.");
+    var serviceName = builder.Configuration["OpenTelemetry:ServiceName"];
+    if (string.IsNullOrWhiteSpace(serviceName)) serviceName = "sirlocked-api";
+    builder.Services.AddOpenTelemetry()
+        .ConfigureResource(resource => resource.AddService(serviceName))
+        .WithTracing(tracing => tracing
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddOtlpExporter(options => options.Endpoint = endpoint))
+        .WithMetrics(metrics => metrics
+            .AddMeter("SirLocked")
+            .AddOtlpExporter(options => options.Endpoint = endpoint));
+}
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -47,6 +77,14 @@ _ = CrackGenerationBudgets.All;
 ProjectionCapacityPolicy.EnsureAllContractsValid();
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDb"));
+builder.Services.Configure<AdminSecuritySettings>(builder.Configuration.GetSection("AdminSecurity"));
+var dataProtection = builder.Services.AddDataProtection();
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+{
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+        .SetApplicationName("SirLocked");
+}
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("Google"));
 builder.Services.AddOptions<EmailSettings>()
     .Bind(builder.Configuration.GetSection("Email"))
@@ -145,6 +183,11 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<CaseCache>();
 builder.Services.AddSingleton<FrontendRedirects>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<RequestHealthWindow>();
+builder.Services.AddSingleton<OnlineConnections>();
+builder.Services.AddSingleton<IUserActivityStore, MongoUserActivityStore>();
+builder.Services.AddSingleton<IUserActivityRecorder, UserActivityRecorder>();
+builder.Services.AddScoped<AdminMetricsService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -257,12 +300,20 @@ builder.Services.AddHostedService<SirLocked.Api.Services.Weekly.WeeklyChallengeW
 builder.Services.AddCatalog(); // Danh mục vật phẩm, hòm, phần thưởng trong MongoDB (ICatalogProvider)
 builder.Services.AddMarket(); // Chợ đồ: wallet, inventory, market, trades, game rewards
 builder.Services.AddAdminFoundation(); // Nhật ký admin, tải ảnh admin
+builder.Services.AddScoped<SirLocked.Api.Services.Security.AdminSecurityService>();
+builder.Services.AddScoped<SirLocked.Api.Services.Security.IAdminSecurityOperations>(services =>
+    services.GetRequiredService<SirLocked.Api.Services.Security.AdminSecurityService>());
+builder.Services.AddScoped<SirLocked.Api.Services.Security.IAdminStepUpValidator>(services =>
+    services.GetRequiredService<SirLocked.Api.Services.Security.AdminSecurityService>());
+builder.Services.AddScoped<SirLocked.Api.Services.Security.IAdminLoginVerifier>(services =>
+    services.GetRequiredService<SirLocked.Api.Services.Security.AdminSecurityService>());
 builder.Services.AddAdminChests();
 builder.Services.AddAdminCosmetics();
 builder.Services.AddAdminPlayers();
 builder.Services.AddPayments(builder.Configuration);
 builder.Services.AddHttpClient(AiCaseService.AssetHttpClientName);
 
+var authRateLimits = RateLimitingSettings.FromConfiguration(builder.Configuration);
 builder.Services.AddRateLimiter(options =>
 {
     // 5 lần login / 1 phút / 1 IP
@@ -270,8 +321,8 @@ builder.Services.AddRateLimiter(options =>
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 5,
-            Window = TimeSpan.FromMinutes(1),
+            PermitLimit = authRateLimits.Login.PermitLimit,
+            Window = TimeSpan.FromSeconds(authRateLimits.Login.WindowSeconds),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         }));
@@ -281,8 +332,8 @@ builder.Services.AddRateLimiter(options =>
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 3,
-            Window = TimeSpan.FromMinutes(5),
+            PermitLimit = authRateLimits.Register.PermitLimit,
+            Window = TimeSpan.FromSeconds(authRateLimits.Register.WindowSeconds),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         }));
@@ -425,11 +476,15 @@ builder.Services.AddCors(options =>
 });
 
 var googleSettings = builder.Configuration.GetSection("Google").Get<GoogleSettings>() ?? new GoogleSettings();
+var googleCredentialsConfigured =
+    !string.IsNullOrWhiteSpace(googleSettings.ClientId) &&
+    !string.IsNullOrWhiteSpace(googleSettings.ClientSecret);
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddCookie("External")
-    .AddGoogle(options => GoogleAuthenticationSetup.Configure(options, googleSettings))
-    .AddJwtBearer();
+var authenticationBuilder = builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddCookie("External");
+if (googleCredentialsConfigured)
+    authenticationBuilder.AddGoogle(options => GoogleAuthenticationSetup.Configure(options, googleSettings));
+authenticationBuilder.AddJwtBearer();
 
 builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
     .Configure<IOptions<JwtSettings>>((options, configuredJwt) =>
@@ -463,15 +518,33 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var (name, permission) in AdminPolicies.All)
+    {
+        options.AddPolicy(name, policy => policy
+            .RequireRole(UserRole.Admin)
+            .RequireAssertion(context =>
+                AdminRoles.HasPermission(
+                    context.User.FindFirst("admin_role")?.Value ?? AdminRoles.SuperAdmin,
+                    permission)));
+    }
+});
 builder.Services.AddHealthChecks()
     .AddCheck<MongoDbHealthCheck>("mongodb", tags: new[] { "ready" });
 
 var app = builder.Build();
 
+if (!googleCredentialsConfigured)
+    app.Logger.LogWarning("Google sign-in is disabled because Google:ClientId and Google:ClientSecret are not configured.");
+
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<RequestHealthWindowMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseForwardedHeaders();
+if (!app.Environment.IsDevelopment())
+    app.UseHsts();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {

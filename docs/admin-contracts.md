@@ -153,7 +153,9 @@ await _audit.LogAsync(...);
 **Còn để ngỏ:**
 
 - `CosmeticCatalog.DefaultAvatar`, tiền tố id, `IsCosmetic` và `MarketCatalog.StarterItemIds` vẫn nằm trong code.
-- `POST /api/chests/admin/grant` cũ không ghi nhật ký. Trang admin dùng `POST /api/admin/chests/grant`.
+- `POST /api/chests/admin/grant` and `POST /api/market/admin/grant` are retained
+  for compatibility; both require `economy` permission, step-up, and audit
+  logging. The admin UI uses `POST /api/admin/chests/grant`.
 - Món không giao dịch được mà admin cấp ở `/admin/cosmetics` lưu `Source = LEVEL` để không chiếm ô túi, nên trang Người chơi coi nó như phần thưởng và không thu hồi được.
 
 ## 5. `CatalogRules`
@@ -203,6 +205,35 @@ await _audit.LogAsync(Caller, "chest.update", "chest", chestId, before, after, r
 ## 7. Tải ảnh: `POST /api/admin/assets`
 
 Chỉ admin. Multipart, trường tên `file`. Trả về `{ url, width, height }`. Frontend: `adminAssetsApi.upload(file)` trong `api/adminAssetsApi.js`.
+
+## 8. Admin roles, permissions, and step-up
+
+`SUPER_ADMIN` has every permission; `CONTENT` has `content`; `FINANCE` has
+`economy` and `audit`; `SUPPORT` has `players` and `moderation`; `MODERATOR`
+has `moderation`. An ADMIN without a stored `adminRole` retains legacy
+`SUPER_ADMIN` access. Promotion through `users/{id}/role` assigns `SUPPORT`;
+demotion clears the sub-role, 2FA state, and step-up window. Role changes
+increment `AuthorizationVersion`; the last effective `SUPER_ADMIN` cannot be
+demoted.
+
+The route permissions are grouped as follows: `content` protects case,
+cutscene, asset, weekly, AI content, chest catalog, and cosmetics catalog
+operations; `economy` protects economy, author payouts, grants, and player
+coins/items/progress; `players` protects player reads, lock/unlock, and force
+logout; `moderation` protects reviews, rooms, and avatar moderation; `audit`
+protects audit feeds; `roles` protects role changes and 2FA reset. Dashboard
+and playtest summary remain available to every ADMIN. The compatibility routes
+`POST /api/chests/admin/grant` and `POST /api/market/admin/grant` require
+`economy` and step-up.
+
+Step-up is required for player economy mutations, item revocation, progress
+changes and force logout; user lock/unlock and role changes; 2FA reset/disable;
+economy listing removal, order cancellation, and recovery; author payout
+release/revocation; chest/cosmetic grants; cosmetic deletion; and admin item
+deletion. It defaults to five minutes via `AdminSecurity__StepUpMinutes`.
+Admin 2FA uses protected TOTP secrets and hashed one-use recovery codes. Configure
+`DataProtection__KeysPath` for persistent keys; if keys are lost, use a
+recovery code or a `SUPER_ADMIN` reset.
 
 - Nhận PNG, WebP, JPG, tối đa 5 MB và 8000 px mỗi cạnh. Định dạng đọc từ nội dung file, không xét đuôi file hay content type. **Không nhận SVG.**
 - Luôn chuyển sang WebP, giữ kênh alpha, không đổi kích thước, bỏ metadata. Ảnh chụp điện thoại được xoay đúng chiều trước đó, nên `width`, `height` là kích thước sau khi xoay. Ảnh động chỉ giữ khung đầu.

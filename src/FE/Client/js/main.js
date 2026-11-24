@@ -34,6 +34,7 @@ import { renderAdminPlayersPage } from './pages/adminPlayersPage.js';
 import { renderAdminEconomyPage } from './pages/adminEconomyPage.js';
 import { renderAdminVipPage } from './pages/adminVipPage.js';
 import { renderAdminAuditPage } from './pages/adminAuditPage.js';
+import { renderAdminSecurityPage } from './pages/admin/securityPage.js';
 import { renderOAuthCallbackPage } from './pages/oauthCallbackPage.js';
 import { renderVerifyEmailPage } from './pages/verifyEmailPage.js';
 import { renderResetPasswordPage } from './pages/resetPasswordPage.js';
@@ -118,12 +119,12 @@ const routes = [
   { pattern: /^\/result\/([^/]+)$/, page: renderResultPage },
   { pattern: /^\/detective$/, page: renderDetectivePage },
   { pattern: /^\/detective\/([^/]+)$/, page: renderDetectivePage },
-  { pattern: /^\/admin\/weekly$/, page: renderWeeklyAdminPage, admin: true },
+  { pattern: /^\/admin\/weekly$/, page: renderWeeklyAdminPage, admin: true, permission: 'content' },
   { pattern: /^\/admin$/, page: renderAdminDashboardPage, admin: true },
-  { pattern: /^\/admin\/cases$/, page: renderAdminCasesPage, admin: true },
-  { pattern: /^\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true },
-  { pattern: /^\/admin\/import$/, page: renderAdminImportPage, admin: true },
-  { pattern: /^\/admin\/ai$/, page: renderAdminAiPage, aiAccess: true },
+  { pattern: /^\/admin\/cases$/, page: renderAdminCasesPage, admin: true, permission: 'content' },
+  { pattern: /^\/admin\/cases\/([^/]+)$/, page: renderAdminCaseDetailPage, admin: true, permission: 'content' },
+  { pattern: /^\/admin\/import$/, page: renderAdminImportPage, admin: true, permission: 'content' },
+  { pattern: /^\/admin\/ai$/, page: renderAdminAiPage, aiAccess: true, permission: 'content' },
   {
     // Case Studio: the owner edits an unpublished case (usually one the bot imported) and publishes it from here.
     pattern: /^\/admin\/editor\/([^/]+)$/,
@@ -139,16 +140,18 @@ const routes = [
       return renderCaseEditorPage(app, decodeURIComponent(caseId), context);
     },
     admin: true,
+    permission: 'content',
     lifecycle: true,
   },
-  { pattern: /^\/admin\/chests(?:\/([^/]+))?$/, page: renderAdminChestsPage, admin: true, lifecycle: true },
-  { pattern: /^\/admin\/items$/, page: renderAdminItemsPage, admin: true, lifecycle: true },
-  { pattern: /^\/admin\/cosmetics(?:\/([^/]+))?$/, page: renderAdminCosmeticsPage, admin: true, lifecycle: true },
-  { pattern: /^\/admin\/players(?:\/([^/]+))?$/, page: renderAdminPlayersPage, admin: true, lifecycle: true },
-  { pattern: /^\/admin\/economy$/, page: renderAdminEconomyPage, admin: true, lifecycle: true },
+  { pattern: /^\/admin\/chests(?:\/([^/]+))?$/, page: renderAdminChestsPage, admin: true, permission: 'content', lifecycle: true },
+  { pattern: /^\/admin\/items$/, page: renderAdminItemsPage, admin: true, permission: 'content', lifecycle: true },
+  { pattern: /^\/admin\/cosmetics(?:\/([^/]+))?$/, page: renderAdminCosmeticsPage, admin: true, permission: 'content', lifecycle: true },
+  { pattern: /^\/admin\/players(?:\/([^/]+))?$/, page: renderAdminPlayersPage, admin: true, permission: 'players', lifecycle: true },
+  { pattern: /^\/admin\/economy$/, page: renderAdminEconomyPage, admin: true, permission: 'economy', lifecycle: true },
   // VIP prices, hints, authors and the VIP report: ADMIN only, never on the order page VIPs use.
-  { pattern: /^\/admin\/vip$/, page: renderAdminVipPage, admin: true, lifecycle: true },
-  { pattern: /^\/admin\/audit$/, page: renderAdminAuditPage, admin: true, lifecycle: true },
+  { pattern: /^\/admin\/vip$/, page: renderAdminVipPage, admin: true, permission: 'economy', lifecycle: true },
+  { pattern: /^\/admin\/audit$/, page: renderAdminAuditPage, admin: true, permission: 'audit', lifecycle: true },
+  { pattern: /^\/admin\/security$/, page: renderAdminSecurityPage, admin: true, lifecycle: true },
 ];
 
 const routeLifecycle = createRouteLifecycle();
@@ -402,6 +405,21 @@ async function route({ transition = true } = {}) {
   }
   if (r.admin && !session.isAdmin()) {
     navigate('/cases');
+    return;
+  }
+  if (r.permission && !(r.aiAccess && session.isVip()) && !session.can(r.permission)) {
+    loadingScreen.hide();
+    mount.dispose();
+    document.body.classList.remove('game-page-active', 'title-menu-active');
+    document.body.classList.add('bpa-board');
+    syncAdminArea({ admin: true });
+    syncAdminNav(true, address);
+    render(app, `<section class="page adm-forbidden" role="alert">
+      <span class="adm-eyebrow">${tr('ACCESS RESTRICTED', 'TRUY CẬP BỊ HẠN CHẾ')}</span>
+      <h1>${tr('Access restricted', 'Truy cập bị hạn chế')}</h1>
+      <p>${tr('You do not have permission to view this page.', 'Bạn không có quyền xem trang này.')}</p>
+      <p>${tr('Ask a SUPER_ADMIN to review your admin role.', 'Hãy nhờ SUPER_ADMIN kiểm tra vai trò quản trị của bạn.')}</p>
+    </section>`);
     return;
   }
   if (r.requiresVerified && !session.isEmailVerified()) {

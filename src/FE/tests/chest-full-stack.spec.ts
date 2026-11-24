@@ -16,7 +16,7 @@ import { expect, request, test, type APIRequestContext, type Browser, type Page 
  * The API must run with Auth__AutoVerifyRegistrations=true (scripts/start-local-demo.ps1 does).
  * Set SIRLOCKED_CHEST_EVIDENCE_DIR to keep the screenshots somewhere else than the test output.
  */
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
 type Def = { id: string; name: string; rarity: string; category: string; iconKey: string };
 type InventoryItem = { itemId: string; locked: boolean; lockReason: string | null; source: string; def: Def };
 type Chest = { id: string; name: string; chestCount: number; keyCount: number; keyPrice: number; chestPrice: number; contents: Def[] };
@@ -206,7 +206,6 @@ async function openAs(browser: Browser, auth: Auth, viewport: { width: number; h
   page.on('pageerror', (error) => failures.push(error.message));
   await page.addInitScript((value) => {
     localStorage.setItem('sirlocked.token', value.token);
-    localStorage.setItem('sirlocked.refreshToken', value.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', value.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(value.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');

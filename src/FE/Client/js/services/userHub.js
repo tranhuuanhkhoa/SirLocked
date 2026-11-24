@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr';
-import { session } from './session.js';
+import { freshAccessToken } from './authRefresh.js';
 
 /**
  * A hub connection that joins no room: it only receives events the server sends to this user
@@ -13,7 +13,7 @@ export function createUserHubConnection(handlers = {}) {
   }
 
   const connection = new signalR.HubConnectionBuilder()
-    .withUrl('/hubs/game', { accessTokenFactory: () => session.token() })
+    .withUrl('/hubs/game', { accessTokenFactory: freshAccessToken })
     .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
     .configureLogging(signalR.LogLevel.Warning)
     .build();

@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up the SirLocked MongoDB database
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/sirlocked/backup.env
+ExecStart=/opt/sirlocked/scripts/server/backup-mongo.sh
+User=sirlocked
+Group=sirlocked

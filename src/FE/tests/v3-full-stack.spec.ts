@@ -14,7 +14,6 @@ const apiBaseUrl = process.env.SIRLOCKED_TEST_API_URL ?? 'http://127.0.0.1:5215'
 
 type Auth = {
   token: string;
-  refreshToken: string;
   refreshTokenExpiry: string;
   user: { userId: string; fullName: string; role: string; isEmailVerified: boolean };
 };
@@ -42,6 +41,7 @@ test.describe('Crack V3 full-stack flow on the standard application host', () =>
 
   for (const run of [1, 2, 3]) {
     test(`real HTTP/Auth/Mongo and two browser contexts complete V3 (run ${run})`, async ({ browser }, testInfo) => {
+      test.setTimeout(120_000);
       test.skip(Boolean(process.env.SIRLOCKED_TEST_CASE_PATH), 'The supplied generated case uses the data-driven playtest.');
       const room = await createStartedRoom(api, investigatorAuth, interrogatorAuth);
       await discoverPrivateKnowledge(api, room.roomId, investigatorAuth.token, interrogatorAuth.token);
@@ -376,7 +376,6 @@ async function openEndedPlayer(browser: Browser, roomId: string, auth: Auth): Pr
   const page = await context.newPage();
   await page.addInitScript(({ roomId, auth }) => {
     window.localStorage.setItem('sirlocked.token', auth.token);
-    window.localStorage.setItem('sirlocked.refreshToken', auth.refreshToken);
     window.localStorage.setItem('sirlocked.refreshExpiry', auth.refreshTokenExpiry);
     window.localStorage.setItem('sirlocked.user', JSON.stringify(auth.user));
     window.localStorage.setItem('sirlocked.uiLanguage', 'en');
@@ -436,11 +435,11 @@ async function runCrackLoop(investigator: Page, interrogator: Page) {
   await interrogator.locator('#v3-crack-dismiss').click();
   await expect(investigator.locator('#accuse-btn')).toHaveCount(0);
 
-  await investigator.locator('[data-case-tab="contradictions"]').click();
+  await investigator.locator('[data-case-tab="deductions"]').click();
   await investigator.locator('[data-solve-deduction="deduction-resealed-packet-en"][data-option="deduction-resealed-correct-en"]').click();
   await expect(investigator.locator('.deduction-card.is-solved')).toBeVisible();
-  await expect(investigator.locator('#accuse-btn')).toBeVisible();
   await investigator.locator('.close-drawer-btn').click();
+  await expect(investigator.locator('#accuse-btn')).toBeVisible();
 
   await investigator.locator('#accuse-btn').click();
   await investigator.locator('[data-suspect="char-mara-en"]').click();

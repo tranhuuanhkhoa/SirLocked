@@ -232,6 +232,7 @@ public sealed class AdminPlayersService
                 user.Id, user.FullName, user.Email, user.Role, user.Status, user.IsEmailVerified,
                 !string.IsNullOrWhiteSpace(user.PasswordHash),
                 user.RefreshTokenExpiry > _market.Now,
+                AdminRoles.Effective(user), AdminRoles.PermissionsFor(user), user.TwoFactorEnabled,
                 user.CreatedAt, user.UpdatedAt),
             new AdminPlayerProgressDto(
                 level, progress?.Xp ?? 0, level >= ProgressRules.MaxLevel ? 0 : ProgressRules.XpToNext(level), ProgressRules.MaxLevel,

@@ -45,6 +45,7 @@ public sealed class CutsceneSeedWorker(IServiceScopeFactory scopeFactory, ILogge
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception exception)
         {
+            SirLocked.Api.Services.Observability.SirLockedTelemetry.RecordWorkerFailure(nameof(CutsceneSeedWorker));
             logger.LogError(exception, "Seeding the cutscenes failed; the API keeps running.");
             return false;
         }

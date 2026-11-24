@@ -7,7 +7,57 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Audit NuGet dependencies
+        run: |
+          dotnet list src/BE/SirLocked.Api.csproj package --vulnerable --include-transitive --format json > nuget-audit.json
+          python - <<'PY'
+          import json
+          import sys
+
+          data = json.load(open("nuget-audit.json", encoding="utf-8"))
+          failures = []
+
+          def visit(value, package=None):
+              if isinstance(value, dict):
+                  package = value.get("id", value.get("name", package))
+                  vulnerabilities = value.get("vulnerabilities", [])
+                  for advisory in vulnerabilities:
+                      severity = str(advisory.get("severity", "")).lower()
+                      if severity in {"high", "critical"} and package != "SixLabors.ImageSharp":
+                          failures.append((package, severity, advisory.get("advisoryurl", advisory.get("advisoryUrl", ""))))
+                  for child in value.values():
+                      visit(child, package)
+              elif isinstance(value, list):
+                  for child in value:
+                      visit(child, package)
+
+          visit(data)
+          if failures:
+              for package, severity, url in failures:
+                  print(f"{severity}: {package}: {url}")
+              sys.exit("Unaccepted High/Critical NuGet advisory.")
+          print("No unaccepted High/Critical NuGet advisories. ImageSharp remains the documented accepted risk.")
+          PY
+      - name: Audit production npm dependencies
+        working-directory: src/FE
+        run: npm audit --omit=dev --audit-level=high
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -46,12 +96,6 @@ jobs:
       - name: Test the music library index (files, sha256, licences, areas, sizes)
         working-directory: src/FE
         run: npm run test:music
-      - name: Install browser for UI tests
-        working-directory: src/FE
-        run: npx playwright install --with-deps chromium
-      - name: Test presentation and paired gameplay UI
-        working-directory: src/FE
-        run: npm run test:ui
       - name: Build frontend
         working-directory: src/FE
         run: npm run build
@@ -63,6 +107,40 @@ jobs:
         with:
           name: sirlocked-v3-demo-frontend
           path: src/FE/dist
+
+  ui-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/FE/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: src/FE
+        run: npm ci
+      - name: Install browser for UI tests
+        working-directory: src/FE
+        run: npx playwright install --with-deps chromium
+      - name: Test presentation and paired gameplay UI
+        working-directory: src/FE
+        run: npm run test:ui -- --reporter=line --shard=${{ matrix.shard }}/4
+      - name: Upload UI failure artifacts
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-failure-artifacts-${{ matrix.shard }}
+          path: |
+            src/FE/test-results
+            src/FE/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
 
   api-smoke:
     runs-on: ubuntu-latest
@@ -82,6 +160,8 @@ jobs:
       Jwt__Secret: ci-only-secret-with-at-least-32-characters
       MongoDb__ConnectionString: mongodb://127.0.0.1:27017
       MongoDb__DatabaseName: SirLockedCi
+      # The smoke case is non-pixel and must be playable for room creation.
+      CaseCatalog__PixelOnly: 'false'
       MOCK_AI_RESPONSES: 'true'
       SKIP_ASSET_GENERATION: 'true'
       # Room creation requires a verified email. The smoke test only speaks the public API and has no

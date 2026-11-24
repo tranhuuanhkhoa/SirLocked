@@ -17,7 +17,14 @@ public class User
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string Role { get; set; } = UserRole.Player;
+    public string? AdminRole { get; set; }
     public string Status { get; set; } = UserStatus.Active;
+    public string? TwoFactorSecretProtected { get; set; }
+    public string? TwoFactorPendingSecretProtected { get; set; }
+    public bool TwoFactorEnabled { get; set; }
+    public long? TwoFactorLastUsedStep { get; set; }
+    public List<string> TwoFactorRecoveryCodeHashes { get; set; } = [];
+    public DateTime? AdminStepUpUntil { get; set; }
     /// <summary>Incremented when role/status/credentials change so issued JWTs can be revoked immediately.</summary>
     public long AuthorizationVersion { get; set; }
     public string? RefreshToken { get; set; }

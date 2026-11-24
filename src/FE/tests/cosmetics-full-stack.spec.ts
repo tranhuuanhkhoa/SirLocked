@@ -17,7 +17,7 @@ import { expect, request, test, type APIRequestContext, type Browser, type Page 
  * The API must run with Auth__AutoVerifyRegistrations=true. Each run registers two fresh users.
  * Set SIRLOCKED_COSMETICS_EVIDENCE_DIR to keep the screenshots somewhere else than the test output.
  */
-type Auth = { token: string; refreshToken: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
+type Auth = { token: string; refreshTokenExpiry: string; user: { userId: string; fullName: string } };
 type Progress = {
   level: number; xp: number; xpToNext: number; isMaxLevel: boolean; frameDefId: string | null; titleDefId: string; entranceDefId: string; avatar: string;
   exchangeable: Array<{ itemId: string; xp: number; def: { id: string; rarity: string } }>;
@@ -289,7 +289,6 @@ async function openAs(browser: Browser, auth: Auth, viewport: { width: number; h
   page.on('pageerror', (error) => failures.push(error.message));
   await page.addInitScript((value) => {
     localStorage.setItem('sirlocked.token', value.token);
-    localStorage.setItem('sirlocked.refreshToken', value.refreshToken);
     localStorage.setItem('sirlocked.refreshExpiry', value.refreshTokenExpiry);
     localStorage.setItem('sirlocked.user', JSON.stringify(value.user));
     localStorage.setItem('sirlocked.uiLanguage', 'vi');

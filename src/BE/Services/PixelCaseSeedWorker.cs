@@ -42,6 +42,7 @@ public sealed class PixelCaseSeedWorker(
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception exception)
         {
+            SirLocked.Api.Services.Observability.SirLockedTelemetry.RecordWorkerFailure(nameof(PixelCaseSeedWorker));
             logger.LogError(exception, "Seeding the pixel cases failed; the API keeps running.");
             return false;
         }

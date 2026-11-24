@@ -11,7 +11,13 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using SirLocked.Api.Configurations;
+using SirLocked.Api.DTOs;
+using SirLocked.Api.DTOs.Auth;
+using SirLocked.Api.Services;
+using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Security;
 using SirLocked.Api.WebAPI;
+using SirLocked.Api.WebAPI.Controllers;
 using Xunit;
 
 namespace SirLocked.IntegrationTests;
@@ -79,6 +85,66 @@ public sealed class GoogleAuthenticationFlowTests
     }
 
     [Fact]
+    public async Task GoogleAuthControllerCallback_SetsRefreshCookieAndRedirectsWithoutTokens()
+    {
+        using var transport = new FakeGoogleTransport();
+        using var server = CreateServer(transport);
+        using var client = server.CreateClient();
+        client.BaseAddress = new Uri("https://api.example.test");
+        var challenge = await ChallengeAuthCallbackAsync(client);
+        using var providerCallback = new HttpRequestMessage(HttpMethod.Get,
+            $"/signin-google?code=test-code&state={Uri.EscapeDataString(challenge.State)}");
+        providerCallback.Headers.Add("Cookie", challenge.Cookie);
+        using var providerResponse = await client.SendAsync(providerCallback);
+
+        Assert.Equal(HttpStatusCode.Redirect, providerResponse.StatusCode);
+        Assert.False(providerResponse.Headers.Contains("Content-Security-Policy"));
+        var externalCookie = Assert.Single(providerResponse.Headers.GetValues("Set-Cookie"),
+            value => value.StartsWith("test.external=", StringComparison.Ordinal));
+        using var callback = new HttpRequestMessage(HttpMethod.Get, "/api/auth/google/callback");
+        callback.Headers.Add("Cookie", externalCookie.Split(';')[0]);
+        using var response = await client.SendAsync(callback);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal($"{Frontend}/oauth-callback", response.Headers.Location!.ToString());
+        Assert.DoesNotContain("token", response.Headers.Location.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("refreshToken", response.Headers.Location.ToString(), StringComparison.OrdinalIgnoreCase);
+        var refreshCookie = Assert.Single(response.Headers.GetValues("Set-Cookie"),
+            value => value.StartsWith("sirlocked_refresh=", StringComparison.Ordinal));
+        Assert.Contains("HttpOnly", refreshCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SameSite=Strict", refreshCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Path=/api/auth", refreshCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Expires=", refreshCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Secure", refreshCookie, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AdminWithTwoFactor_UsesPasswordLoginWithoutIssuingRefreshCookie()
+    {
+        using var transport = new FakeGoogleTransport();
+        using var server = CreateServer(transport, requireAdminTwoFactor: true);
+        using var client = server.CreateClient();
+        client.BaseAddress = new Uri("https://api.example.test");
+        var challenge = await ChallengeAuthCallbackAsync(client);
+        using var providerCallback = new HttpRequestMessage(HttpMethod.Get,
+            $"/signin-google?code=test-code&state={Uri.EscapeDataString(challenge.State)}");
+        providerCallback.Headers.Add("Cookie", challenge.Cookie);
+        using var providerResponse = await client.SendAsync(providerCallback);
+        var externalCookie = Assert.Single(providerResponse.Headers.GetValues("Set-Cookie"),
+            value => value.StartsWith("test.external=", StringComparison.Ordinal));
+        using var callback = new HttpRequestMessage(HttpMethod.Get, "/api/auth/google/callback");
+        callback.Headers.Add("Cookie", externalCookie.Split(';')[0]);
+
+        using var response = await client.SendAsync(callback);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal($"{Frontend}/login?error=admin_2fa_required", response.Headers.Location!.ToString());
+        Assert.DoesNotContain("token", response.Headers.Location.ToString(), StringComparison.OrdinalIgnoreCase);
+        if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
+            Assert.DoesNotContain(cookies, value => value.StartsWith("sirlocked_refresh=", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task ProviderAccessDenied_ReturnsCancellationWithoutAnExternalSession()
     {
         using var transport = new FakeGoogleTransport();
@@ -113,19 +179,34 @@ public sealed class GoogleAuthenticationFlowTests
         return (query["state"].ToString(), cookie.Split(';')[0]);
     }
 
+    private static async Task<(string State, string Cookie)> ChallengeAuthCallbackAsync(HttpClient client)
+    {
+        using var response = await client.GetAsync("/start-auth-callback");
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        var redirect = response.Headers.Location!;
+        var query = QueryHelpers.ParseQuery(redirect.Query);
+        Assert.Equal("https://api.example.test/signin-google", query["redirect_uri"].ToString());
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"));
+        return (query["state"].ToString(), cookie.Split(';')[0]);
+    }
+
     private static void AssertNoExternalSignIn(HttpResponseMessage response)
     {
         if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
             Assert.DoesNotContain(cookies, cookie => cookie.StartsWith("test.external=", StringComparison.Ordinal));
     }
 
-    private static TestServer CreateServer(FakeGoogleTransport transport) => new(new WebHostBuilder()
+    private static TestServer CreateServer(FakeGoogleTransport transport, bool requireAdminTwoFactor = false) => new(new WebHostBuilder()
         .ConfigureServices(services =>
         {
             services.AddRouting();
             services.AddDataProtection().UseEphemeralDataProtectionProvider();
             services.Configure<EmailSettings>(settings => settings.FrontendUrl = Frontend);
             services.AddSingleton<FrontendRedirects>();
+            services.AddSingleton<IAuthService>(new TestAuthService(requireAdminTwoFactor));
+            services.AddSingleton<IAdminSecurityOperations>(new TestAdminSecurity());
+            services.AddControllers().AddApplicationPart(typeof(AuthController).Assembly);
+            services.AddAuthorization();
             services.AddAuthentication("External")
                 .AddCookie("External", options => options.Cookie.Name = "test.external")
                 .AddGoogle(options =>
@@ -139,12 +220,17 @@ public sealed class GoogleAuthenticationFlowTests
         })
         .Configure(app =>
         {
+            app.UseMiddleware<SirLocked.Api.WebAPI.Middlewares.SecurityHeadersMiddleware>();
             app.UseRouting();
             app.UseAuthentication();
+            app.UseAuthorization();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGet("/start", context => context.ChallengeAsync(GoogleDefaults.AuthenticationScheme,
                     new AuthenticationProperties { RedirectUri = "/complete" }));
+                endpoints.MapGet("/start-auth-callback", context => context.ChallengeAsync(GoogleDefaults.AuthenticationScheme,
+                    new AuthenticationProperties { RedirectUri = "/api/auth/google/callback" }));
+                endpoints.MapControllers();
                 endpoints.MapGet("/complete", async context =>
                 {
                     var result = await context.AuthenticateAsync("External");
@@ -153,6 +239,51 @@ public sealed class GoogleAuthenticationFlowTests
                 });
             });
         }));
+
+    private sealed class TestAuthService : IAuthService
+    {
+        private readonly bool _requireAdminTwoFactor;
+
+        public TestAuthService(bool requireAdminTwoFactor = false) => _requireAdminTwoFactor = requireAdminTwoFactor;
+        public Task<AuthResponse> RegisterAsync(RegisterRequest request) => throw new NotSupportedException();
+        public Task<AuthResponse> LoginAsync(LoginRequest request) => throw new NotSupportedException();
+        public Task<AuthResponse> AdminLoginAsync(LoginRequest request) => throw new NotSupportedException();
+        public Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request) => throw new NotSupportedException();
+        public Task<UserResponse> GetMeAsync(string userId) => throw new NotSupportedException();
+        public Task ChangePasswordAsync(string userId, ChangePasswordRequest request) => throw new NotSupportedException();
+        public Task LogoutAsync(string userId) => throw new NotSupportedException();
+        public Task<bool> LogoutByRefreshTokenAsync(string refreshToken) => throw new NotSupportedException();
+        public Task<object> ForgotPasswordAsync(ForgotPasswordRequest request) => throw new NotSupportedException();
+        public Task ResetPasswordAsync(ResetPasswordRequest request) => throw new NotSupportedException();
+        public Task<object> ResendVerificationAsync(string userId) => throw new NotSupportedException();
+        public Task VerifyEmailAsync(VerifyEmailRequest request) => throw new NotSupportedException();
+        public Task SeedAdminAsync(AdminSeedOptions options) => throw new NotSupportedException();
+
+        public Task<AuthResponse> GoogleLoginAsync(string email, string fullName)
+        {
+            if (_requireAdminTwoFactor)
+                throw ApiException.Forbidden("Sign in with password and code.", "ADMIN_2FA_REQUIRED", "auth.adminTwoFactorRequired");
+            return Task.FromResult(new AuthResponse
+            {
+                Token = "access-token",
+                RefreshToken = "refresh-token",
+                RefreshTokenExpiry = DateTime.UtcNow.AddDays(7),
+                User = new UserResponse { UserId = "test-user", FullName = fullName, Email = email }
+            });
+        }
+    }
+
+    private sealed class TestAdminSecurity : IAdminSecurityOperations
+    {
+        public Task<AdminTwoFactorSetupResponse> SetupAsync(CurrentUser caller, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<AdminTwoFactorEnableResponse> EnableAsync(CurrentUser caller, string code, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task DisableAsync(CurrentUser caller, string code, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+        public Task<AdminStepUpResponse> StepUpAsync(string adminId, string? password, string? code, CancellationToken ct = default) =>
+            throw new NotSupportedException();
+    }
 
     private sealed class FakeGoogleTransport : HttpMessageHandler
     {

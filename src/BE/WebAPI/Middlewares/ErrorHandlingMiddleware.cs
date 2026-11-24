@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SirLocked.Api.DTOs;
+using SirLocked.Api.Services.Observability;
 
 namespace SirLocked.Api.WebAPI.Middlewares;
 
@@ -35,6 +36,7 @@ public class ErrorHandlingMiddleware
 
     private static async Task WriteAsync(HttpContext context, int statusCode, string message, object? errors = null)
     {
+        if (statusCode >= 500) SirLockedTelemetry.ServerErrors.Add(1);
         if (context.Response.HasStarted) return;
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";

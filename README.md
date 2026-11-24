@@ -42,11 +42,19 @@ CaseCache__SlidingExpirationSeconds=60
 Jwt__Secret=replace-with-at-least-32-characters
 Jwt__Issuer=SirLocked
 Jwt__Audience=SirLockedUsers
+Jwt__ExpiryMinutes=60
+AdminSecurity__RequireTwoFactor=false
+AdminSecurity__StepUpMinutes=5
+DataProtection__KeysPath=/var/lib/sirlocked/keys
 # Claude bridge key (32+ characters). Set it on the server with bash scripts/set-bridge-key.sh; never commit it.
 Bridge__Key=
 # Mock answers instead of the Claude queue (tests, local demo).
 AiGeneration__MockAiResponses=false
 ```
+
+Access tokens expire after 60 minutes by default. `Jwt__ExpiryHours` remains supported for legacy deployments when `Jwt__ExpiryMinutes` is not configured.
+
+Authentication rate limits default to 5 logins per 60 seconds and 3 registrations per 300 seconds per IP, with no queue. The optional keys are `RateLimiting__Login__PermitLimit`, `RateLimiting__Login__WindowSeconds`, `RateLimiting__Register__PermitLimit`, and `RateLimiting__Register__WindowSeconds`. **load-test only; don't raise these in production.**
 
 The AI case creator needs `Bridge__Key`: every model-written step is queued for the Claude bot, which works through `/api/bridge/*` with that key. Keep real keys in local `.env` files or deployment secrets only.
 Cloudinary storage is required when the bot uploads case images. See [AI case setup with the Claude bridge](docs/AI_CASE_SETUP_VI.md) and the [audio, weather and voice fields](docs/case-audio-weather.md).
@@ -90,7 +98,7 @@ Accusation__RequireConsensus=true
 
 - `GET /api/chests` lists the chests, their contents, the caller's free chests and keys, prices and the public drop rates.
 - `POST /api/chests/{chestId}/keys`, `/buy` and `/open` take `{ "idempotencyKey": "<uuid>" }`. Resending a key returns the original result and spends nothing more. They are limited to 60 calls per minute per user.
-- `POST /api/chests/admin/grant` gives a detective chests and keys for testing (`ADMIN` only, `Source = GRANT`, not in the audit log). The admin page uses `POST /api/admin/chests/grant`, which is logged.
+- `POST /api/chests/admin/grant` and `POST /api/market/admin/grant` are retained for compatibility; both require the `economy` permission and step-up and are audit logged. The admin UI uses `POST /api/admin/chests/grant`.
 - Errors carry a code: `CHEST_NONE`, `KEY_NONE`, `FUNDS`, `SLOTS_FULL`, `IN_PROGRESS`, `CHEST_NOT_FOR_SALE`, `CHEST_PRICE_CHANGED`. Opening always frees a slot, so `SLOTS_FULL` only comes from buying or granting.
 - Each chest has its own drop table and look (`ChestDto.Odds`, `ChestDto.Look`). A chest switched off leaves the shop, but anyone still holding one or its key sees it in `ChestListDto.OffSale` and can open it. Buying may send `expectedPrice`, so a price changed by an admin is refused instead of charged.
 
@@ -184,7 +192,9 @@ On backend startup in `Development`, if no admin exists, the app seeds:
 
 Outside `Development`, default admin seeding is disabled unless `Auth__SeedDefaultAdmin=true` is explicitly configured. When enabling it outside development, also configure `Auth__SeedAdminPassword`; do not use the demo password in deployed environments.
 
-Admins sign in at `/admin/login`, players at `/login`. An admin who signs in at `/login` lands on the menu like anyone else and can still open `/admin`; that is also the way in for an admin whose account only has Google sign-in. No page can make someone an `ADMIN`.
+Admins can sign in at `/admin/login` or `/login`; both require a two-factor code when enabled, and regular sign-in sends admins to `/admin`. Google sign-in cannot complete for an admin with two-factor enabled; use password and code. No page can make someone an `ADMIN`.
+
+`AdminSecurity__RequireTwoFactor=true` blocks `/api/admin/*` for admins until 2FA is enabled (auth and setup endpoints remain available). `AdminSecurity__StepUpMinutes` controls the default five-minute window for sensitive changes. Configure `DataProtection__KeysPath` to a persistent, access-restricted directory when 2FA is used across restarts or multiple instances. If those keys are lost, encrypted TOTP secrets cannot be decrypted; an admin can use a saved recovery code or a `SUPER_ADMIN` can reset 2FA.
 
 Public registration creates `PLAYER` accounts. Admins can promote a non-admin user to `VIP` from the dashboard. `VIP` and `ADMIN` accounts can create AI cases.
 
@@ -277,3 +287,52 @@ npm run build
 
 Mongo integration and full-stack scripts only accept a loopback MongoDB server.
 Each run creates a unique `sirlocked_it_<guid>` database and drops it in `finally`.
+
+## Operations and observability
+
+Optional OpenTelemetry export is enabled only when `OpenTelemetry__OtlpEndpoint` is set. `OpenTelemetry__ServiceName` defaults to `sirlocked-api`; `Logging__Json=true` enables structured JSON console logs with correlation scopes. The admin activity dashboard uses local request and SignalR metrics even when no OTLP exporter is configured.
+
+`GET /api/admin/metrics/activity?days=30` is available to admins. Revenue is restricted to admins with the economy permission at `GET /api/admin/metrics/revenue?days=30`. Mongo backup, restore and verification scripts plus the production Docker Compose setup are documented in `ai-game-docs/DEPLOYMENT_AND_OPERATIONS.md`.
+
+## Load tests and CI security
+
+Local k6 smoke, HTTP load/stress/auth, and paired SignalR tests are documented
+in [`scripts/loadtest/README.md`](scripts/loadtest/README.md). They require a
+throwaway API/database and refuse non-loopback targets unless explicitly
+overridden. Each VU reuses one token; only the dedicated auth scenario logs in
+repeatedly. Do not point load tests at production.
+
+### Local load-test baseline
+
+Runs used a single local Release API and throwaway MongoDB database on a
+machine with 8 CPUs and 31.3 GiB RAM. These are local test measurements, not a
+production capacity claim.
+
+| HTTP scenario | Latency measured (p50 / p95 / p99, ms) | Rate | HTTP errors | Max VUs |
+|---|---:|---:|---:|---:|
+| Smoke | 6.30 / 35.16 / 87.74 (API requests) | 1.046 RPS | 0% | 1 |
+| Load | 2.82 / 12.13 / 16.85 (API requests) | 38.958 RPS | 0% | 50 |
+| Stress | 2.36 / 10.60 / 14.99 (API requests) | 105.444 RPS | 0% | 200 |
+| Auth (default limits) | 132 / 195 / 245.4 (login) | 4 logins/min; 0.077 HTTP RPS | 0% | 1 |
+
+| SignalR scenario | Command-to-broadcast latency (p50 / p95 / p99, ms) | HTTP RPS | HTTP errors | Session success | Commands | Max VUs |
+|---|---:|---:|---:|---:|---:|---:|
+| Smoke | 11 / 33.5 / 35.5 | 0.866 | 0% | 100% | 3 / 3 | 2 |
+| Load | 8 / 12 / 13.26 | 5.254 | 0% | 100% | 75 / 75 | 50 |
+| Stress | 8 / 16 / 37.05 | 11.506 | 0% | 100% | 300 / 300 | 200 |
+
+The API stress run reached 105.444 HTTP requests/second at 200 VUs. The
+paired SignalR stress run completed 100 sessions and all 300 command samples
+at 200 VUs. HTTP p95 was below 500 ms, SignalR command p95 was below 1,000 ms,
+session success was above 99%, and HTTP errors were below 1% in every run.
+No 429 responses were observed.
+
+CI includes dependency auditing, CodeQL for C# and JavaScript/TypeScript, and a
+Gitleaks CLI history scan. Dependabot checks NuGet, npm, and GitHub Actions
+weekly. Local verification passed actionlint 1.7.12 on the CI, CodeQL, and
+secret-scan workflows, and Gitleaks 8.30.1 with the exact-path allowlist.
+`dotnet list package --vulnerable --include-transitive` reported six known
+advisories for `SixLabors.ImageSharp` 3.1.11 (four high and two moderate); this
+is the documented accepted risk. The production npm audit reported zero
+vulnerabilities. Do not interpret the ImageSharp exception or Gitleaks
+allowlist as approval of other vulnerable packages or secret-like values.

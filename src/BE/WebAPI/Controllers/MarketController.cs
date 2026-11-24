@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Market;
 using SirLocked.Api.Models.Enums;
+using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Market;
 
 namespace SirLocked.Api.WebAPI.Controllers;
@@ -13,8 +14,13 @@ namespace SirLocked.Api.WebAPI.Controllers;
 public class MarketController : BaseApiController
 {
     private readonly MarketService _market;
+    private readonly IAdminAudit _audit;
 
-    public MarketController(MarketService market) => _market = market;
+    public MarketController(MarketService market, IAdminAudit audit)
+    {
+        _market = market;
+        _audit = audit;
+    }
 
     // ----- wallet & catalog
 
@@ -156,8 +162,15 @@ public class MarketController : BaseApiController
 
     [HttpPost("admin/grant")]
     [Authorize(Roles = UserRole.Admin)]
-    public async Task<ActionResult<ApiResponse<WalletDto>>> AdminGrant([FromBody] AdminGrantRequest request, CancellationToken ct) =>
-        Ok(await _market.AdminGrantAsync(request.UserId, request.DefId, request.Coins, ct));
+    [Authorize(Policy = AdminPolicies.Economy)]
+    [RequireAdminStepUp]
+    public async Task<ActionResult<ApiResponse<WalletDto>>> AdminGrant([FromBody] AdminGrantRequest request, CancellationToken ct)
+    {
+        var wallet = await _market.AdminGrantAsync(request.UserId, request.DefId, request.Coins, ct);
+        await _audit.LogAsync(Caller, "market.admin-grant", "user", request.UserId, null,
+            new { request.DefId, request.Coins }, ct: ct);
+        return Ok(wallet);
+    }
 }
 
 /// <summary>Finds detectives by display name for trade offers. Returns id + name only, never e-mail.</summary>

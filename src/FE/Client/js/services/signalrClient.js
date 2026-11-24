@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr';
-import { session } from './session.js';
+import { freshAccessToken } from './authRefresh.js';
 import { createRoomConnectionLifecycle } from './roomConnectionLifecycle.js';
 
 /**
@@ -36,7 +36,7 @@ export function createRoomConnection(roomId, handlers = {}, { onReconnected, onC
   }
 
   const connection = new signalR.HubConnectionBuilder()
-    .withUrl('/hubs/game', { accessTokenFactory: () => session.token() })
+    .withUrl('/hubs/game', { accessTokenFactory: freshAccessToken })
     .withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
     .configureLogging(signalR.LogLevel.Warning)
     .build();
