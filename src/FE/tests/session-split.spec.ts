@@ -175,19 +175,23 @@ test.describe('leaving', () => {
   test('an admin session that ran out ends on the admin side only', async ({ page }) => {
     await seed(page, { game: PLAYER, admin: ADMIN });
     await fakeApi(page);
-    let refreshedWith = '';
+    let refreshedSide = '';
+    let refreshBody: string | null = 'unset';
     await page.route((url) => url.pathname.startsWith('/api/'), (route) => {
       const sent = route.request().headers().authorization ?? '';
       if (sent === `Bearer ${ADMIN.token}`) return route.fulfill({ status: 401, json: { success: false, message: 'expired' } });
       return route.fallback();
     });
     await page.route((url) => url.pathname === '/api/auth/refresh', (route) => {
-      refreshedWith = route.request().postDataJSON().refreshToken;
+      // The refresh token is the admin side's HttpOnly cookie: the request names the side and carries no token itself.
+      refreshedSide = route.request().headers()['x-sirlocked-session'] ?? '';
+      refreshBody = route.request().postData();
       return route.fulfill({ status: 401, json: { success: false, message: 'expired' } });
     });
     await page.goto('/admin');
     await expectAddress(page, '/admin/login');
-    expect(refreshedWith).toBe(ADMIN.refreshToken);
+    expect(refreshedSide).toBe('admin');
+    expect(refreshBody ?? '').not.toContain(ADMIN.refreshToken);
     expect(await stored(page, ADMIN_KEYS.token)).toBeNull();
     expect(await stored(page, GAME_KEYS.token)).toBe(PLAYER.token);
     expect(await stored(page, GAME_KEYS.refreshToken)).toBe(PLAYER.refreshToken);
@@ -294,14 +298,16 @@ test.describe('playtest rooms and token refresh', () => {
     const rotated = auth('a1', 'ADMIN', 'admin-token-2');
     await seed(context, { game: PLAYER, admin: ADMIN });
     await harness(context, page, '/admin/session-harness');
-    let refreshedWith = '';
+    let refreshedSide = '';
+    let refreshClient = '';
     await context.route((url) => url.pathname === '/api/protected-write', (route) => route.fulfill(
       route.request().headers().authorization === `Bearer ${rotated.token}`
         ? { json: { success: true, data: 'done' } }
         : { status: 401, json: { success: false } },
     ));
     await context.route((url) => url.pathname === '/api/auth/refresh', (route) => {
-      refreshedWith = route.request().postDataJSON().refreshToken;
+      refreshedSide = route.request().headers()['x-sirlocked-session'] ?? '';
+      refreshClient = route.request().headers()['x-sirlocked-client'] ?? '';
       return route.fulfill({ json: { success: true, data: rotated } });
     });
     const answer = await page.evaluate(async () => {
@@ -310,9 +316,11 @@ test.describe('playtest rooms and token refresh', () => {
       return post('/api/protected-write', {});
     });
     expect(answer).toBe('done');
-    expect(refreshedWith).toBe(ADMIN.refreshToken);
+    expect(refreshedSide).toBe('admin');
+    expect(refreshClient).toBe('web');
     expect(await stored(page, ADMIN_KEYS.token)).toBe(rotated.token);
-    expect(await stored(page, ADMIN_KEYS.refreshToken)).toBe(rotated.refreshToken);
+    // The rotated refresh token stays in the admin cookie; an old copy in storage is removed.
+    expect(await stored(page, ADMIN_KEYS.refreshToken)).toBeNull();
     expect(await stored(page, GAME_KEYS.token)).toBe(PLAYER.token);
     expect(await stored(page, GAME_KEYS.refreshToken)).toBe(PLAYER.refreshToken);
   });

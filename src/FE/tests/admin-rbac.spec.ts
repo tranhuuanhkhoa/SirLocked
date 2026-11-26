@@ -140,7 +140,8 @@ test('security page enables 2FA and displays a QR and one-time recovery codes', 
   await expect(page.locator('[data-security-codes]')).toContainText('CCCC2222DD');
 });
 
-test('player sign-in asks an admin for a code and routes the successful login to admin', async ({ page }) => {
+// The game and the admin pages keep separate sessions: an admin signed in at /login plays, and lands on the menu.
+test('player sign-in asks an admin for a code, and the admin then plays from the menu', async ({ page }) => {
   let loginAttempts = 0;
   await page.route((url) => url.pathname.startsWith('/api/'), (route) => route.fulfill({ json: { success: true, data: null } }));
   await page.route((url) => url.pathname === '/api/auth/login', async (route) => {
@@ -165,6 +166,6 @@ test('player sign-in asks an admin for a code and routes the successful login to
   await expect(page.locator('[data-two-factor-login]')).toBeVisible();
   await page.locator('[name=twoFactorCode]').fill('123456');
   await page.locator('#form-login button[type=submit]').click();
-  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page).toHaveURL(/\/menu$/);
   await expect.poll(() => loginAttempts).toBe(2);
 });
