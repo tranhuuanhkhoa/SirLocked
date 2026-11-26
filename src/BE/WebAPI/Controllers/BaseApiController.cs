@@ -10,7 +10,8 @@ public abstract class BaseApiController : ControllerBase
     protected CurrentUser Caller => new(
         User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw ApiException.Unauthorized(),
         User.FindFirstValue(ClaimTypes.Name) ?? "Unknown",
-        User.FindFirstValue(ClaimTypes.Role) ?? "PLAYER");
+        User.FindFirstValue(ClaimTypes.Role) ?? "PLAYER",
+        User.FindFirstValue("admin_role"));
 
     protected string CallerId => Caller.Id;
 

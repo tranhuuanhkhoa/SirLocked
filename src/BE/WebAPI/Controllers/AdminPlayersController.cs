@@ -26,24 +26,35 @@ public class AdminPlayersController : BaseApiController
     }
 
     // ---- the account itself: create, edit, new password, delete (soft) and restore ----
+    // Admin accounts (the "Quản trị" tab) also need the roles permission: AdminAccountsService checks the caller.
 
     [HttpPost]
+    [Authorize(Policy = AdminPolicies.Players)]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<AdminAccountDto>>> Create([FromBody] AdminCreateAccountRequest request, CancellationToken ct) =>
         Ok(await _accounts.CreateAsync(Caller, request, ct), "Đã tạo tài khoản.");
 
     [HttpPut("{userId}/account")]
+    [Authorize(Policy = AdminPolicies.Players)]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<AdminAccountDto>>> UpdateAccount(string userId, [FromBody] AdminUpdateAccountRequest request, CancellationToken ct) =>
         Ok(await _accounts.UpdateAsync(Caller, userId, request, ct), "Đã cập nhật tài khoản.");
 
     [HttpPost("{userId}/password")]
+    [Authorize(Policy = AdminPolicies.Players)]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<AdminAccountDto>>> SetPassword(string userId, [FromBody] AdminSetPasswordRequest request, CancellationToken ct) =>
         Ok(await _accounts.SetPasswordAsync(Caller, userId, request, ct), "Đã đặt mật khẩu mới.");
 
     [HttpDelete("{userId}")]
+    [Authorize(Policy = AdminPolicies.Players)]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<AdminAccountDto>>> Delete(string userId, [FromQuery] string? reason, CancellationToken ct) =>
         Ok(await _accounts.DeleteAsync(Caller, userId, reason, ct), "Đã xóa tài khoản.");
 
     [HttpPost("{userId}/restore")]
+    [Authorize(Policy = AdminPolicies.Players)]
+    [RequireAdminStepUp]
     public async Task<ActionResult<ApiResponse<AdminAccountDto>>> Restore(string userId, [FromBody] AdminReasonRequest request, CancellationToken ct) =>
         Ok(await _accounts.RestoreAsync(Caller, userId, request.Reason, ct), "Đã khôi phục tài khoản.");
 

@@ -30,6 +30,7 @@ public static class AdminPlayerErrors
     public const string AccountChanged = "ADMIN_ACCOUNT_CHANGED";
     public const string AccountNotDeleted = "ADMIN_ACCOUNT_NOT_DELETED";
     public const string LastAdmin = "ADMIN_LAST_ADMIN";
+    public const string AdminAccountsForbidden = "ADMIN_ACCOUNTS_FORBIDDEN";
     public const string EmailTaken = "ADMIN_EMAIL_TAKEN";
 }
 

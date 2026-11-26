@@ -15,6 +15,9 @@ namespace SirLocked.Api.Services.Admin;
 /// out everywhere and left out of the lists unless asked for; its coins, items and history stay, so it can be restored.
 /// An admin cannot delete their own account, nor the last active admin, so the admin pages always keep someone.
 /// Every change needs a reason and goes to the audit log (never with a password or a hash).
+/// Admin accounts are made and changed only by an admin with the roles permission (SUPER_ADMIN): otherwise a SUPPORT
+/// admin could create a SUPER_ADMIN (a new admin has no AdminRole, which counts as SUPER_ADMIN) or take one over by
+/// setting its email or password. The last active SUPER_ADMIN is never deleted.
 /// </summary>
 public sealed class AdminAccountsService
 {
@@ -37,6 +40,7 @@ public sealed class AdminAccountsService
         var role = string.IsNullOrWhiteSpace(request.Role) ? UserRole.Player : request.Role.Trim().ToUpperInvariant();
         if (role is not (UserRole.Player or UserRole.Vip or UserRole.Admin))
             throw AdminPlayersRules.Error(400, AdminPlayerErrors.AccountInvalid, "Vai trò chỉ được là Người chơi, VIP hoặc Quản trị.");
+        if (role == UserRole.Admin) RequireRolesPermission(admin);
         ThrowIfInvalid(AuthValidator.AccountErrors(request.FullName, request.Email, request.NewPassword));
         var email = NormalizeEmail(request.Email!);
         if (await EmailTakenAsync(email, null, ct)) throw EmailTaken();
@@ -71,6 +75,7 @@ public sealed class AdminAccountsService
     {
         var reason = AdminPlayersRules.NormalizeReason(request.Reason);
         var user = await RequireEditableAsync(userId, ct);
+        RequireRolesPermissionFor(admin, user);
         ThrowIfInvalid(AuthValidator.AccountErrors(request.FullName, request.Email, null, checkPassword: false));
         var fullName = request.FullName!.Trim();
         var email = NormalizeEmail(request.Email!);
@@ -116,6 +121,7 @@ public sealed class AdminAccountsService
     {
         var reason = AdminPlayersRules.NormalizeReason(request.Reason);
         var user = await RequireEditableAsync(userId, ct);
+        RequireRolesPermissionFor(admin, user);
         ThrowIfInvalid(AuthValidator.AccountErrors(null, null, request.NewPassword, checkIdentity: false));
         var update = SignOut(Builders<User>.Update
             .Set(u => u.PasswordHash, BCrypt.Net.BCrypt.HashPassword(request.NewPassword))
@@ -131,6 +137,7 @@ public sealed class AdminAccountsService
     {
         var note = AdminPlayersRules.NormalizeReason(reason);
         var user = await RequireEditableAsync(userId, ct);
+        RequireRolesPermissionFor(admin, user);
         if (user.Role == UserRole.Admin)
         {
             if (user.Id == admin.Id)
@@ -139,6 +146,14 @@ public sealed class AdminAccountsService
                 u => u.Role == UserRole.Admin && u.Status == UserStatus.Active && u.Id != user.Id, cancellationToken: ct);
             if (otherAdmins == 0)
                 throw AdminPlayersRules.Error(409, AdminPlayerErrors.LastAdmin, "Đây là tài khoản quản trị cuối cùng còn hoạt động, không xóa được.");
+            if (AdminRoles.Effective(user) == AdminRoles.SuperAdmin)
+            {
+                // No AdminRole counts as SUPER_ADMIN (accounts from before admin roles).
+                var otherSuperAdmins = await _db.Users.CountDocumentsAsync(
+                    u => u.Role == UserRole.Admin && u.Status == UserStatus.Active && u.Id != user.Id
+                         && (u.AdminRole == null || u.AdminRole == AdminRoles.SuperAdmin), cancellationToken: ct);
+                AdminRoleRules.ValidateLastSuperAdminDemotion(otherSuperAdmins + 1);
+            }
         }
         var result = await _db.Users.UpdateOneAsync(
             u => u.Id == user.Id && u.Status != UserStatus.Deleted,
@@ -157,6 +172,7 @@ public sealed class AdminAccountsService
         var note = AdminPlayersRules.NormalizeReason(reason);
         var user = await FindAsync(userId, ct)
             ?? throw AdminPlayersRules.Error(404, AdminPlayerErrors.PlayerNotFound, "Không tìm thấy người chơi này.");
+        RequireRolesPermissionFor(admin, user);
         if (user.Status != UserStatus.Deleted)
             throw AdminPlayersRules.Error(409, AdminPlayerErrors.AccountNotDeleted, "Tài khoản này chưa bị xóa.");
         var result = await _db.Users.UpdateOneAsync(
@@ -173,6 +189,18 @@ public sealed class AdminAccountsService
     }
 
     // ------------------------------------------------------------------ helpers
+
+    private static void RequireRolesPermission(CurrentUser admin)
+    {
+        if (!AdminRoles.HasPermission(admin.AdminRole ?? AdminRoles.SuperAdmin, AdminRoles.RolesPermission))
+            throw AdminPlayersRules.Error(403, AdminPlayerErrors.AdminAccountsForbidden,
+                "Chỉ quản trị viên SUPER_ADMIN mới tạo hoặc sửa được tài khoản quản trị.");
+    }
+
+    private static void RequireRolesPermissionFor(CurrentUser admin, User target)
+    {
+        if (target.Role == UserRole.Admin) RequireRolesPermission(admin);
+    }
 
     private Task<User?> FindAsync(string userId, CancellationToken ct) =>
         ObjectId.TryParse(userId, out _)

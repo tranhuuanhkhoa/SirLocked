@@ -182,6 +182,60 @@ public sealed class MongoAdminAccountsTests
     }
 
     [Fact]
+    public async Task OnlyASuperAdmin_MakesOrChangesAdminAccounts_ButOtherAdminsStillManagePlayers()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminPlayersEnv.CreateAsync();
+        var support = Admin with { AdminRole = AdminRoles.Support };
+        var superAdmin = await env.AddUserAsync("Quản trị chính", email: "boss@example.com", role: UserRole.Admin);
+        var player = await env.AddUserAsync("Người chơi", email: "player@example.com");
+
+        // A SUPPORT admin can neither create an admin (it would be a SUPER_ADMIN) nor take one over.
+        Assert.Equal(AdminPlayerErrors.AdminAccountsForbidden, Code(await Assert.ThrowsAsync<ApiException>(
+            () => env.Accounts.CreateAsync(support, NewAccount("new-admin@example.com", role: "ADMIN")))));
+        Assert.Equal(AdminPlayerErrors.AdminAccountsForbidden, Code(await Assert.ThrowsAsync<ApiException>(
+            () => env.Accounts.UpdateAsync(support, superAdmin.Id, new AdminUpdateAccountRequest { FullName = "Quản trị chính", Email = "mine@example.com", Reason = Reason }))));
+        Assert.Equal(AdminPlayerErrors.AdminAccountsForbidden, Code(await Assert.ThrowsAsync<ApiException>(
+            () => env.Accounts.SetPasswordAsync(support, superAdmin.Id, new AdminSetPasswordRequest { NewPassword = "matkhau999", Reason = Reason }))));
+        Assert.Equal(AdminPlayerErrors.AdminAccountsForbidden, Code(await Assert.ThrowsAsync<ApiException>(
+            () => env.Accounts.DeleteAsync(support, superAdmin.Id, Reason))));
+        var untouched = await UserAsync(env, superAdmin.Id);
+        Assert.Equal("boss@example.com", untouched.Email);
+        Assert.Equal("SECRET-password-hash", untouched.PasswordHash);
+        Assert.Equal(UserStatus.Active, untouched.Status);
+        Assert.Equal(0, await env.Db.Users.CountDocumentsAsync(u => u.Email == "new-admin@example.com"));
+
+        // Players are still theirs to manage.
+        var vip = await env.Accounts.CreateAsync(support, NewAccount("vip@example.com", role: "VIP"));
+        Assert.Equal(UserRole.Vip, vip.Role);
+        await env.Accounts.SetPasswordAsync(support, player.Id, new AdminSetPasswordRequest { NewPassword = "matkhau999", Reason = Reason });
+        await env.Accounts.DeleteAsync(support, player.Id, Reason);
+        await env.Accounts.RestoreAsync(support, player.Id, Reason);
+
+        // A SUPER_ADMIN (an older token without the claim counts as one) still does it all.
+        var madeAdmin = await env.Accounts.CreateAsync(Admin with { AdminRole = AdminRoles.SuperAdmin }, NewAccount("new-admin@example.com", role: "ADMIN"));
+        Assert.Equal(UserRole.Admin, madeAdmin.Role);
+        await env.Accounts.SetPasswordAsync(Admin, madeAdmin.UserId, new AdminSetPasswordRequest { NewPassword = "matkhau999", Reason = Reason });
+    }
+
+    [Fact]
+    public async Task TheLastActiveSuperAdmin_IsNotDeleted_EvenWhenOtherAdminsRemain()
+    {
+        if (!Enabled) return;
+        await using var env = await AdminPlayersEnv.CreateAsync();
+        var onlySuper = await env.AddUserAsync("Quản trị chính", email: "boss@example.com", role: UserRole.Admin);
+        var content = await env.AddUserAsync("Biên tập", email: "content@example.com", role: UserRole.Admin);
+        await env.Db.Users.UpdateOneAsync(u => u.Id == content.Id, Builders<User>.Update.Set(u => u.AdminRole, AdminRoles.Content));
+
+        var refused = await Assert.ThrowsAsync<ApiException>(() => env.Accounts.DeleteAsync(Admin, onlySuper.Id, Reason));
+        Assert.Equal("LAST_SUPER_ADMIN", Code(refused));
+        Assert.Equal(UserStatus.Active, (await UserAsync(env, onlySuper.Id)).Status);
+        // The CONTENT admin can go: a SUPER_ADMIN remains.
+        await env.Accounts.DeleteAsync(Admin, content.Id, Reason);
+        Assert.Equal(UserStatus.Deleted, (await UserAsync(env, content.Id)).Status);
+    }
+
+    [Fact]
     public async Task AnAdmin_CannotDeleteThemselves_NorTheLastActiveAdmin_ButCanDeleteAnother()
     {
         if (!Enabled) return;
