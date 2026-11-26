@@ -46,6 +46,36 @@ public sealed class AuthCookiesTests
         }
     }
 
+    [Fact]
+    public void AdminSide_HasItsOwnCookie_WithTheSameAttributes()
+    {
+        var (context, services) = CreateContext("Production", "https");
+        using (services)
+        {
+            AuthCookies.SetRefresh(context.Response, "admin-value", DateTime.UtcNow.AddDays(7), AuthSessionSide.Admin);
+
+            var cookie = context.Response.Headers.SetCookie.ToString();
+            Assert.StartsWith("sirlocked_admin_refresh=admin-value", cookie, StringComparison.Ordinal);
+            Assert.DoesNotContain("sirlocked_refresh=", cookie, StringComparison.Ordinal);
+            Assert.Contains("path=/api/auth", cookie, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("samesite=strict", cookie, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Theory]
+    [InlineData("admin", AuthSessionSide.Admin)]
+    [InlineData("player", AuthSessionSide.Player)]
+    [InlineData("Admin", AuthSessionSide.Player)]
+    [InlineData(null, AuthSessionSide.Player)]
+    public void SideOf_ReadsTheSessionHeader(string? header, AuthSessionSide expected)
+    {
+        var context = new DefaultHttpContext();
+        if (header is not null) context.Request.Headers[AuthCookies.SessionHeader] = header;
+        Assert.Equal(expected, AuthCookies.SideOf(context.Request));
+    }
+
     private static (DefaultHttpContext Context, ServiceProvider Services) CreateContext(string environmentName, string scheme)
     {
         var services = new ServiceCollection()

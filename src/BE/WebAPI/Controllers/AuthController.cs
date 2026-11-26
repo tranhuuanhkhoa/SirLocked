@@ -55,7 +55,7 @@ public class AuthController : BaseApiController
     public async Task<ActionResult<ApiResponse<AuthResponse>>> AdminLogin([FromBody] LoginRequest request)
     {
         var auth = await _authService.AdminLoginAsync(request);
-        AuthCookies.SetRefresh(Response, auth.RefreshToken, auth.RefreshTokenExpiry);
+        AuthCookies.SetRefresh(Response, auth.RefreshToken, auth.RefreshTokenExpiry, AuthSessionSide.Admin);
         return Ok(auth, "Logged in.");
     }
 
@@ -70,7 +70,9 @@ public class AuthController : BaseApiController
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Refresh(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshTokenRequest? request)
     {
-        var cookieToken = Request.Cookies[AuthCookies.RefreshCookieName];
+        // The game and the admin pages refresh separately, each with its own cookie (X-SirLocked-Session names the side).
+        var side = AuthCookies.SideOf(Request);
+        var cookieToken = AuthCookies.ReadRefresh(Request, side);
         string? refreshToken;
         if (!string.IsNullOrWhiteSpace(cookieToken))
         {
@@ -87,7 +89,7 @@ public class AuthController : BaseApiController
             throw ApiException.Unauthorized("Refresh token is required.");
 
         var auth = await _authService.RefreshTokenAsync(new RefreshTokenRequest { RefreshToken = refreshToken });
-        AuthCookies.SetRefresh(Response, auth.RefreshToken, auth.RefreshTokenExpiry);
+        AuthCookies.SetRefresh(Response, auth.RefreshToken, auth.RefreshTokenExpiry, side);
         return Ok(auth, "Token refreshed.");
     }
 
@@ -209,8 +211,9 @@ public class AuthController : BaseApiController
     [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<object>>> Logout()
     {
-        var refreshToken = Request.Cookies[AuthCookies.RefreshCookieName];
-        AuthCookies.ClearRefresh(Response);
+        var side = AuthCookies.SideOf(Request);
+        var refreshToken = AuthCookies.ReadRefresh(Request, side);
+        AuthCookies.ClearRefresh(Response, side);
 
         if (User.Identity?.IsAuthenticated == true)
         {

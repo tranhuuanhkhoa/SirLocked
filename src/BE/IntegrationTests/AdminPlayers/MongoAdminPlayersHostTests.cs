@@ -290,6 +290,66 @@ public sealed class MongoAdminPlayersHostTests
     }
 
     [Fact]
+    public async Task AdminAndGameSessions_EachRefreshAndSignOutWithTheirOwnCookie()
+    {
+        if (!Enabled) return;
+        await using var host = new AdminHost();
+        using var client = host.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var playerEmail = await host.InsertUserAsync(UserRole.Player);
+        var adminEmail = await host.InsertUserAsync(UserRole.Admin);
+
+        using var playerLogin = await client.PostAsJsonAsync("/api/auth/login", new { email = playerEmail, password = AdminHost.Password });
+        using var adminLogin = await client.PostAsJsonAsync("/api/auth/admin/login", new { email = adminEmail, password = AdminHost.Password });
+        Assert.Equal(HttpStatusCode.OK, playerLogin.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, adminLogin.StatusCode);
+        Assert.StartsWith($"{AuthCookies.RefreshCookieName}=", Assert.Single(playerLogin.Headers.GetValues("Set-Cookie")), StringComparison.Ordinal);
+        Assert.StartsWith($"{AuthCookies.AdminRefreshCookieName}=", Assert.Single(adminLogin.Headers.GetValues("Set-Cookie")), StringComparison.Ordinal);
+        // The browser sends both cookies to /api/auth; the header picks the side.
+        var gameCookie = RefreshCookieValue(playerLogin);
+        var adminCookie = RefreshCookieValue(adminLogin);
+
+        async Task<(HttpResponseMessage Response, string? Role)> RefreshAsync(string? side)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+            request.Headers.Add("Cookie", $"{AuthCookies.RefreshCookieName}={gameCookie}; {AuthCookies.AdminRefreshCookieName}={adminCookie}");
+            request.Headers.Add("X-SirLocked-Client", "web");
+            if (side is not null) request.Headers.Add(AuthCookies.SessionHeader, side);
+            var response = await client.SendAsync(request);
+            if (!response.IsSuccessStatusCode) return (response, null);
+            var data = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+            return (response, data.GetProperty("user").GetProperty("role").GetString());
+        }
+
+        var (gameRefresh, gameRole) = await RefreshAsync("player");
+        Assert.Equal(UserRole.Player, gameRole);
+        Assert.StartsWith($"{AuthCookies.RefreshCookieName}=", Assert.Single(gameRefresh.Headers.GetValues("Set-Cookie")), StringComparison.Ordinal);
+        gameCookie = RefreshCookieValue(gameRefresh);
+        var (adminRefresh, adminRole) = await RefreshAsync("admin");
+        Assert.Equal(UserRole.Admin, adminRole);
+        Assert.StartsWith($"{AuthCookies.AdminRefreshCookieName}=", Assert.Single(adminRefresh.Headers.GetValues("Set-Cookie")), StringComparison.Ordinal);
+        adminCookie = RefreshCookieValue(adminRefresh);
+        // Without the header it is the game's session, as before the split.
+        var (defaultRefresh, defaultRole) = await RefreshAsync(null);
+        Assert.Equal(UserRole.Player, defaultRole);
+        gameCookie = RefreshCookieValue(defaultRefresh);
+
+        // Signing the admin pages out clears only the admin cookie and leaves the game signed in.
+        using var adminLogout = new HttpRequestMessage(HttpMethod.Post, "/api/auth/logout");
+        adminLogout.Headers.Add("Cookie", $"{AuthCookies.RefreshCookieName}={gameCookie}; {AuthCookies.AdminRefreshCookieName}={adminCookie}");
+        adminLogout.Headers.Add(AuthCookies.SessionHeader, "admin");
+        using var loggedOut = await client.SendAsync(adminLogout);
+        Assert.Equal(HttpStatusCode.OK, loggedOut.StatusCode);
+        Assert.StartsWith($"{AuthCookies.AdminRefreshCookieName}=", Assert.Single(loggedOut.Headers.GetValues("Set-Cookie")), StringComparison.Ordinal);
+        var admin = await host.Db.Users.Find(user => user.Email == adminEmail).FirstAsync();
+        Assert.Null(admin.RefreshTokenHash);
+        var player = await host.Db.Users.Find(user => user.Email == playerEmail).FirstAsync();
+        Assert.NotNull(player.RefreshTokenHash);
+        var (gameAgain, gameAgainRole) = await RefreshAsync("player");
+        Assert.Equal(HttpStatusCode.OK, gameAgain.StatusCode);
+        Assert.Equal(UserRole.Player, gameAgainRole);
+    }
+
+    [Fact]
     public async Task Logout_RevokesAValidRefreshCookieWithoutAnAccessTokenAndClearsIt()
     {
         if (!Enabled) return;
@@ -413,7 +473,9 @@ public sealed class MongoAdminPlayersHostTests
         var code = Totp.ComputeCode(Encoding.ASCII.GetBytes("12345678901234567890"), step);
         using var accepted = await client.PostAsJsonAsync(route, new { email, password = AdminHost.Password, twoFactorCode = code });
         Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
-        Assert.Contains("sirlocked_refresh=", string.Join(';', accepted.Headers.GetValues("Set-Cookie")), StringComparison.Ordinal);
+        // /admin/login signs the admin pages' session in, which has a cookie of its own.
+        var cookieName = route.EndsWith("/admin/login", StringComparison.Ordinal) ? AuthCookies.AdminRefreshCookieName : AuthCookies.RefreshCookieName;
+        Assert.Contains($"{cookieName}=", string.Join(';', accepted.Headers.GetValues("Set-Cookie")), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -706,7 +768,8 @@ public sealed class MongoAdminPlayersHostTests
     private static void AssertNoRefreshCookie(HttpResponseMessage response)
     {
         if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
-            Assert.DoesNotContain(cookies, cookie => cookie.StartsWith("sirlocked_refresh=", StringComparison.Ordinal));
+            Assert.DoesNotContain(cookies, cookie => cookie.StartsWith($"{AuthCookies.RefreshCookieName}=", StringComparison.Ordinal)
+                || cookie.StartsWith($"{AuthCookies.AdminRefreshCookieName}=", StringComparison.Ordinal));
     }
 
     [Fact]
