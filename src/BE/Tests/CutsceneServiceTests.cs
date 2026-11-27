@@ -116,6 +116,21 @@ public sealed class CutsceneServiceTests
     }
 
     [Fact]
+    public async Task ImportedFirstIntroIsApprovedAndManualRegenerationStaysDraft()
+    {
+        var rig = new Rig(published: false);
+        rig.Case.SourceAiDraftId = "imported-draft";
+        var intro = await rig.Service.GenerateAsync(rig.Case.CaseId, false, "ai-pipeline");
+        Assert.Equal(CutsceneStatus.Approved, intro.Latest!.Status);
+        Assert.Null(await rig.Service.GetPlayerIntroAsync(rig.Case.CaseId));
+        Assert.NotNull(await rig.Service.GetPlayerIntroAsync(rig.Case.CaseId, playtest: true));
+
+        var manual = await rig.Service.GenerateAsync(rig.Case.CaseId, true, "admin");
+        Assert.Equal(CutsceneStatus.Draft, manual.Latest!.Status);
+        Assert.Equal(intro.Latest.Version, (await rig.Service.GetPlayerIntroAsync(rig.Case.CaseId, playtest: true))!.Version);
+    }
+
+    [Fact]
     public async Task Approving_ANewVersion_SupersedesTheOldOne_AndOnlyOneIsApproved()
     {
         var rig = new Rig();

@@ -112,7 +112,7 @@ test('language switch translates the admin dashboard content, not only navigatio
   await expect(page.locator('.admin-table thead')).toContainText('Vai trò');
 });
 
-test('Vietnamese admin AI creator localizes the level cards and causal workflow guidance', async ({ page }) => {
+test('Vietnamese admin AI creator localizes the level cards and order guidance', async ({ page }) => {
   await page.goto('/admin/ai');
   await page.locator('[data-ui-language="vi"]').click();
 
@@ -124,7 +124,7 @@ test('Vietnamese admin AI creator localizes the level cards and causal workflow 
   await expect(page.locator('[data-field="caseType"]')).toContainText('Ngẫu nhiên');
   await expect(page.locator('[data-field="caseType"]')).toContainText('Mất tích');
   await expect(page.locator('[data-field="leaning"]')).toContainText('Giải đố nhiều hơn');
-  await expect(page.getByText('nguồn sự thật nhân quả bất biến')).toBeVisible();
+  await expect(page.getByText('Chọn bối cảnh và mức độ', { exact: false })).toBeVisible();
 });
 
 test('queued premise appears as soon as polling reaches story approval without reloading', async ({ page }) => {
@@ -168,6 +168,31 @@ test('queued premise appears as soon as polling reaches story approval without r
 
   await expect(page.getByRole('heading', { name: 'The Premise Appears Without Reload' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Approve story preview' })).toBeVisible();
+});
+
+test('active order resumes its server clock after refresh and updates steps in the same phase', async ({ page }) => {
+  await page.unroute('**/api/admin/ai-cases');
+  const createdAt = new Date('2026-11-27T10:00:00Z');
+  const draft = {
+    draftId: 'draft-progress', createdAt: createdAt.toISOString(),
+    status: 'GENERATING_CASE_TRUTH', queueState: 'AWAITING_CLAUDE', generationPhase: 'CASE_TRUTH',
+    claudeWait: { step: 'GenerateCoreTruth', since: createdAt.toISOString() },
+    settings: { generationPreset: 'NORMAL_RANDOM', language: 'en' },
+  };
+  await page.route('**/api/admin/ai-cases', route => route.fulfill({ json: { success: true, data: [draft] } }));
+  await page.route('**/api/admin/ai-cases/draft-progress', route => route.fulfill({ json: { success: true, data: draft } }));
+  await page.clock.setFixedTime(new Date(createdAt.getTime() + 5_000));
+  await page.goto('/admin/ai');
+  const elapsed = page.locator('#generation-progress-elapsed');
+  const title = page.locator('#generation-progress-title');
+  await expect(elapsed).toContainText('Elapsed 5s');
+  await expect(title).toHaveText('Working out what happened');
+
+  await page.clock.setFixedTime(new Date(createdAt.getTime() + 80_000));
+  await page.reload();
+  await expect(elapsed).toContainText('Elapsed 1m 20s');
+  draft.claudeWait.step = 'BuildTrueTimeline';
+  await expect(title).toHaveText('Putting events in order');
 });
 
 test('failed drafts expose phase-specific retry actions and endpoints', async ({ page }) => {
@@ -310,6 +335,7 @@ test('causal truth review renders structured gates and forwards scoped repair in
 
   await page.goto('/admin/ai');
   await page.getByRole('button', { name: 'View' }).click();
+  await page.getByText('Technical details', { exact: true }).click();
   await expect(page.locator('[data-truth-review]')).toContainText('suspect-a');
   await expect(page.locator('[data-proof-coverage] .proof-coverage-card')).toHaveCount(5);
   await expect(page.locator('[data-truth-review]')).toContainText('Poison residue entered the cup');
@@ -330,13 +356,13 @@ test('causal truth review renders structured gates and forwards scoped repair in
   });
   await expect(page.getByRole('button', { name: 'Accept truth repair' })).toBeVisible();
   await page.getByRole('button', { name: 'Accept truth repair' }).click();
-  await expect(page.locator('[data-truth-review]')).toContainText('Advisory AI review');
+  await expect(page.locator('[data-truth-review]')).toContainText('Advisory: FAILED');
   await expect(page.locator('#ai-output').getByRole('button', { name: 'Approve case truth' })).toBeVisible();
 
   const approveRequest = page.waitForRequest((request) => request.url().endsWith('/approve-truth'));
   await page.locator('#ai-output').getByRole('button', { name: 'Approve case truth' }).click();
   await approveRequest;
-  await expect(page.locator('[data-blind-review]')).toContainText('Advisory blind solvability review');
+  await expect(page.locator('[data-blind-review]')).toContainText('Blind solvability review');
   await expect(page.locator('[data-blind-review]')).toContainText('64%');
   await expect(page.locator('[data-blind-review]')).toContainText('clue-5');
 });
@@ -445,6 +471,7 @@ test('V3 full-logic review shows one camera and two item evidence choices withou
   await page.goto('/admin/ai');
   await page.getByRole('button', { name: 'View' }).click();
 
+  await page.locator('[data-ai-technical] > summary').click();
   await expect(page.getByRole('heading', { name: /V3 Crack/ })).toBeVisible();
   await expect(page.locator('.v3-pair-matrix tbody td')).toHaveCount(9);
   await expect(page.locator('.v3-pair-correct')).toContainText('AUTHORED CORRECT');
@@ -539,7 +566,7 @@ test('V3 ready draft cannot publish from AI Creator while gameplay flag is disab
   await page.goto('/admin/ai');
 
   await expect(page.getByRole('button', { name: 'Publish blocked' })).toBeDisabled();
-  await expect(page.getByText('Review PASSED')).toBeVisible();
+  await expect(page.locator('[data-draft-row]')).toContainText('Ready but disabled');
 });
 
 test('Vietnamese selector sends language and renders Vietnamese preview', async ({ page }) => {
@@ -558,5 +585,5 @@ test('Vietnamese selector sends language and renders Vietnamese preview', async 
   await expect(page.locator('input[name="aai-language"][value="vi"]')).toBeChecked();
   await expect(page.locator('input[name="aai-case-type"][value="MISSING_PERSON"]')).toBeChecked();
   await expect(page.locator('#ai-output')).toContainText('Tiếng Chuông Dưới Blackglass');
-  await expect(page.locator('#ai-output')).toContainText('Language: Tiếng Việt');
+  await expect(page.locator('#ai-output .aai-draft-meta')).toContainText('Tiếng Việt');
 });

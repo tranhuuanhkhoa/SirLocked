@@ -14,6 +14,7 @@ using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.Models;
 using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services.Bridge;
+using SirLocked.Api.Services.Cutscene;
 using SirLocked.Api.Services.Interfaces;
 using SirLocked.Api.Services.Projection;
 
@@ -316,6 +317,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             Id = draftId,
             Prompt = creatorPrompt,
             Settings = draftSettings,
+            GenerateBothLanguages = AiPipelineVersions.IsOpenCoop(draftSettings),
             StoryDiversity = storyDiversity,
             PlannedTargetKind = plannedTargetKind,
             Status = AiDraftStatus.GeneratingStory,
@@ -1200,6 +1202,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                         : CaseTruthReviewStatuses.NotRun;
             }
 
+            await LocalizeCaseTextAsync(draft, gameCase);
             var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
             if (draft.LogicContractVersion >= CaseLogicContractVersions.CausalFiveClaim)
             {
@@ -1994,6 +1997,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     : CaseTruthReviewStatuses.NotRun;
         }
 
+        await LocalizeCaseTextAsync(draft, gameCase);
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         await UpdateActiveRunAsync(
             draft,
@@ -2086,6 +2090,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         }
 
         gameCase.AiSemanticReviewStatus = AiV3SemanticReviewStatuses.Passed;
+        await LocalizeCaseTextAsync(draft, gameCase);
         var normalizedJson = JsonSerializer.Serialize(gameCase, PrettyJson);
         // The publish gate requires a fresh GAMEPLAY_PROJECTION row, so a restored checkpoint has to
         // stamp provenance exactly like a generated one.
@@ -2623,6 +2628,10 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 Builders<AiCaseDraft>.Update
                     .Set(d => d.Status, publish ? AiDraftStatus.Published : AiDraftStatus.Imported)
                     .Set(d => d.ImportedCaseId, summary.CaseId)
+                    .Set(d => d.IntroCutsceneStatus,
+                        _introCutsceneStarter is not null && AiPipelineVersions.IsOpenCoop(draft.Settings)
+                            ? AiIntroCutsceneStatuses.Queued : null)
+                    .Set(d => d.IntroCutsceneFinishedAt, null)
                     .Set(d => d.QueueState, AiQueueStates.None)
                     .Set(d => d.QueuedOperation, AiQueuedOperations.None)
                     .Set(d => d.GenerationRunId, string.Empty)
@@ -2666,8 +2675,12 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var status = await _introCutsceneStarter.StartAsync(draft.Settings, caseId, _operationCancellationToken);
         try
         {
-            await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id,
-                Builders<AiCaseDraft>.Update.Set(d => d.IntroCutsceneStatus, status), cancellationToken: _operationCancellationToken);
+            await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id
+                    && d.IntroCutsceneStatus != AiIntroCutsceneStatuses.Ready
+                    && (status != AiIntroCutsceneStatuses.Queued || d.IntroCutsceneStatus != AiIntroCutsceneStatuses.Failed),
+                Builders<AiCaseDraft>.Update.Set(d => d.IntroCutsceneStatus, status)
+                    .Set(d => d.IntroCutsceneFinishedAt, status != AiIntroCutsceneStatuses.Queued ? DateTime.UtcNow : null),
+                cancellationToken: _operationCancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

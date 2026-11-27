@@ -26,6 +26,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
     private readonly IPlaytestEventSink _playtestEvents;
     private readonly AccusationSettings _accusationSettings;
     private readonly ILogger<GameplayService> _logger;
+    private readonly IHttpContextAccessor? _http;
 
     public GameplayService(
         MongoDbContext db,
@@ -38,9 +39,11 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         IPlaytestEventSink playtestEvents,
         IOptions<AccusationSettings> accusationSettings,
         ILogger<GameplayService> logger,
-        SirLocked.Api.Services.Vip.HintPaymentService? hintPayments = null)
+        SirLocked.Api.Services.Vip.HintPaymentService? hintPayments = null,
+        IHttpContextAccessor? http = null)
     {
         _hintPayments = hintPayments;
+        _http = http;
         _db = db;
         _contextLoader = contextLoader;
         _statePersistence = statePersistence;
@@ -88,7 +91,8 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             if (room.Status != RoomStatus.Completed) throw ApiException.NotFound("No result for this room yet.");
             var snapshot = room.GameplayState?.FinalAccusationSnapshot
                 ?? throw ApiException.Conflict("This completed room has no recoverable final accusation snapshot.");
-            return ToPlaytestAware(ToResultResponse(GameResultFactory.CreateResult(room.Id, snapshot), gameCase), room);
+            return ToPlaytestAware(ToResultResponse(GameResultFactory.CreateResult(room.Id, snapshot), gameCase,
+                CaseTextLocalization.RequestLanguage(_http?.HttpContext)), room);
         }
         var result = await ResultsFor(room).FindByRoomIdAsync(roomId);
         if (result is null)
@@ -102,7 +106,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             }
             result = await GameResultPersistenceCoordinator.MaterializeFromCompletedRoomAsync(room, ResultsFor(room));
         }
-        return ToResultResponse(result, gameCase);
+        return ToResultResponse(result, gameCase, CaseTextLocalization.RequestLanguage(_http?.HttpContext));
     }
 
     // ----- Investigator: inspect item -----
@@ -1925,7 +1929,8 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             success ? $"{user.FullName} accused {accusedName} — the case is solved!" : $"{user.FullName} accused {accusedName} — the accusation failed.",
             new { request.CulpritId, request.MotiveId, request.MethodId, EvidenceIds = submittedEvidenceIds });
 
-        var resultResponse = ToPlaytestAware(ToResultResponse(result, gameCase), room);
+        var resultResponse = ToPlaytestAware(ToResultResponse(result, gameCase,
+            CaseTextLocalization.RequestLanguage(_http?.HttpContext)), room);
         if (ShouldBroadcastDetailedEvents(gameCase))
             await _notifier.GameCompleted(roomId, resultResponse);
         var completedState = await _stateBuilder.BuildStateAsync(room, gameCase, user.Id);
@@ -2218,11 +2223,14 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
         return response;
     }
 
-    internal static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase)
+    internal static GameResultResponse ToResultResponse(GameResult result, GameCase gameCase, string? language = null)
     {
         // New results carry the definition used when the accusation was committed. Older
         // records remain readable, but their missing historical definition cannot be rebuilt.
         gameCase = GameResultFactory.CaseForResult(result, gameCase);
+        var ending = language == CaseTextLocalization.Alternate(gameCase.Language)
+            ? CaseTextLocalization.Lookup(gameCase, result.Ending) : result.Ending;
+        gameCase = CaseTextLocalization.ForPlayer(gameCase, language);
         string NameOf(string characterId) =>
             gameCase.Characters.FirstOrDefault(c => c.CharacterId == characterId)?.Name ?? characterId;
         string ClueTitle(string clueId) => gameCase.Clues.FirstOrDefault(clue => clue.ClueId == clueId)?.Title ?? clueId;
@@ -2260,7 +2268,7 @@ public partial class GameplayService : IGameplayService, IAccusationResolver
             SelectedCulpritName = NameOf(result.SelectedCulpritId),
             SelectedEvidenceIds = result.SelectedEvidenceIds,
             Success = result.Success,
-            Ending = result.Ending,
+            Ending = ending,
             CorrectCulpritId = gameCase.FinalLogic.CulpritId,
             CorrectCulpritName = NameOf(gameCase.FinalLogic.CulpritId),
             Motive = isV2 ? OptionLabel(gameCase.FinalLogic.MotiveOptions, gameCase.FinalLogic.CorrectMotiveId) : gameCase.FinalLogic.Motive,

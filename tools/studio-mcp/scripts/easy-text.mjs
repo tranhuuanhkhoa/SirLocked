@@ -13,6 +13,7 @@ const scriptSteps = new Set([
   'RepairTruthFindings', 'ReviewCaseTruthFeasibility', 'GenerateFullCaseJson', 'RepairFullCaseJson',
   'RetryFullCaseJson', 'ReviewV3PairMatrix', 'RetryIncompleteV3PairBatch', 'RepairV3SemanticLogic', 'RepairProjectionFields',
   'ReviewBlindSolvability', 'ReviewBlindSolutionMeaning',
+  'LocalizeCaseText',
 ]);
 export const isScriptStep = (step) => scriptSteps.has(String(step).split(':')[0]);
 

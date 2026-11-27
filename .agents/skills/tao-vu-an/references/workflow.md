@@ -51,6 +51,7 @@ Server báo lỗi ở bước nào thì sửa đúng phần đó và nộp lại
    - `bridge_take { requestId }` → đọc `instructions.md`, `prompt.md`, `order.json`, và `decisions.json` (lựa chọn người đặt đơn đã bấm cho câu hỏi trước của bạn: làm đúng theo đó) trong thư mục tool trả về; `schema.json` chỉ đọc phần cần.
    - Yêu cầu **đánh giá** (bước bắt đầu bằng `Review`, `Verify`, `Audit`, hoặc chỉ dẫn bảo chấm/đánh giá nội dung có sẵn): giao cho agent `kiem-dinh` với đường dẫn thư mục; nó viết `answer.json`. Bạn không tự chấm bài mình viết.
    - Yêu cầu **viết**: viết `answer.json` đúng schema → `bridge_check` → sửa tới khi đạt → `bridge_submit`. Server từ chối thì đọc `errors`, sửa, nộp lại.
+   - `LocalizeCaseText`: dịch các chuỗi được giao sang ngôn ngữ còn lại. Giữ nguyên khóa, tên riêng, mốc giờ và nội dung chứng cứ. Nếu bị từ chối, sửa những chuỗi được chỉ ra.
    - Kind `ASSETS`: xem mục "Hình".
    - `ownerType = CUTSCENE` (nút "Tạo bằng AI" của cutscene trên admin): làm như yêu cầu viết JSON, không có draft.
    - Cần người đặt đơn quyết: `draft_ask` rồi chuyển sang yêu cầu khác hoặc dừng. Bỏ dở vì lý do khác (hết hạn mức, lỗi lặp lại, thiếu công cụ, bị chặn quyền): `bridge_release` và ghi lý do vào report (luật 9).
@@ -188,8 +189,8 @@ Từ VUAN-6B mọi đơn mới là **vụ pixel** (`visualPipeline: pixel-v1`): 
 
 | Thứ | Ảnh gốc | Server ghi vào case |
 | --- | --- | --- |
-| Cảnh ngoài trời | 1 ảnh 512×512, `create_image_pro`, template `outdoor-map` | `runtime` 2048×2048; `render` pixel, `topdown`, native 512, ×4, `cameraZoom` 1, `actorScale` 1,5, `walkSpeed` 300, `interactRadius` 120 |
-| Phòng trong nhà | 512×512, `create_image_pro` + ảnh cắt từ bản đồ NATIVE, template `interior` | như trên nhưng `isometric`, `cameraZoom` 0,5, `actorScale` 4, `walkSpeed` 520, `interactRadius` 104 |
+| Cảnh ngoài trời | 1 ảnh 512×512, `create_image_pro` với `no_background: true`, template `outdoor-map` | `runtime` 2048×2048; `render` pixel, `topdown`, native 512, ×4, `cameraZoom` 1, `actorScale` 1,5, `walkSpeed` 300, `interactRadius` 120 |
+| Phòng trong nhà | 512×512, `create_image_pro` với `no_background: true` + ảnh cắt từ bản đồ NATIVE, template `interior` | như trên nhưng `isometric`, `cameraZoom` 0,5, `actorScale` 4, `walkSpeed` 520, `interactRadius` 104 |
 | Lưới đi | mask từ `edit_image` (template `object-mask`) hoặc `asset_process mask_from_shapes` | `render.walkGrid` ô 16, 128×128 |
 | Đồ che (đèn, xe, cây) | `asset_process foreground` cắt từ bản đồ native theo mask | `render.foreground[]` `{id,url,x,y,width,height,baseY}` ×4 |
 | NPC | `character-front` 96×96 → `create_character` v3 → `animate_character` idle; tỉ lệ người thật như Sherlock, không chibi | chân dung 288×288; `presentation.spriteSheet` 1152×128, khung 128, 9 khung, 6 fps, `anchorY` đo từ chân |
@@ -259,6 +260,7 @@ Trong nhà hay ngoài trời do `atmosphere.indoor` của cảnh quyết (bướ
      7. Mẩu vật cũ sót ngoài mask thì xóa (`asset_variant compose remove`).
      8. Ảnh cảnh cuối cùng mới `asset_upload` vào `background:<sceneId>`.
 6. `asset_upload` từng ô (server kiểm đúng cỡ: nền 512×512; sprite 1152×128 có chân ở nửa dưới khung; chân dung 288×288; icon 64×64; trừ nền đều cần alpha) → `assets_complete`. Yêu cầu `ASSETS` đầu (`SCENE_LAYOUT`) chỉ xin nền cảnh; sprite, chân dung, icon tới yêu cầu `ASSETS` thứ hai (`FINAL_ASSETS`) sau cổng LAYOUT. Kế hoạch khai một lần ở yêu cầu đầu, tính cả hai đợt.
+   - Nếu `asset_upload` trả `ASSET_CHROMA_BACKGROUND`, mở ảnh và kiểm tra các ô cửa. Sửa vùng nền tím hoặc thay đúng ảnh của ô bị từ chối, rồi nộp lại ô đó. Giữ các ảnh đã đạt.
 7. **Bố cục** (yêu cầu `PlanScenePlacement:<sceneId>`): máy không còn ảnh nền 512 của cảnh (lượt trước đã tải lên rồi xóa, hoặc chạy trên máy khác) thì `asset_download { draftId, slotId: "background:<sceneId>" }` lấy lại từ server về `tmp/bridge/<draftId>/assets/`, không dùng `curl`/`Invoke-WebRequest` (runner chặn). Trả JSON đúng khung prompt: `walkGrid` từ bước 5, `foreground`, `spawnPoints` (`default`, `INVESTIGATOR`, `INTERROGATOR`, `from:<sceneId>` ở mỗi cửa), `placements` (vật: tâm + cỡ ô bấm trên chỗ vật đã vẽ; NPC: điểm chân), `clueZones`, `transitions` (phòng mở ra bản đồ, bản đồ mở vào mọi phòng). Tọa độ trong không gian 2048×2048 (= pixel native ×4).
 8. Validator chặn khi: cảnh không phải pixel, thiếu `walkGrid`, spawn hoặc cửa ngoài vùng đi được, ô vật/NPC không đi tới được, ô ra ngoài khung, `foreground` sai `baseY`, sprite sheet/chân dung/icon sai cỡ. Sửa đúng chỗ rồi nộp lại.
 9. Hình mới đưa vào thư viện (key theo tiền tố thế giới `v-`, `j-`, `c-`, `all-`) kèm prompt, job id → `library_sync { direction: "push" }`. Ghi vào report: dùng lại, biến thể, vẽ mới (tool, lượt, job id).
@@ -292,7 +294,7 @@ Theo `docs/case-audio-weather.md`. Không dùng PixelLab cho âm thanh.
 ## Bước 9: chạy thử và báo cáo
 
 1. `draft_import { draftId }` (vụ chưa đăng; case JSON lưu ở `tmp/bridge/<draftId>/case.json`).
-2. `playtest { draftId }`: tự dựng Mongo + API + web trên máy (lần đầu build vài phút), hai thám tử chơi theo lời giải. Lỗi thì đọc `report.json` của lần chạy, sửa bằng sửa theo phạm vi, chạy lại.
+2. Tìm yêu cầu `CUTSCENE` theo `caseId` vừa nhập trong `bridge_list`. Viết intro theo schema đã cấp, gồm `titleEn` và `textEn` cho từng nhịp khi schema yêu cầu. Nộp rồi xử lý `CutsceneScriptRepair` nếu có. Chạy `playtest { draftId }` sau khi intro đã lưu và kiểm tra có cảnh mở đầu. Nếu chạy thử trên stack local khác, lưu ý intro phải có trên stack dùng để chơi. Lỗi thì đọc `report.json` và sửa phần liên quan.
 3. Câu đố phụ được chạy thử giải luôn (lời giải có sẵn), nhưng vụ phải phá được mà không cần chúng.
 4. Cập nhật `report.md` (lớp 5, ảnh đã xem, ước tính phút) → `draft_report`.
 5. Báo người đặt đơn (chat nếu có người, luôn ghi report): tên vụ, draft, 5 lớp, số lượt PixelLab đã dùng, link Case Studio `/admin/editor/<caseId>` và việc cần làm (người đặt đơn chơi thử bản import; admin sửa trong editor nếu cần, chơi thử cảnh, bấm "Duyệt & xuất bản" nếu ưng). Không publish, không gọi API editor.

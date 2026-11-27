@@ -9,6 +9,10 @@ public class CaseSummaryResponse
     public string Title { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
     public string Language { get; set; } = CaseLanguages.English;
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string[]? AvailableLanguages { get; set; }
+    internal string? AlternateTitle { get; set; }
+    internal string? AlternateSummary { get; set; }
     public string Status { get; set; } = string.Empty;
     public int MechanicsVersion { get; set; }
     public int LogicContractVersion { get; set; }
@@ -46,12 +50,24 @@ public class CaseSummaryResponse
         return copy;
     }
 
+    internal CaseSummaryResponse InLanguage(string? language)
+    {
+        if (language == Language || language is null || AlternateTitle is null) return this;
+        var copy = (CaseSummaryResponse)MemberwiseClone();
+        copy.Title = AlternateTitle;
+        copy.Summary = AlternateSummary ?? Summary;
+        return copy;
+    }
+
     public static CaseSummaryResponse From(GameCase c) => new()
     {
         CaseId = c.CaseId,
         Title = c.Title,
         Summary = c.Summary,
         Language = CaseLanguages.Normalize(c.Language),
+        AvailableLanguages = c.AlternateLanguageText is { Count: > 0 } ? [CaseLanguages.English, CaseLanguages.Vietnamese] : null,
+        AlternateTitle = c.AlternateLanguageText is null ? null : SirLocked.Api.Services.CaseTextLocalization.Lookup(c, c.Title),
+        AlternateSummary = c.AlternateLanguageText is null ? null : SirLocked.Api.Services.CaseTextLocalization.Lookup(c, c.Summary),
         Status = c.Status,
         MechanicsVersion = c.MechanicsVersion,
         LogicContractVersion = c.LogicContractVersion,
@@ -79,15 +95,17 @@ public class CasePublicDetailResponse : CaseSummaryResponse
 {
     public List<CaseCharacterDto> Characters { get; set; } = new();
 
-    public static CasePublicDetailResponse FromCase(GameCase c)
+    public static CasePublicDetailResponse FromCase(GameCase canonical, string? language = null)
     {
-        var summary = From(c);
+        var summary = From(canonical);
+        var c = SirLocked.Api.Services.CaseTextLocalization.ForPlayer(canonical, language);
         return new CasePublicDetailResponse
         {
             CaseId = summary.CaseId,
-            Title = summary.Title,
-            Summary = summary.Summary,
-            Language = summary.Language,
+            Title = c.Title,
+            Summary = c.Summary,
+            Language = CaseLanguages.Normalize(c.Language),
+            AvailableLanguages = summary.AvailableLanguages,
             Status = summary.Status,
             MechanicsVersion = summary.MechanicsVersion,
             LogicContractVersion = summary.LogicContractVersion,

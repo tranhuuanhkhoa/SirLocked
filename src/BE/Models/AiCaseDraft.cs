@@ -331,6 +331,10 @@ public class AiCaseDraft
     [BsonIgnoreIfNull]
     public string? IntroCutsceneStatus { get; set; }
     [BsonIgnoreIfNull]
+    public DateTime? IntroCutsceneFinishedAt { get; set; }
+    [BsonIgnoreIfDefault]
+    public bool GenerateBothLanguages { get; set; }
+    [BsonIgnoreIfNull]
     public string? IdempotencyKey { get; set; }
     public string QuotaDay { get; set; } = string.Empty;
     /// <summary>Unique while a paid draft is active; cleared on cancellation/import.</summary>

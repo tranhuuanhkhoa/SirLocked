@@ -112,6 +112,10 @@ public class AiDraftResponse
     public string GenerationRunId { get; set; } = string.Empty;
     public string GenerationPhase { get; set; } = string.Empty;
     public int GenerationProgress { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public string? IntroCutsceneStatus { get; set; }
+    public DateTime? IntroCutsceneFinishedAt { get; set; }
+    public bool GenerateBothLanguages { get; set; }
     public DateTime? GenerationClaimedAt { get; set; }
     public long WorkflowVersion { get; set; }
     public string QueuedOperation { get; set; } = AiQueuedOperations.None;
@@ -248,6 +252,10 @@ public class AiDraftResponse
         GenerationRunId = d.GenerationRunId,
         GenerationPhase = d.GenerationPhase,
         GenerationProgress = d.GenerationProgress,
+        UpdatedAt = d.UpdatedAt,
+        IntroCutsceneStatus = d.IntroCutsceneStatus,
+        IntroCutsceneFinishedAt = d.IntroCutsceneFinishedAt,
+        GenerateBothLanguages = d.GenerateBothLanguages,
         GenerationClaimedAt = d.GenerationClaimedAt,
         WorkflowVersion = d.WorkflowVersion,
         QueuedOperation = d.QueuedOperation,

@@ -6,6 +6,7 @@ namespace SirLocked.Api.Services.Cutscene;
 public static class AiIntroCutsceneStatuses
 {
     public const string Queued = "QUEUED";
+    public const string Ready = "READY";
     public const string Skipped = "SKIPPED";
     public const string Exists = "EXISTS";
     public const string Failed = "FAILED";

@@ -26,7 +26,8 @@ public sealed class CutsceneScriptGenerator(
     public async Task<CutsceneGenerationResult> GenerateAsync(GameCase gameCase, string generationRunId, CancellationToken ct = default)
     {
         var mock = generation.Value.BlocksAiCalls;
-        var basePrompt = CutscenePrompt.Build(CutsceneInputBuilder.BuildJson(gameCase), gameCase.CaseId);
+        var basePrompt = CutscenePrompt.Build(CutsceneInputBuilder.BuildJson(gameCase), gameCase.CaseId,
+            bilingual: gameCase.AlternateLanguageText is { Count: > 0 });
         var json = await RequestAsync(gameCase, basePrompt, "CutsceneScript", 1, generationRunId, ct);
         var (script, issues) = ParseAndValidate(json, gameCase);
         var repaired = false;
@@ -50,7 +51,10 @@ public sealed class CutsceneScriptGenerator(
         MotionComicScript? script;
         try { script = JsonSerializer.Deserialize<MotionComicScript>(AiBridgeSchemaValidator.StripMarkdownFences(json), JsonOptions); }
         catch (JsonException) { return (null, new List<CutsceneIssue> { new("$", "The response is not valid script JSON.") }); }
-        return (script, CutsceneScriptValidator.Validate(script, gameCase));
+        var issues = CutsceneScriptValidator.Validate(script, gameCase);
+        if (gameCase.AlternateLanguageText is { Count: > 0 } && script?.TitleEn is null)
+            issues.Add(new("titleEn", "Include the English title and an English translation of every beat."));
+        return (script, issues);
     }
 
     private Task<string> RequestAsync(
@@ -60,8 +64,8 @@ public sealed class CutsceneScriptGenerator(
             OwnerType = AiBridgeOwnerTypes.Cutscene,
             OwnerId = gameCase.CaseId,
             Step = step,
-            SchemaVersion = CutscenePrompt.SchemaName,
-            Schema = CutscenePrompt.Schema(),
+            SchemaVersion = gameCase.AlternateLanguageText is { Count: > 0 } ? "motion_comic_bilingual_v1" : CutscenePrompt.SchemaName,
+            Schema = CutscenePrompt.Schema(bilingual: gameCase.AlternateLanguageText is { Count: > 0 }),
             Instructions = CutscenePrompt.Instructions,
             Prompt = prompt,
             MaxOutputTokens = Math.Clamp(cutscene.Value.MaxOutputTokens, 1000, 16000),

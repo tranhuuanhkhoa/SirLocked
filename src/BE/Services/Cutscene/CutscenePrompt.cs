@@ -10,7 +10,7 @@ public static class CutscenePrompt
     public const string Instructions =
         "Bạn là biên kịch truyện tranh trinh thám noir. Chỉ trả về đúng một đối tượng JSON theo schema, không markdown, không lời giải thích.";
 
-    public static string Build(string inputJson, string caseId) => $$"""
+    public static string Build(string inputJson, string caseId, bool bilingual = false) => $$"""
 Hãy viết KỊCH BẢN MỞ ĐẦU dạng truyện tranh động cho vụ án dưới đây. Người chơi sẽ xem nó trước khi vào điều tra.
 
 GIỌNG VĂN: noir, câu ngắn, trầm, tiếng Việt có dấu. Mở bằng thời gian và địa điểm. Gieo MỘT chi tiết lạ, chưa giải thích. Kết bằng lời mời vào cuộc, không kết luận gì. Ví dụ giọng văn (chỉ để học nhịp, không chép):
@@ -34,7 +34,12 @@ LUẬT CỨNG:
 
 DỮ LIỆU VỤ ÁN (công khai):
 {{inputJson}}
-""";
+""" + (bilingual ? """
+
+Thêm titleEn với eyebrow, title, subtitle bằng tiếng Anh, và textEn cho MỌI beat.
+Hai bản giữ cùng sự kiện, tên riêng, mức độ nghi vấn và ý nghĩa của từng câu. Bản tiếng Anh cũng
+phải đáp ứng giới hạn ký tự và tổng thời lượng 40 đến 75 giây.
+""" : "");
 
     public static string BuildRepair(string basePrompt, string previousJson, IEnumerable<CutsceneIssue> issues) =>
         basePrompt + "\n\nBẢN TRƯỚC (có lỗi):\n" + previousJson + "\n\nCÁC LỖI CẦN SỬA (giữ nguyên phần đúng, chỉ sửa lỗi, vẫn trả về toàn bộ JSON):\n"
@@ -69,11 +74,16 @@ DỮ LIỆU VỤ ÁN (công khai):
         return array;
     }
 
-    public static JsonObject Schema() => Obj(
+    public static JsonObject Schema(bool bilingual = false)
+    {
+        var title = Obj(("eyebrow", Str()), ("title", Str()), ("subtitle", Str()));
+        var beat = Obj(("type", Enum(MotionComicRules.BeatTypes)), ("speakerId", Str()),
+            ("text", Str()), ("style", Enum(MotionComicRules.SfxStyles.Prepend(""))));
+        var schema = Obj(
         ("format", Enum(new[] { MotionComicScript.FormatName })),
         ("caseId", Str()),
         ("language", Enum(new[] { "vi" })),
-        ("title", Obj(("eyebrow", Str()), ("title", Str()), ("subtitle", Str()))),
+        ("title", title),
         ("mood", Enum(MotionComicRules.Moods)),
         ("pages", Arr(Obj(
             ("layout", Enum(MotionComicRules.Layouts.Keys)),
@@ -84,11 +94,16 @@ DỮ LIỆU VỤ ÁN (công khai):
                     ("focus", Arr(new JsonObject { ["type"] = "number" }, 4, 4)))),
                 ("weather", Enum(MotionComicRules.Weathers)),
                 ("enter", Enum(MotionComicRules.Enters)),
-                ("beats", Arr(Obj(
-                    ("type", Enum(MotionComicRules.BeatTypes)),
-                    ("speakerId", Str()),
-                    ("text", Str()),
-                    ("style", Enum(MotionComicRules.SfxStyles.Prepend("")))), 1, MotionComicRules.MaxBeatsPerPanel)),
+                ("beats", Arr(beat, 1, MotionComicRules.MaxBeatsPerPanel)),
                 ("audio", Arr(Enum(MotionComicRules.AudioCues), 0, MotionComicRules.MaxAudioCuesPerPanel))), 1, 3))),
             MotionComicRules.MinPages, MotionComicRules.MaxPages)));
+        if (bilingual)
+        {
+            schema["properties"]!["titleEn"] = title.DeepClone();
+            schema["required"]!.AsArray().Add("titleEn");
+            beat["properties"]!["textEn"] = Str();
+            beat["required"]!.AsArray().Add("textEn");
+        }
+        return schema;
+    }
 }

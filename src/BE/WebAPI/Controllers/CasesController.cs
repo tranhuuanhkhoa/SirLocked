@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Case;
 using SirLocked.Api.DTOs.Cutscene;
+using SirLocked.Api.Services;
 using SirLocked.Api.Services.Cutscene;
 using SirLocked.Api.Services.Interfaces;
 
@@ -30,7 +31,8 @@ public class CasesController : BaseApiController
     [HttpGet("published")]
     public async Task<ActionResult<ApiResponse<List<CaseSummaryResponse>>>> GetPublished(
         [FromServices] SirLocked.Api.Services.Vip.AuthorBadgeReader badges) =>
-        Ok(await badges.FillAsync(await _caseService.GetPublishedAsync()));
+        Ok(await badges.FillAsync((await _caseService.GetPublishedAsync())
+            .Select(item => item.InLanguage(CaseTextLocalization.RequestLanguage(HttpContext))).ToList()));
 
     /// <summary><paramref name="roomId"/>: a playtest room the caller sits in, for a case that is not published.</summary>
     [HttpGet("{caseId}")]
@@ -38,7 +40,7 @@ public class CasesController : BaseApiController
         string caseId, [FromServices] SirLocked.Api.Services.Vip.AuthorBadgeReader badges, [FromQuery] string? roomId = null)
     {
         var detail = await PlaytestAsync(caseId, roomId)
-            ? CasePublicDetailResponse.FromCase(await _caseService.GetCaseAsync(caseId))
+            ? CasePublicDetailResponse.FromCase(await _caseService.GetCaseAsync(caseId), CaseTextLocalization.RequestLanguage(HttpContext))
             : await _caseService.GetPublicDetailAsync(caseId);
         await badges.FillAsync([detail]);
         return Ok(detail);

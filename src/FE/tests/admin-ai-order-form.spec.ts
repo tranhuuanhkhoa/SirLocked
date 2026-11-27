@@ -193,7 +193,7 @@ async function openMore(page: Page) {
 const pressed = (page: Page, selector: string) => page.locator(selector);
 const bar = (page: Page) => page.locator('.aai-order-bar');
 
-test('an ADMIN order picks a level and a setting with the keyboard and mouse, sends only the new order shape and shows "Chờ Claude"', async ({ page }) => {
+test('an ADMIN order picks a level and setting, sends the order and shows that it is waiting for AI', async ({ page }) => {
   const mock = await setUp(page, 'ADMIN');
   await open(page);
 
@@ -267,11 +267,12 @@ test('an ADMIN order picks a level and a setting with the keyboard and mouse, se
       timeOfDay: 'NIGHT',
       contentLevel: 'STANDARD',
       pixelLabCap: 60,
+      blindReviewEnabled: false,
     },
   });
   expect(mock.postHeaders[0]['idempotency-key']).toBeTruthy();
   const row = page.locator('.aai-drafts-table tbody tr', { has: page.locator('[data-order-status]') }).first();
-  await expect(row.locator('[data-order-status="QUEUED_FOR_CLAUDE"]')).toHaveText('Chờ Claude');
+  await expect(row.locator('[data-order-status="QUEUED_FOR_CLAUDE"]')).toHaveText('Chờ AI nhận đơn');
   await expect(row.locator('[data-order-time]')).not.toBeEmpty();
   await expect(page.locator('.aai-drafts-table thead')).toContainText('Người đặt');
   await expect(page.locator('.aai-drafts-table thead')).toContainText('Trạng thái đơn');
@@ -334,7 +335,7 @@ test('a VIP chooses the PixelLab cap like an admin, the order goes straight to C
   await expect(page.locator('#ai-pixellab-cap')).toHaveValue('-1');
   await expect(page.locator('#ai-pixellab-cap option:checked')).toHaveText('Không giới hạn');
   await expect(page.locator('.aai-settings')).toHaveCount(0);
-  await expect(page.locator('#ai-vip-quota')).toContainText('Đơn vào hàng chờ Claude ngay');
+  await expect(page.locator('#ai-vip-quota')).toContainText('Đơn vào hàng chờ để AI xử lý');
   await expect(page.locator('#ai-vip-quota [data-quota-remaining]')).toHaveText('Còn 1/2 đơn trong tuần này.');
 
   // The Claude API lane is closed: the order is free, so there is no price, speed or hold.
@@ -348,10 +349,10 @@ test('a VIP chooses the PixelLab cap like an admin, the order goes straight to C
     prompt: '', difficulty: 'medium', leaning: 'BALANCED', language: 'en', caseType: 'RANDOM',
     order: {
       world: 'HANG_DUONG_VICTORIAN', locationIds: ['h-map-ben-cang'], npcIds: [], characterNotes: '',
-      weather: 'AUTO', timeOfDay: 'AUTO', contentLevel: 'LIGHT', pixelLabCap: -1,
+      weather: 'AUTO', timeOfDay: 'AUTO', contentLevel: 'LIGHT', pixelLabCap: -1, blindReviewEnabled: false,
     },
   });
-  await expect(page.locator('.aai-drafts-table [data-order-status="QUEUED_FOR_CLAUDE"]')).toHaveText('Chờ Claude');
+  await expect(page.locator('.aai-drafts-table [data-order-status="QUEUED_FOR_CLAUDE"]')).toHaveText('Chờ AI nhận đơn');
   await expect(page.locator('.aai-drafts-table [data-approve-order]')).toHaveCount(0);
 
   await expect(page.locator('#ai-vip-quota [data-quota-remaining]')).toHaveText('Còn 0/2 đơn trong tuần này.');
@@ -380,12 +381,11 @@ test('with the Claude API lane open a VIP never sees the PixelLab cap, confirms 
   await expect.poll(() => mock.posts.length).toBe(1);
   expect(mock.posts[0].order).toEqual({
     world: 'HANG_DUONG_VICTORIAN', locationIds: ['h-map-ben-cang'], npcIds: [], characterNotes: '',
-    weather: 'AUTO', timeOfDay: 'AUTO', contentLevel: 'LIGHT', speed: 'FAST', vipExtraPixelLab: 0,
+    weather: 'AUTO', timeOfDay: 'AUTO', contentLevel: 'LIGHT', speed: 'FAST', vipExtraPixelLab: 0, blindReviewEnabled: false,
   });
   await expect(page.locator('.aai-drafts-table [data-order-status="AWAITING_OWNER_APPROVAL"]')).toHaveText('Chờ admin duyệt');
   await expect(page.locator('.aai-drafts-table [data-approve-order]')).toHaveCount(0);
-  // No polling for an order only an admin can move.
-  await expect(page.locator('#generation-progress')).toBeHidden();
+  await expect(page.locator('#generation-progress-title')).toHaveText('Đơn đang chờ duyệt');
   expect(mock.dialogs).toEqual([]);
   expect(mock.errors).toEqual([]);
 });
@@ -399,7 +399,7 @@ test('ADMIN approves one VIP order and rejects another with a reason typed in th
   await expect(rowA.locator('[data-order-status]')).toHaveText('Chờ admin duyệt');
 
   await rowA.getByRole('button', { name: 'Duyệt đơn' }).click();
-  await expect(rowA.locator('[data-order-status]')).toHaveText('Chờ Claude');
+  await expect(rowA.locator('[data-order-status]')).toHaveText('Chờ AI nhận đơn');
   expect(mock.approve).toEqual(['vip-a']);
 
   await rowB.getByRole('button', { name: 'Từ chối' }).click();
@@ -645,6 +645,8 @@ test('the bot report renders as safe Markdown in the draft detail: tables and li
   await open(page);
   await page.locator('[data-draft-row="with-report"]').getByRole('button', { name: 'Xem' }).click();
   const panel = page.locator('[data-bridge-report]');
+  await expect(panel).toBeHidden();
+  await page.locator('[data-ai-technical] > summary').click();
   await expect(panel).toBeVisible();
   await expect(panel).toContainText('Báo cáo của bot (report.md)');
   const body = panel.locator('.aai-report');

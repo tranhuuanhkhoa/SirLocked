@@ -66,6 +66,7 @@ public class CaseService : ICaseService, IPixelCaseSeeder, ITutorialCaseSeeder
     private readonly ILogger<CaseService> _logger;
     private readonly GameplayV3Settings _gameplayV3Settings;
     private readonly CaseCatalogPolicy _catalog;
+    private readonly IHttpContextAccessor? _http;
 
     public CaseService(
         MongoDbContext db,
@@ -74,9 +75,11 @@ public class CaseService : ICaseService, IPixelCaseSeeder, ITutorialCaseSeeder
         IOptions<GameplayV3Settings> gameplayV3Settings,
         IWebHostEnvironment env,
         ILogger<CaseService> logger,
-        CaseCatalogPolicy? catalog = null)
+        CaseCatalogPolicy? catalog = null,
+        IHttpContextAccessor? http = null)
     {
         _catalog = catalog ?? CaseCatalogPolicy.Open;
+        _http = http;
         _db = db;
         _cache = cache;
         _validator = validator;
@@ -104,7 +107,7 @@ public class CaseService : ICaseService, IPixelCaseSeeder, ITutorialCaseSeeder
         {
             throw ApiException.NotFound("Case not found.");
         }
-        return CasePublicDetailResponse.FromCase(gameCase);
+        return CasePublicDetailResponse.FromCase(gameCase, CaseTextLocalization.RequestLanguage(_http?.HttpContext));
     }
 
     public async Task<List<CaseSummaryResponse>> GetAllForAdminAsync()

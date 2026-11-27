@@ -691,6 +691,25 @@ public sealed class ProjectionPipelineTests
     }
 
     [Fact]
+    public void FinalProofClosure_KeepsSeparateTracesFromTheSameActionAndSourceGroup()
+    {
+        var (draft, truth, supportingTraceId, _) = BuildMultiSourceProofDraft();
+        var support = truth.TraceLedger.Single(trace => trace.TraceId == supportingTraceId);
+        var sibling = truth.TraceLedger.First(trace => trace.TraceId != supportingTraceId);
+        support.SourceActionId = sibling.SourceActionId;
+        support.LocationId = sibling.LocationId;
+        support.IndependentSourceGroup = sibling.IndependentSourceGroup;
+        foreach (var point in truth.TrueTimeline) point.TraceIds.Remove(supportingTraceId);
+        truth.TrueTimeline.Single(point => point.EventId == sibling.SourceActionId).TraceIds.Add(supportingTraceId);
+        draft.TruthHash = _truthService.ComputeHash(truth);
+
+        var plan = new GameplayProjectionPlanner(_truthService).Build(draft, truth);
+
+        Assert.Equal(sibling.TraceId, plan.Clues[$"clue-{sibling.TraceId}"].TraceId);
+        Assert.Equal(support.TraceId, plan.Clues[$"clue-{support.TraceId}"].TraceId);
+    }
+
+    [Fact]
     public void FinalProofClosure_RejectsTraceOverflowBeforeCompilationAndRepairsTimeline()
     {
         var (draft, truth, supportingTraceId, _) = BuildMultiSourceProofDraft();

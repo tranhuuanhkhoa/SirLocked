@@ -65,6 +65,30 @@ body[data-area="admin"] #app .aai-progress .generation-progress-fill { border-ra
 body[data-area="admin"] #app .aai-progress .muted { margin: 0; font-size: 13px; }
 body[data-area="admin"] #app .adm-card.aai-progress.generation-progress-error { border-color: var(--adm-bad-line); }
 body[data-area="admin"] #app .aai-progress.generation-progress-error .generation-progress-fill { background: var(--adm-bad); }
+body[data-area="admin"] #app .aai-progress.generation-progress-live .generation-progress-fill {
+  width: 30%;
+  animation: aai-progress-active 1.6s ease-in-out infinite alternate;
+}
+@keyframes aai-progress-active {
+  from { transform: translateX(0); }
+  to { transform: translateX(233%); }
+}
+body[data-area="admin"] #app .aai-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 16px;
+  flex-wrap: wrap;
+}
+body[data-area="admin"] #app #generation-progress-elapsed {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-area="admin"] #app .aai-progress.generation-progress-live .generation-progress-fill {
+    animation: none;
+  }
+}
 body[data-area="admin"] #app .aai-progress.generation-progress-error #generation-progress-percent { background: var(--adm-bad-bg); color: var(--adm-bad); }
 
 /* ---------- form tạo: hai cột ---------- */

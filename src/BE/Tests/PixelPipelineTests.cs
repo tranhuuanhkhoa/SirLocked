@@ -6,6 +6,8 @@ using SirLocked.Api.Models;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Projection;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 namespace SirLocked.Tests;
@@ -25,6 +27,29 @@ public sealed class PixelPipelineTests
     private static GameCase LoadSeed(string name) => JsonSerializer.Deserialize<GameCase>(File.ReadAllText(SeedFile(name)), Web)!;
     private static GameCase LoadFixture(string name) =>
         JsonSerializer.Deserialize<GameCase>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name)), Web)!;
+
+    [Fact]
+    public void BackgroundUpload_DetectsAnOpaqueMagentaDoorButKeepsPurpleAndTransparency()
+    {
+        using var image = new Image<Rgba32>(512, 512, new Rgba32(41, 30, 20));
+        for (var y = 120; y < 200; y++)
+            for (var x = 340; x < 375; x++)
+                image[x, y] = new Rgba32(255, 0, 255, 255);
+        Assert.True(BridgeAssetStorage.HasOpaqueMagentaPatch(Png()));
+
+        for (var y = 120; y < 200; y++)
+            for (var x = 340; x < 375; x++)
+                image[x, y] = x < 358 ? new Rgba32(255, 0, 255, 0) : new Rgba32(128, 40, 155, 255);
+        image[70, 150] = new Rgba32(255, 0, 255, 255);
+        Assert.False(BridgeAssetStorage.HasOpaqueMagentaPatch(Png()));
+
+        byte[] Png()
+        {
+            using var buffer = new MemoryStream();
+            image.SaveAsPng(buffer);
+            return buffer.ToArray();
+        }
+    }
 
     private static string RepoFile(params string[] parts)
     {

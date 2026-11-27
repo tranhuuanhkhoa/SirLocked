@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -86,6 +87,53 @@ public sealed class BridgeAssetStorage(
         return isPng
             ? new BridgeImageInfo("image/png", ".png", info.Width, info.Height, hasAlpha)
             : new BridgeImageInfo("image/webp", ".webp", info.Width, info.Height, hasAlpha);
+    }
+
+    internal static bool HasOpaqueMagentaPatch(byte[] bytes)
+    {
+        using var image = Image.Load<Rgba32>(new DecoderOptions { MaxFrames = 1 }, bytes);
+        var width = image.Width;
+        var height = image.Height;
+        var candidates = new bool[width * height];
+        image.ProcessPixelRows(rows =>
+        {
+            for (var y = 0; y < height; y++)
+            {
+                var row = rows.GetRowSpan(y);
+                for (var x = 0; x < width; x++)
+                {
+                    var pixel = row[x];
+                    candidates[y * width + x] = pixel is { A: >= 224, R: >= 235, G: <= 25, B: >= 235 };
+                }
+            }
+        });
+
+        // A few highlights or hidden RGB in transparent pixels are normal. Reject a solid region of chroma fill.
+        var minimum = Math.Max(64, candidates.Length / 500);
+        var region = new Queue<int>();
+        for (var index = 0; index < candidates.Length; index++)
+        {
+            if (!candidates[index]) continue;
+            Visit(index);
+            var area = 0;
+            while (region.TryDequeue(out var pixel))
+            {
+                if (++area >= minimum) return true;
+                var x = pixel % width;
+                if (x > 0) Visit(pixel - 1);
+                if (x < width - 1) Visit(pixel + 1);
+                if (pixel >= width) Visit(pixel - width);
+                if (pixel < width * (height - 1)) Visit(pixel + width);
+            }
+        }
+        return false;
+
+        void Visit(int index)
+        {
+            if (!candidates[index]) return;
+            candidates[index] = false;
+            region.Enqueue(index);
+        }
     }
 
     public async Task<AiBridgeAssetUpload> SaveAsync(string draftId, string slotId, byte[] bytes, CancellationToken ct)

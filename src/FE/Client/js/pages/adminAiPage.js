@@ -9,6 +9,7 @@ import { icon, pageHead, pill, stateBox, tile } from '../components/admin/ui.js'
 import { gateCheckText, isV3, v3PublishGate } from './adminV3Gates.js';
 import { mountPresentationEditor, presentationPlaceholder } from './adminPresentation.js';
 import { confirmVipHold, loadVipQuotes, vipBlockReason, vipDraftLine, vipOrderPanelHtml } from './adminAiVip.js';
+import { formatAiElapsed, humanAiStep, orderClock } from './aiOrderProgress.js';
 
 const STATUS_AWAITING_APPROVAL = 'STORY_AWAITING_APPROVAL';
 const STATUS_TRUTH_AWAITING_APPROVAL = 'CASE_TRUTH_AWAITING_APPROVAL';
@@ -18,7 +19,7 @@ const STATUS_SCENE_LAYOUT_AWAITING_APPROVAL = 'SCENE_LAYOUT_AWAITING_APPROVAL';
 const STATUS_READY_TO_PUBLISH = 'READY_TO_PUBLISH';
 const STATUS_PUBLISHED = 'PUBLISHED';
 const STATUS_GENERATED_INVALID = 'GENERATED_INVALID';
-const TERMINAL_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_TRUTH_INVALID, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL, STATUS_READY_TO_PUBLISH, STATUS_PUBLISHED, STATUS_GENERATED_INVALID, 'CANCELLED']);
+const TERMINAL_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_TRUTH_INVALID, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL, STATUS_READY_TO_PUBLISH, STATUS_PUBLISHED, STATUS_GENERATED_INVALID, 'IMPORTED', 'CANCELLED']);
 // AWAITING_CLAUDE: the run is parked until the Claude bot answers through the bridge.
 const ACTIVE_QUEUE_STATES = new Set(['PENDING', 'RUNNING', 'RETRY_SCHEDULED', 'AWAITING_CLAUDE']);
 const AWAITING_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITING_APPROVAL, STATUS_FULL_LOGIC_AWAITING_APPROVAL, STATUS_SCENE_LAYOUT_AWAITING_APPROVAL]);
@@ -27,7 +28,8 @@ const AWAITING_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITI
 const isTerminalDraft = (draft) => draft?.status === 'CANCELLED'
   || draft?.orderStatus === 'AWAITING_OWNER_APPROVAL' || draft?.orderStatus === 'REJECTED'
   || draft?.orderStatus === 'AWAITING_DECISION'
-  || (TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState) && !draft?.autopilotNextStep);
+  || (TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState)
+      && !draft?.autopilotNextStep && draft?.introCutsceneStatus !== 'QUEUED');
 // A queued or running draft still carries the failurePhase/validationErrors of the attempt before
 // it, so the UI must not present them as the outcome of the run that is currently in flight.
 const isGeneratingDraft = (draft) => ACTIVE_QUEUE_STATES.has(draft?.queueState)
@@ -194,20 +196,22 @@ function reasonLabel(code) {
 
 const STATUS_LABELS = {
   CANCELLED: ['Cancelled', 'Đã hủy'],
-  GENERATING_STORY: ['Generating story', 'Đang tạo tiền đề'],
-  STORY_AWAITING_APPROVAL: ['Story awaiting approval', 'Chờ duyệt tiền đề'],
-  GENERATING_CASE_TRUTH: ['Generating case truth', 'Đang tạo sự thật vụ án'],
-  CASE_TRUTH_AWAITING_APPROVAL: ['Truth awaiting approval', 'Chờ duyệt sự thật'],
-  CASE_TRUTH_INVALID: ['Case truth invalid', 'Sự thật vụ án không hợp lệ'],
-  GENERATING_FULL_CASE: ['Projecting gameplay', 'Đang dựng gameplay'],
-  OPENAI_GENERATED_VALID: ['Projection validated', 'Gameplay đã hợp lệ'],
-  FULL_LOGIC_AWAITING_APPROVAL: ['Logic awaiting approval', 'Chờ duyệt logic'],
+  GENERATING_STORY: ['Generating story', 'Đang viết cốt truyện'],
+  STORY_AWAITING_APPROVAL: ['Story outline ready to review', 'Chờ duyệt cốt truyện'],
+  GENERATING_CASE_TRUTH: ['Working out what happened', 'Đang dựng diễn biến vụ án'],
+  CASE_TRUTH_AWAITING_APPROVAL: ['Ready to review the evidence', 'Chờ duyệt diễn biến và chứng cứ'],
+  CASE_TRUTH_INVALID: ['Story needs a correction', 'Cốt truyện cần chỉnh sửa'],
+  GENERATING_FULL_CASE: ['Writing the investigation', 'Đang viết nội dung điều tra'],
+  OPENAI_GENERATED_VALID: ['Investigation checked', 'Đã kiểm tra nội dung điều tra'],
+  FULL_LOGIC_AWAITING_APPROVAL: ['Investigation ready to review', 'Chờ duyệt nội dung điều tra'],
   GENERATING_SCENE_LAYOUT: ['Generating scene layout', 'Đang tạo bố cục cảnh'],
   SCENE_LAYOUT_AWAITING_APPROVAL: ['Layout awaiting approval', 'Chờ duyệt bố cục'],
-  GENERATING_FINAL_ASSETS: ['Generating final assets', 'Đang tạo tài nguyên cuối'],
+  GENERATING_FINAL_ASSETS: ['Preparing artwork', 'Đang hoàn thiện hình ảnh'],
+  GENERATING_ASSETS: ['Preparing artwork', 'Đang chuẩn bị hình ảnh'],
+  ASSETS_GENERATED: ['Artwork ready', 'Đã chuẩn bị xong hình ảnh'],
   READY_TO_PUBLISH: ['Ready to publish', 'Sẵn sàng xuất bản'],
-  IMPORTED: ['Imported, not published', 'Đã import, chưa đăng'],
-  GENERATED_INVALID: ['Generation invalid', 'Kết quả sinh không hợp lệ'],
+  IMPORTED: ['Ready for private playtest', 'Đã có thể chơi thử'],
+  GENERATED_INVALID: ['Needs attention', 'Cần xử lý'],
   PUBLISHED: ['Published', 'Đã xuất bản'],
 };
 
@@ -216,7 +220,7 @@ function localizedPair(value) {
 }
 
 function statusLabel(status) {
-  return localizedPair(STATUS_LABELS[status]) || status || tr('Unknown', 'Không xác định');
+  return localizedPair(STATUS_LABELS[status]) || tr('Status unavailable', 'Chưa có trạng thái');
 }
 
 /** Order states of the Claude bot workflow (docs/AI_CASE_SETUP_VI.md). */
@@ -225,8 +229,8 @@ const ORDER_STATUS_LABELS = {
   AWAITING_DECISION: ['Waiting for your choice', 'Chờ bạn chọn'],
   QUEUED_FOR_CLAUDE: ['Waiting for the AI runner', 'Chờ AI nhận đơn'],
   CLAUDE_WORKING: ['AI is working', 'AI đang xử lý'],
-  AWAITING_GATE: ['Waiting for review', 'Chờ duyệt cổng'],
-  SUBMITTED: ['Submitted', 'Đã nộp'],
+  AWAITING_GATE: ['Waiting for review', 'Chờ duyệt'],
+  SUBMITTED: ['Case received', 'Đã nhận vụ án'],
   REJECTED: ['Rejected', 'Đã từ chối'],
   CANCELLED: ['Cancelled', 'Đã hủy'],
 };
@@ -275,94 +279,76 @@ function aiErrorText(error) {
 
 const PROGRESS_STATES = {
   CANCELLED: {
-    percent: 0,
-    title: ['Draft cancelled', 'Đã hủy bản nháp'],
-    detail: ['This draft will not continue generating.', 'Bản nháp này sẽ không tiếp tục được tạo.'],
+    title: ['Order cancelled', 'Đã hủy đơn'],
+    detail: ['You can start another case from the form below.', 'Bạn có thể tạo vụ án khác bằng biểu mẫu bên dưới.'],
   },
   GENERATING_STORY: {
-    percent: 8,
-    title: ['Creating the case premise', 'Đang tạo tiền đề vụ án'],
-    detail: ['AI prepares a mystery outline without revealing the solution.', 'AI chuẩn bị dàn ý bí ẩn, giữ kín lời giải.'],
+    title: ['Writing the story outline', 'Đang viết cốt truyện'],
+    detail: ['Preparing the setting, incident and suspects.', 'Đang xây bối cảnh, tình huống mở đầu và các nghi phạm.'],
   },
   STORY_AWAITING_APPROVAL: {
-    percent: 18,
-    title: ['Story premise ready', 'Tiền đề đã sẵn sàng'],
-    detail: ['Approve the premise to generate the immutable case truth.', 'Duyệt tiền đề để tạo nguồn sự thật bất biến của vụ án.'],
+    title: ['Story outline ready', 'Cốt truyện đã sẵn sàng'],
+    detail: ['Read the outline and approve it to continue.', 'Đọc cốt truyện rồi bấm duyệt để tiếp tục.'],
   },
   GENERATING_CASE_TRUTH: {
-    percent: 30,
-    title: ['Building causal case truth', 'Đang dựng sự thật nhân quả'],
-    detail: ['Locking timeline, opportunity, physical traces, statements, and five-category proof.', 'Đang khóa dòng thời gian, cơ hội, dấu vết vật lý, lời khai và năm nhóm chứng minh.'],
+    title: ['Checking what happened', 'Đang dựng diễn biến vụ án'],
+    detail: ['Connecting the timeline, statements and evidence.', 'Đang đối chiếu dòng thời gian, lời khai và chứng cứ.'],
   },
   CASE_TRUTH_AWAITING_APPROVAL: {
-    percent: 42,
-    title: ['Case truth ready', 'Sự thật vụ án đã sẵn sàng'],
-    detail: ['Review the spoiler truth and approve it before gameplay projection.', 'Kiểm tra nội dung spoiler rồi duyệt trước khi dựng gameplay.'],
+    title: ['Investigation outline ready', 'Diễn biến vụ án đã sẵn sàng'],
+    detail: ['Review the findings to continue writing the case.', 'Xem lại các phát hiện rồi duyệt để tiếp tục viết vụ án.'],
   },
   CASE_TRUTH_INVALID: {
-    percent: 42,
-    title: ['Case truth blocked', 'Sự thật vụ án bị chặn'],
-    detail: ['The truth failed deterministic validation.', 'Sự thật không vượt qua validator tất định.'],
+    title: ['Story needs a correction', 'Cốt truyện cần chỉnh sửa'],
+    detail: ['Review the findings to see what needs to change.', 'Xem phần kiểm tra để biết chi tiết nào cần sửa.'],
   },
   GENERATING_FULL_CASE: {
-    percent: 55,
-    title: ['Projecting truth into gameplay', 'Đang chuyển sự thật thành gameplay'],
-    detail: ['Building clues, dialogue, puzzles, deductions, and accusation from the locked truth.', 'Đang dựng manh mối, hội thoại, câu đố, suy luận và cáo buộc từ truth đã khóa.'],
+    title: ['Writing the investigation', 'Đang viết nội dung điều tra'],
+    detail: ['Preparing dialogue, puzzles and the final accusation.', 'Đang chuẩn bị hội thoại, câu đố và phần buộc tội.'],
   },
   OPENAI_GENERATED_VALID: {
-    percent: 64,
-    title: ['Gameplay projection validated', 'Gameplay đã được xác thực'],
-    detail: ['The truth-backed investigation passed deterministic validation; advisory review was recorded.', 'Vụ án đã vượt qua validator tất định; đánh giá AI được lưu dưới dạng tham khảo.'],
+    title: ['Investigation checked', 'Đã kiểm tra nội dung điều tra'],
+    detail: ['The investigation passed its checks.', 'Nội dung điều tra đã qua kiểm tra.'],
   },
   FULL_LOGIC_AWAITING_APPROVAL: {
-    percent: 66,
-    title: ['Full logic ready', 'Logic đầy đủ đã sẵn sàng'],
-    detail: ['Review the truth-backed gameplay before generating scene layouts.', 'Kiểm tra gameplay bám truth trước khi tạo bố cục cảnh.'],
+    title: ['Investigation ready to review', 'Nội dung điều tra đã sẵn sàng để duyệt'],
+    detail: ['Review the clues and puzzles before creating the artwork.', 'Duyệt manh mối và câu đố trước khi tạo ảnh.'],
   },
   GENERATING_SCENE_LAYOUT: {
-    percent: 68,
-    title: ['Generating scene layouts', 'Đang tạo bố cục cảnh'],
-    detail: ['Creating embedded clue backgrounds and detecting clue regions.', 'Đang tạo phông nền có manh mối và xác định vùng tương tác.'],
+    title: ['Preparing the scenes', 'Đang chuẩn bị hiện trường'],
+    detail: ['Creating backgrounds and finding where clues can be placed.', 'Đang chuẩn bị ảnh nền và vị trí đặt manh mối.'],
   },
   SCENE_LAYOUT_AWAITING_APPROVAL: {
-    percent: 82,
-    title: ['Scene layout ready', 'Bố cục cảnh đã sẵn sàng'],
-    detail: ['Review clue zones and scene metadata before publishing.', 'Kiểm tra vùng manh mối và metadata cảnh trước khi xuất bản.'],
+    title: ['Scenes ready to review', 'Hiện trường đã sẵn sàng để duyệt'],
+    detail: ['Check where players can walk and find clues.', 'Xem lại lối đi và vị trí tìm manh mối.'],
   },
   GENERATING_FINAL_ASSETS: {
-    percent: 90,
-    title: ['Generating final assets', 'Đang tạo tài nguyên cuối'],
-    detail: ['Preparing character assets and the final runtime bundle.', 'Đang chuẩn bị tài nguyên nhân vật và gói runtime cuối.'],
+    title: ['Preparing characters and clues', 'Đang chuẩn bị nhân vật và vật chứng'],
+    detail: ['Finishing the images and animations used in the game.', 'Đang hoàn thiện ảnh và chuyển động trong game.'],
   },
   READY_TO_PUBLISH: {
-    percent: 96,
-    title: ['Ready to publish', 'Sẵn sàng xuất bản'],
-    detail: ['Final assets are ready. Publish is a separate manual action.', 'Tài nguyên cuối đã sẵn sàng. Xuất bản vẫn là thao tác thủ công riêng.'],
+    title: ['Case ready', 'Vụ án đã sẵn sàng'],
+    detail: ['The case is ready to playtest or publish.', 'Bạn có thể chơi thử hoặc xuất bản vụ án.'],
   },
   GENERATING_ASSETS: {
-    percent: 68,
-    title: ['Generating scenes and assets', 'Đang tạo cảnh và tài nguyên'],
-    detail: ['Creating backgrounds, placement plans, characters, and evidence.', 'Đang tạo phông nền, bố trí, nhân vật và chứng cứ.'],
+    title: ['Preparing case artwork', 'Đang chuẩn bị ảnh vụ án'],
+    detail: ['Making the scenes, characters and objects.', 'Đang tạo hiện trường, nhân vật và vật phẩm.'],
   },
   ASSETS_GENERATED: {
-    percent: 92,
-    title: ['Assets ready', 'Tài nguyên đã sẵn sàng'],
-    detail: ['Importing and publishing the playable case.', 'Đang nhập và xuất bản vụ án có thể chơi.'],
+    title: ['Artwork ready', 'Đã chuẩn bị xong hình ảnh'],
+    detail: ['Preparing the playable case.', 'Đang chuẩn bị bản có thể chơi.'],
   },
   IMPORTED: {
-    percent: 97,
-    title: ['Case imported', 'Vụ án đã được nhập'],
-    detail: ['Publishing the case.', 'Đang xuất bản vụ án.'],
+    title: ['Case ready for playtest', 'Vụ án đã có thể chơi thử'],
+    detail: ['Open a private room to test the investigation.', 'Mở phòng riêng để chơi thử vụ án.'],
   },
   PUBLISHED: {
-    percent: 100,
-    title: ['Case published', 'Vụ án đã xuất bản'],
-    detail: ['The new case is ready to play.', 'Vụ án mới đã sẵn sàng để chơi.'],
+    title: ['Case published', 'Đã xuất bản vụ án'],
+    detail: ['Players can now start the investigation.', 'Người chơi đã có thể vào điều tra.'],
   },
   GENERATED_INVALID: {
-    percent: 100,
-    title: ['Generation failed', 'Sinh vụ án thất bại'],
-    detail: ['Fix the account or validation issue, then continue this draft.', 'Khắc phục lỗi tài khoản hoặc validation rồi tiếp tục bản nháp.'],
+    title: ['Generation paused', 'Quá trình tạo đã dừng'],
+    detail: ['See the draft for what needs attention.', 'Xem bản nháp để biết bước nào cần xử lý.'],
   },
 };
 
@@ -491,7 +477,16 @@ export async function renderAdminAiPage(app) {
   }
 
   await Promise.all([loadCapabilities(), loadDraftList(), loadLibrary(), loadQuota(), loadQuotes()]);
-  draw();
+  const draftStorageKey = `sirlocked.ai.draft.${session.user()?.userId || 'current'}`;
+  const rememberedId = window.sessionStorage.getItem(draftStorageKey);
+  const remembered = (rememberedId ? drafts.find(draft => draft.draftId === rememberedId) : null)
+    ?? drafts.find(draft => !isTerminalDraft(draft));
+  const initial = remembered ? await aiCaseApi.draft(remembered.draftId).catch(() => remembered) : null;
+  draw(initial);
+  if (initial && !isTerminalDraft(initial)) {
+    startProgressClock();
+    startPolling(initial.draftId, runVersion);
+  }
 
   function creationBlocked() {
     // Every new order has Crack the Lie, so the V3 blockers apply to every order.
@@ -571,6 +566,8 @@ export async function renderAdminAiPage(app) {
   }
 
   function playtestButton(draft, style = 'btn-ghost') {
+    if (canPlaytest(draft) && draft.introCutsceneStatus === 'QUEUED')
+      return `<button class="btn ${style} btn-sm" type="button" disabled>${tr('Preparing the opening', 'Đang chuẩn bị mở đầu')}</button>`;
     return canPlaytest(draft)
       ? `<button class="btn ${style} btn-sm" type="button" data-playtest-draft="${escapeHtml(draft.draftId)}"
           title="${escapeHtml(tr('Open a private room for this unpublished draft and invite one player by link', 'Mở phòng riêng cho bản nháp chưa đăng và mời một người bằng liên kết'))}">${tr('Playtest', 'Chơi thử')}</button>`
@@ -726,7 +723,7 @@ export async function renderAdminAiPage(app) {
     const title = d.caseTitle || d.storyPreview?.title || '(preview)';
     const prompt = d.prompt || 'AI-generated original mystery';
     const preset = draftScopeLabel(d);
-    const language = d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English';
+    const language = d.generateBothLanguages ? 'Tiếng Việt / English' : d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English';
     const effectiveCaseType = d.storyDiversity?.caseType || d.settings?.caseType;
     const presetMeta = [d.order?.world ? worldLabel(d.order.world) : '', effectiveCaseType ? caseTypeLabel(effectiveCaseType) : '', language].filter(Boolean).join(' · ');
     const mine = d.createdByUserId && d.createdByUserId === session.user()?.userId;
@@ -735,7 +732,7 @@ export async function renderAdminAiPage(app) {
       <td><span class="aai-cell"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(prompt.slice(0, 70))}</small></span></td>
       <td><span class="aai-cell"><strong>${escapeHtml(orderedByLabel(d.createdByRole))}</strong>${mine ? `<small>${tr('you', 'bạn')}</small>` : ''}</span></td>
       <td>${orderStatusCell(d)}</td>
-      <td><span class="aai-cell"><strong>${escapeHtml(preset)}</strong><small>${escapeHtml(presetMeta)}</small></span>${isV3Draft(d) ? `<span class="chip aai-review-chip ${d.v3SemanticReview?.status === 'PASSED' ? 'chip-ok' : 'chip-bad'}">Review ${escapeHtml(d.v3SemanticReview?.status || 'NOT_RUN')}</span>` : ''}</td>
+      <td><span class="aai-cell"><strong>${escapeHtml(preset)}</strong><small>${escapeHtml(presetMeta)}</small></span></td>
       <td>${statusPill(d)}</td>
       <td>
         <div class="adm-table-actions">
@@ -1048,8 +1045,9 @@ export async function renderAdminAiPage(app) {
             </div>
             <div class="aai-more-grid">
               <div class="aai-field">
-                <span class="aai-label" id="aai-language-title">${tr('Case language', 'Ngôn ngữ vụ án')}</span>
+                <span class="aai-label" id="aai-language-title">${tr('Write the case in', 'Ngôn ngữ viết bản gốc')}</span>
                 ${radioSeg('aai-language', 'aai-language-title', [['en', 'English'], ['vi', 'Tiếng Việt']], form.language)}
+                <p class="aai-help">${tr('Players can read the finished case in English or Vietnamese.', 'Người chơi có thể chọn tiếng Anh hoặc tiếng Việt khi vào vụ án.')}</p>
               </div>
               <div class="aai-field" data-field="contentLevel">
                 <span class="aai-label" id="aai-content-title">${tr('Content', 'Mức nội dung')}</span>
@@ -1314,6 +1312,8 @@ export async function renderAdminAiPage(app) {
     if (disposed) return;
     captureCreationForm();
     visibleDraft = activeDraft;
+    if (activeDraft?.draftId) window.sessionStorage.setItem(draftStorageKey, activeDraft.draftId);
+    const technicalOpen = app.querySelector('[data-ai-technical]')?.open;
     disposePresentation();
     disposePresentation = () => {};
     // The progress and the open draft sit above the form: "Create" and "View" both lead the eye (and the scroll) there.
@@ -1322,7 +1322,7 @@ export async function renderAdminAiPage(app) {
       ${pageHead({
     title: tr('AI Case Creator', 'Tạo vụ án bằng AI'),
     actionsHtml: isAdmin ? `<a class="btn" href="/admin/vip" data-vip-settings-link>${tr('VIP settings', 'Cài đặt VIP')}</a>` : '',
-    sub: tr('Create a premise, approve its immutable causal truth, then project that truth into playable clues, dialogue, puzzles, and a five-claim accusation.', 'Tạo tiền đề, duyệt nguồn sự thật nhân quả bất biến, rồi chuyển truth thành manh mối, hội thoại, câu đố và cáo buộc năm luận điểm.'),
+    sub: tr('Choose a setting and difficulty. Follow the case as the story, clues and artwork come together.', 'Chọn bối cảnh và mức độ, rồi theo dõi AI viết cốt truyện, dựng manh mối và chuẩn bị hình ảnh.'),
   })}
 
       <div id="ai-creation-status" class="aai-status"></div>
@@ -1335,7 +1335,10 @@ export async function renderAdminAiPage(app) {
         <div class="generation-progress-track" role="progressbar" aria-labelledby="generation-progress-title" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div class="generation-progress-fill" id="generation-progress-fill"></div>
         </div>
-        <p class="muted small" id="generation-progress-detail"></p>
+        <div class="aai-progress-meta">
+          <p class="muted small" id="generation-progress-detail"></p>
+          <span class="muted small" role="timer" id="generation-progress-elapsed"></span>
+        </div>
       </section>
 
       <div id="ai-output" class="aai-output">${activeDraft ? draftDetail(activeDraft) : ''}</div>
@@ -1347,6 +1350,9 @@ export async function renderAdminAiPage(app) {
     bind();
     syncForm();
     renderCreationStatus();
+    if (technicalOpen && qs('[data-ai-technical]', app)) qs('[data-ai-technical]', app).open = true;
+    if (activeDraft) updateProgress(activeDraft.status);
+    else if (creating && currentProgressStatus) updateProgress(currentProgressStatus);
   }
 
   function failureBlock(d, generating) {
@@ -1357,7 +1363,10 @@ export async function renderAdminAiPage(app) {
       ? `<ul>${d.validationErrors.slice(0, 12).map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>`
       : '';
     if (!phase && !errors) return '';
-    if (!generating) return `<div class="notice notice-bad aai-failure">${phase}${errors}</div>`;
+    if (!generating) return `<div class="notice notice-bad aai-failure">
+      <p>${tr('This step needs attention before the case can continue.', 'Cần xử lý bước này trước khi tiếp tục tạo vụ án.')}</p>
+      <details><summary>${tr('See what went wrong', 'Xem chi tiết lỗi')}</summary>${phase}${errors}</details>
+    </div>`;
     return `<details class="truth-section aai-previous" data-previous-attempt><summary>${tr(
       'Result of the previous attempt', 'Kết quả lần chạy trước'
     )}</summary>${phase}${errors}</details>`;
@@ -1370,7 +1379,15 @@ export async function renderAdminAiPage(app) {
     const resumeAction = continueButton(d);
     const generating = isGeneratingDraft(d);
     const cannotResume = !generating && d.status === STATUS_GENERATED_INVALID && !d.hasGeneratedJson && !published && !d.canContinue;
-    const title = d.caseTitle || preview?.title || d.caseId || tr('Untitled draft', 'Bản nháp chưa có tên');
+    const title = d.caseTitle || preview?.title || tr('Untitled draft', 'Bản nháp chưa có tên');
+    const intro = d.introCutsceneStatus;
+    const introMessage = intro === 'QUEUED'
+      ? tr('The opening comic is being prepared.', 'Cảnh mở đầu đang được chuẩn bị.')
+      : intro === 'READY'
+        ? tr('The opening comic is ready.', 'Cảnh mở đầu đã sẵn sàng.')
+        : intro?.startsWith('FAILED')
+          ? tr('The opening comic could not be created. An admin can retry it from the case editor.', 'Chưa tạo được cảnh mở đầu. Quản trị viên có thể thử lại trong trang chỉnh sửa vụ án.')
+          : '';
     // Technical fingerprints of the run, one per line in monospace.
     const codes = [
       d.storyDiversity?.seed ? `Diversity seed: <code>${escapeHtml(d.storyDiversity.seed)}</code>${d.storyDiversity?.coreFingerprint ? ` · Core: <code>${escapeHtml(d.storyDiversity.coreFingerprint.slice(0, 12))}</code>` : ''}${d.storyFingerprint ? ` · Preview: <code>${escapeHtml(d.storyFingerprint.slice(0, 12))}</code>` : ''}` : '',
@@ -1400,8 +1417,8 @@ export async function renderAdminAiPage(app) {
       </div>
       ${orderSummary(d)}
       ${decisionCards(d)}
-      <p class="aai-draft-meta">${d.settings?.pipelineVersion ? tr('Level', 'Mức độ') : tr('Preset', 'Cấu hình')}: ${escapeHtml(draftScopeLabel(d))} · ${tr('Case type', 'Loại vụ án')}: ${escapeHtml(caseTypeLabel(d.storyDiversity?.caseType || d.settings?.caseType))} · ${tr('Language', 'Ngôn ngữ')}: ${d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English'} · ${tr('Logic contract', 'Hợp đồng logic')}: v${Number(d.logicContractVersion || 1)}</p>
-      ${codes.length ? `<ul class="aai-codes">${codes.map((line) => `<li>${line}</li>`).join('')}</ul>` : ''}
+      <p class="aai-draft-meta">${escapeHtml(draftScopeLabel(d))} · ${escapeHtml(caseTypeLabel(d.storyDiversity?.caseType || d.settings?.caseType))} · ${d.generateBothLanguages ? 'Tiếng Việt / English' : d.settings?.language === 'vi' ? 'Tiếng Việt' : 'English'}</p>
+      ${introMessage ? `<p class="aai-note">${escapeHtml(introMessage)}</p>` : ''}
       ${failureBlock(d, generating)}
       ${cannotResume
         ? `<p class="aai-note">${tr(
@@ -1412,16 +1429,20 @@ export async function renderAdminAiPage(app) {
       ${actions.trim() ? `<div class="case-actions aai-actions">${actions}</div>` : ''}
       ${canPlaytest(d) ? `<p class="aai-note" data-playtest-help>${tr('Imported, not published yet. Playtest opens a private room that only you (or an admin) and one player invited by link can join; it is not ranked and gives no rewards.', 'Đã import, chưa đăng. Chơi thử mở một phòng riêng chỉ bạn (hoặc ADMIN) và một người được mời bằng liên kết vào được; ván này không tính xếp hạng, không nhận thưởng.')}</p>` : ''}
     </section>
-    ${bridgeReportPanel(d)}
     ${qualitySummary(d)}
     ${preview ? previewCard(preview, title) : ''}
-    ${truthPanel(d)}
-    ${blindReviewPanel(d)}
-    ${provenancePanel(d)}
-    ${v3PublishGatePanel(d)}
-    ${v3ReviewPanel(d)}
     ${repairPanel(d)}
-    ${generationDiagnostics(d)}
+    <details class="aai-panel aai-disclosure" data-ai-technical>
+      <summary>${tr('Technical details', 'Chi tiết kỹ thuật')}</summary>
+      ${codes.length ? `<ul class="aai-codes">${codes.map((line) => `<li>${line}</li>`).join('')}</ul>` : ''}
+      ${bridgeReportPanel(d)}
+      ${v3PublishGatePanel(d)}
+      ${truthPanel(d)}
+      ${blindReviewPanel(d)}
+      ${provenancePanel(d)}
+      ${v3ReviewPanel(d)}
+      ${generationDiagnostics(d)}
+    </details>
     ${presentationPlaceholder(d)}
     ${d.generatedJson && session.isAdmin()
       ? `<details class="json-details aai-panel aai-disclosure">
@@ -1483,13 +1504,17 @@ export async function renderAdminAiPage(app) {
       && !ACTIVE_QUEUE_STATES.has(d.queueState) && status === 'NOT_RUN' && !!d.truthReviewerResult?.findings?.length;
     const validationErrors = (d.truthValidationReport?.length || d.truthSummary.validationErrorCount || 0)
       + (d.validationErrors?.length || 0);
+    const storyVerdict = localizedPair({
+      PASSED: ['Checked', 'Đã kiểm tra'],
+      FAILED: ['Needs correction', 'Cần chỉnh sửa'],
+      AMBIGUOUS: ['Needs a closer look', 'Cần xem lại'],
+      NOT_RUN: ['Waiting for review', 'Chưa kiểm tra'],
+    }[status] || ['Waiting for review', 'Chưa kiểm tra']);
     return `<section class="notice ${validationErrors || ['FAILED', 'AMBIGUOUS'].includes(status) ? 'notice-bad' : ''} aai-panel aai-quality" data-ai-quality-summary>
       <h3 class="aai-panel-title">${tr('Quality checks', 'Kiểm tra chất lượng')}</h3>
-      <p>${tr('Structure', 'Cấu trúc')}: ${validationErrors ? tr('Needs repair', 'Cần sửa') : tr('Passed deterministic validation', 'Đã qua kiểm tra tất định')} · ${tr('Story review', 'Đánh giá cốt truyện')}: <strong>${escapeHtml(status)}</strong></p>
-      ${reviewNeedsAdmin ? `<p><strong>${tr('TRUTH needs an admin decision. The review could not substantiate a verdict.', 'TRUTH cần admin xem xét. Lượt kiểm định chưa đủ căn cứ để kết luận.')}</strong></p>` : ''}
-      <p class="muted small">${status === 'NOT_RUN'
-        ? tr('Story quality has not been reviewed. A valid structure alone does not establish that the mystery is playable.', 'Chất lượng cốt truyện chưa được đánh giá. Cấu trúc hợp lệ chưa đủ để xác nhận vụ án chơi được.')
-        : tr('Review the findings below before approval. Structural validation and V3 pair checks do not establish the quality of the whole story.', 'Hãy đọc các phát hiện bên dưới trước khi duyệt. Kiểm tra cấu trúc và cặp đối chất V3 chưa xác nhận chất lượng toàn bộ cốt truyện.')}</p>
+      <p>${tr('Story review', 'Đánh giá cốt truyện')} <strong>${escapeHtml(storyVerdict)}</strong></p>
+      ${validationErrors ? `<p>${tr('Some case details need correction. See the error details above.', 'Một số chi tiết vụ án cần chỉnh sửa. Xem chi tiết lỗi bên trên.')}</p>` : ''}
+      ${reviewNeedsAdmin ? `<p><strong>${tr('An admin needs to review the story before the case can continue.', 'Quản trị viên cần xem lại cốt truyện để tiếp tục tạo vụ án.')}</strong></p>` : ''}
     </section>`;
   }
 
@@ -1844,23 +1869,63 @@ export async function renderAdminAiPage(app) {
     if (!panel) return;
     currentProgressStatus = status;
 
-    const state = PROGRESS_STATES[status] || {
-      percent: 5,
-      title: 'Generating case',
-      detail: status || 'Waiting for the backend.',
+    const draft = visibleDraft?.status === status ? visibleDraft : null;
+    const orderState = {
+      AWAITING_OWNER_APPROVAL: {
+        title: ['Order awaiting approval', 'Đơn đang chờ duyệt'],
+        detail: ['Work starts after an admin approves the order.', 'AI sẽ bắt đầu sau khi quản trị viên duyệt đơn.'],
+      },
+      AWAITING_DECISION: {
+        title: ['Waiting for your choice', 'Đang chờ bạn chọn'],
+        detail: ['Choose an option below to continue.', 'Chọn một phương án bên dưới để tiếp tục.'],
+      },
+      REJECTED: {
+        title: ['Order rejected', 'Đơn bị từ chối'],
+        detail: ['See the reason below.', 'Xem lý do bên dưới.'],
+      },
+    }[draft?.orderStatus];
+    const state = orderState || PROGRESS_STATES[status] || {
+      title: ['Preparing the case', 'Đang chuẩn bị vụ án'],
+      detail: ['Waiting for a status update.', 'Đang chờ cập nhật trạng thái.'],
     };
-    const elapsed = runStartedAt ? Math.max(0, Math.floor((Date.now() - runStartedAt) / 1000)) : 0;
-    const detail = overrideDetail || localizedPair(state.detail);
+    const stopped = draft && isTerminalDraft(draft);
+    const pendingIntro = draft?.introCutsceneStatus === 'QUEUED';
+    const complete = !pendingIntro && ['READY_TO_PUBLISH', 'IMPORTED', 'PUBLISHED'].includes(status);
+    const clock = orderClock(draft, stopped);
+    const started = clock.started ?? (runStartedAt || Date.now());
+    const now = Number.isFinite(clock.ended) ? clock.ended : Date.now();
+    const elapsed = Math.max(0, Math.floor((now - started) / 1000));
+    const detail = overrideDetail || (pendingIntro
+      ? tr('The case is ready. The opening comic is being prepared.', 'Vụ án đã xong. AI đang chuẩn bị truyện mở đầu.')
+      : localizedPair(state.detail));
     const fill = qs('#generation-progress-fill', panel);
     const track = panel.querySelector('[role="progressbar"]');
+    const step = !orderState && humanAiStep(pendingIntro ? 'CutsceneScript' : draft?.claudeWait?.step);
+    const phaseProgress = draft?.generationProgress;
+    const measured = !stopped && phaseProgress > 0 && phaseProgress < 100;
+    const percent = complete ? 100 : measured ? phaseProgress : null;
 
     panel.hidden = false;
-    qs('#generation-progress-title', panel).textContent = localizedPair(state.title);
-    qs('#generation-progress-percent', panel).textContent = `${state.percent}%`;
-    qs('#generation-progress-detail', panel).textContent = `${detail} ${tr('Elapsed', 'Đã chạy')}: ${elapsed}s.`;
-    fill.style.width = `${state.percent}%`;
-    track.setAttribute('aria-valuenow', String(state.percent));
+    setText('#generation-progress-title', localizedPair(step || state.title));
+    setText('#generation-progress-percent', complete ? '100%' : measured
+      ? tr(`${percent}% of this stage`, `${percent}% giai đoạn này`)
+      : draft?.queueState === 'PENDING' ? tr('Queued', 'Đang chờ') : '');
+    setText('#generation-progress-detail', detail);
+    const stepStarted = Date.parse(draft?.claudeWait?.since);
+    const stepElapsed = !stopped && Number.isFinite(stepStarted)
+      ? ` · ${tr('This step', 'Bước này')} ${formatAiElapsed(Math.max(0, Math.floor((now - stepStarted) / 1000)))}`
+      : '';
+    setText('#generation-progress-elapsed', `${tr('Elapsed', 'Đã chạy')} ${formatAiElapsed(elapsed)}${stepElapsed}`);
+    panel.classList.toggle('generation-progress-live', !stopped && percent === null);
+    fill.style.width = percent === null && !stopped ? '' : `${percent ?? 0}%`;
+    if (percent === null) track.removeAttribute('aria-valuenow');
+    else track.setAttribute('aria-valuenow', String(percent));
     panel.classList.toggle('generation-progress-error', status === 'GENERATED_INVALID');
+
+    function setText(selector, value) {
+      const node = qs(selector, panel);
+      if (node.textContent !== value) node.textContent = value;
+    }
   }
 
   function stopPolling() {
@@ -1871,7 +1936,7 @@ export async function renderAdminAiPage(app) {
   function startProgressClock() {
     if (progressClock) window.clearInterval(progressClock);
     progressClock = window.setInterval(() => {
-      if (!disposed && runStartedAt) updateProgress(currentProgressStatus);
+      if (!disposed && (visibleDraft || runStartedAt)) updateProgress(currentProgressStatus);
     }, 1000);
   }
 
@@ -1882,13 +1947,18 @@ export async function renderAdminAiPage(app) {
 
   function startPolling(draftId, version) {
     stopPolling();
+    let failures = 0;
 
     const poll = async () => {
       if (disposed || version !== runVersion) return;
       try {
         const current = await aiCaseApi.draft(draftId);
         if (disposed || version !== runVersion) return;
-        updateProgress(current.status);
+        failures = 0;
+        if (pollingError) {
+          pollingError = null;
+          renderCreationStatus();
+        }
         if (isTerminalDraft(current)) {
           stopPolling();
           stopProgressClock();
@@ -1900,15 +1970,29 @@ export async function renderAdminAiPage(app) {
           draw(current);
           return;
         }
+        const prior = visibleDraft;
+        if (prior?.draftId !== current.draftId || prior.status !== current.status
+            || prior.orderStatus !== current.orderStatus || prior.queueState !== current.queueState
+            || prior.generationPhase !== current.generationPhase
+            || prior.claudeWait?.step !== current.claudeWait?.step || prior.introCutsceneStatus !== current.introCutsceneStatus) {
+          drafts = drafts.map(draft => draft.draftId === current.draftId ? current : draft);
+          draw(current);
+        } else {
+          visibleDraft = current;
+          updateProgress(current.status);
+        }
       } catch (error) {
         if (disposed || version !== runVersion) return;
-        stopPolling();
-        stopProgressClock();
+        failures++;
         pollingError = { error, draftId };
         renderCreationStatus();
-        return;
+        if ([401, 403, 404].includes(error?.status)) {
+          stopPolling();
+          stopProgressClock();
+          return;
+        }
       }
-      if (!disposed && version === runVersion) pollTimer = window.setTimeout(poll, 1500);
+      if (!disposed && version === runVersion) pollTimer = window.setTimeout(poll, Math.min(10000, 1500 * 2 ** failures));
     };
 
     pollTimer = window.setTimeout(poll, 500);
@@ -2024,7 +2108,6 @@ export async function renderAdminAiPage(app) {
           if (disposed || version !== runVersion) return;
           draw(draft);
           if (!isTerminalDraft(draft)) {
-            runStartedAt = Date.now();
             startProgressClock();
             startPolling(draft.draftId, version);
           }
@@ -2339,7 +2422,9 @@ export async function renderAdminAiPage(app) {
       .map((change) => `${escapeHtml(orderStatusLabel(change.status))} · ${escapeHtml(formatTime(change.at))}`)
       .join(' → ');
     const facts = orderFacts(d.order);
-    const waiting = d.claudeWait ? `<p class="aai-note" data-claude-wait>${tr('Waiting for the AI runner on step', 'Đang chờ AI xử lý bước')} <code>${escapeHtml(d.claudeWait.step)}</code></p>` : '';
+    const waiting = d.claudeWait ? `<p class="aai-note" data-claude-wait>${escapeHtml(localizedPair(
+      humanAiStep(d.claudeWait.step) || ['Waiting for the AI runner', 'Đang chờ AI xử lý']
+    ))}</p>` : '';
     const rejected = d.orderRejectReason ? `<p class="aai-note">${tr('Rejection reason', 'Lý do từ chối')}: ${escapeHtml(d.orderRejectReason)}</p>` : '';
     return `<div class="aai-order"><p class="aai-draft-meta">${tr('Order', 'Đơn')}: ${orderStatusPill(d)} ${orderButtons(d)}</p>${vipDraftLine(d)}${facts ? `<p class="aai-note" data-order-facts>${facts}</p>` : ''}${history ? `<p class="muted small">${history}</p>` : ''}${waiting}${rejected}</div>`;
   }

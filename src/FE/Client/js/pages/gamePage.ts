@@ -2886,7 +2886,7 @@ export async function renderGamePage(app: HTMLElement, roomId: string, { signal 
       const lookup = caseApi.introCutscene(first.caseId, first.isPlaytest ? roomId : '');
       const data = await Promise.race([lookup, new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500))]);
       if (!data?.script?.pages?.length) return;
-      introCutsceneId = `mc-intro:${first.caseId}`;
+      introCutsceneId = `mc-intro:${first.caseId}:${data.version}`;
       introVersion = first.presentation?.version;
       introCutscene = { id: introCutsceneId, trigger: 'INTRO', panels: [], motionComic: data };
     } catch { /* no opening comic: the game starts as before */ }

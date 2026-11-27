@@ -1,6 +1,6 @@
 import { session, sessionFor, sessionScope } from '../services/session.js';
 import { authSnapshot, canRetryForAccount, expireSessionIfCurrent, isPublicAuthRequest, refreshAfterUnauthorized } from '../services/authRefresh.js';
-import { tr } from '../services/i18n.js';
+import { tr, uiLanguage } from '../services/i18n.js';
 
 let stepUpPrompt = null;
 
@@ -86,7 +86,7 @@ export function apiFetch(method, path, body, _retry = true, extraHeaders = {}, c
 }
 
 async function sendJson(method, path, body, _retry, extraHeaders, scope, credentials, _stepUpRetry) {
-  const headers = { 'Content-Type': 'application/json', ...extraHeaders };
+  const headers = { 'Content-Type': 'application/json', 'X-SirLocked-Language': uiLanguage(), ...extraHeaders };
   const requestSession = authSnapshot(scope);
   const token = requestSession.token;
   if (token) headers.Authorization = `Bearer ${token}`;

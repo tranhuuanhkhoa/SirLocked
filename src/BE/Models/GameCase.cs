@@ -20,6 +20,10 @@ public class GameCase
     public string Title { get; set; } = string.Empty;
     public string Summary { get; set; } = string.Empty;
     public string Language { get; set; } = CaseLanguages.English;
+    // Keyed by the original text's hash so edited or reordered fields cannot show stale translations.
+    [BsonIgnoreIfNull]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, string>? AlternateLanguageText { get; set; }
     [JsonPropertyName("art_style")]
     public string ArtStyle { get; set; } = AiVisualStyleDefaults.ArtStyle;
     [JsonPropertyName("sub_style")]
@@ -704,6 +708,8 @@ public class CaseItem
 [BsonIgnoreExtraElements]
 public class CaseClue
 {
+    // Used while building the projection plan. The persisted provenance lives in ClueProjectionSlot.TraceId.
+    internal string ProjectionTraceId { get; init; } = string.Empty;
     public string ClueId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;

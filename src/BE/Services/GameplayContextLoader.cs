@@ -10,11 +10,13 @@ public sealed class GameplayContextLoader : IGameplayContextLoader
 {
     private readonly MongoDbContext _db;
     private readonly ICaseService _caseService;
+    private readonly IHttpContextAccessor? _http;
 
-    public GameplayContextLoader(MongoDbContext db, ICaseService caseService)
+    public GameplayContextLoader(MongoDbContext db, ICaseService caseService, IHttpContextAccessor? http = null)
     {
         _db = db;
         _caseService = caseService;
+        _http = http;
     }
 
     public async Task<GameplayContext> LoadAsync(
@@ -42,6 +44,7 @@ public sealed class GameplayContextLoader : IGameplayContextLoader
         }
 
         var gameCase = await _caseService.GetCaseAsync(room.CaseId);
-        return new GameplayContext(room, gameCase, player);
+        return new GameplayContext(room, CaseTextLocalization.ForPlayer(gameCase,
+            CaseTextLocalization.RequestLanguage(_http?.HttpContext)), player);
     }
 }

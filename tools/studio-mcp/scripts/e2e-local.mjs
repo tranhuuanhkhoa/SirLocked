@@ -374,6 +374,25 @@ try {
     // ------------------------------------------------------------------ 9. import, playtest, report
     const imported = await tool('draft_import', { draftId });
     log(`9. draft_import: ${imported.caseId} (chưa đăng), case JSON ở ${imported.caseFile}.`);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const intro = await admin('GET', `/api/admin/cases/${imported.caseId}/cutscene`);
+      if (!intro.claudeRequest) break;
+      const taken = await tool('bridge_take', { requestId: intro.claudeRequest.requestId });
+      if (real) await answerTaken({ repo, taken, tool, model, executable, servers: ready.servers, log });
+      else {
+        copyFileSync(path.join(repo, taken.files.devMockAnswer), path.join(repo, taken.files.answer));
+        const submitted = await tool('bridge_submit', { requestId: taken.requestId });
+        if (!submitted.accepted) throw new Error(`Intro bị từ chối: ${submitted.errors.join('; ')}`);
+      }
+    }
+    const intro = await admin('GET', `/api/admin/cases/${imported.caseId}/cutscene`);
+    const importedDraft = await admin('GET', `/api/admin/ai-cases/${draftId}`);
+    if (intro.latest?.status !== 'APPROVED' || importedDraft.introCutsceneStatus !== 'READY'
+        || !intro.script?.titleEn?.title
+        || !intro.script.pages.every(page => page.panels.every(panel => panel.beats.every(beat => beat.textEn)))) {
+      throw new Error(`Intro song ngữ chưa sẵn sàng: ${intro.latest?.status ?? 'no version'} / ${importedDraft.introCutsceneStatus}`);
+    }
+    results.intro = { approved: true, bilingual: true, panels: intro.script.pages.flatMap(page => page.panels).length };
     const publishRoute = await fetch(`${stack.apiUrl}/api/bridge/drafts/${draftId}/publish`, { method: 'POST', headers: { 'X-Bridge-Key': process.env.SIRLOCKED_BRIDGE_KEY } });
     if (publishRoute.status !== 404 && publishRoute.status !== 405) throw new Error(`bridge publish route answered ${publishRoute.status}`);
     const play = await tool('playtest', { draftId, apiUrl: stack.apiUrl, webUrl: stack.webUrl });
@@ -384,9 +403,14 @@ try {
     };
     log(`   playtest: ok=${play.ok}, buộc tội đúng=${play.summary?.accusationSuccess}, ${play.screenshots.length} ảnh, ước tính ${play.estimatedMinutes} phút, lỗi console ${play.summary?.consoleErrors}.`);
     if (!play.ok) throw new Error(`playtest không đạt: ${JSON.stringify(play.summary ?? play.error)}`);
+    const playReport = JSON.parse(readFileSync(path.join(repo, play.report), 'utf8'));
+    results.intro.played = playReport.notes.some(note => note.includes('Có cutscene mở đầu'));
+    if (!results.intro.played) throw new Error('Playtest chưa phát intro đã duyệt.');
 
     // VUAN-6B: the imported case is a pixel case in the shape of "Tram hong ngoc" (render, sprite sheets, walk grids).
     const caseJson = JSON.parse(readFileSync(path.join(repo, imported.caseFile), 'utf8'));
+    if (!Object.keys(caseJson.alternateLanguageText ?? {}).length)
+      throw new Error('Vụ import thiếu bản ngôn ngữ thứ hai.');
     const scenesOf = (gameCase) => gameCase.stages.flatMap((stage) => stage.scenes);
     const pixelScenes = scenesOf(caseJson);
     const render = (scene) => scene.runtime?.render ?? {};

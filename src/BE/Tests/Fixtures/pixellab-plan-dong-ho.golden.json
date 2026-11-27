@@ -9,7 +9,7 @@
     "params": {
       "width": 512,
       "height": 512,
-      "no_background": false,
+      "no_background": true,
       "seed": 707
     },
     "promptParam": "description",
@@ -381,11 +381,11 @@
     "params": {
       "width": 512,
       "height": 512,
-      "no_background": false,
+      "no_background": true,
       "seed": 707
     },
     "promptParam": "description",
-    "prompt": "Interior of a Victorian {{roomSubject}}. {{roomContents}} Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
+    "prompt": "Interior of a Victorian {{roomSubject}}. {{roomContents}} Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room. Warm morning light from the windows. Keep the area outside the room transparent. Draw any visible doorway with real room materials and natural shadow. Do not fill openings with magenta, green screen, or other placeholder colors. No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style.",
     "references": [
       {
         "param": "reference_images",

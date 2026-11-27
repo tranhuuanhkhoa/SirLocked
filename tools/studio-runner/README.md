@@ -13,7 +13,7 @@ Phiên Codex tự động chỉ dùng các tool của SirLocked và PixelLab. C�
 ## Kiểm tra và theo dõi
 
 - Từ gốc repo, chạy `node tools/studio-runner/src/index.mjs --check` để đọc hàng chờ, kiểm tra số dư PixelLab và đọc lại một file thử trong `tmp/`.
-- `Get-Content tmp/studio-runner/runner.log -Tail 30 -Wait` theo dõi kết nối và lượt chạy. Mỗi lượt có log tool trong cùng thư mục, và draft có báo cáo trên `/admin/ai`.
+- `Get-Content tmp/studio-runner/runner.log -Encoding UTF8 -Tail 30 -Wait` theo dõi kết nối, bước đang chạy và kết quả nộp. Mỗi lượt có log tool trong cùng thư mục.
 - `Stop-ScheduledTask -TaskName 'SirLocked Studio Runner'` dừng runner. `scripts/uninstall-studio-runner.ps1` gỡ tác vụ.
 
 Biến tùy chọn gồm `SIRLOCKED_API` (mặc định `https://sirlocked.id.vn`), `SIRLOCKED_CODEX_MODEL` (mặc định `gpt-6.2-sol`) và `SIRLOCKED_CODEX_BIN` để chỉ định đường dẫn Codex CLI. Launcher Windows tự tìm bản Codex đã cài mỗi khi tác vụ chạy.

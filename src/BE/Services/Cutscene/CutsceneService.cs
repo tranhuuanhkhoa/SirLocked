@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 using SirLocked.Api.Configurations;
+using SirLocked.Api.DataAccess;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Cutscene;
 using SirLocked.Api.Models;
@@ -18,9 +20,11 @@ public sealed class CutsceneService(
     IOptions<CutsceneSettings> settings,
     AiBridgeRequestStore bridgeRequests,
     IOptions<AiGenerationSettings> generation,
-    ILogger<CutsceneService> logger)
+    ILogger<CutsceneService> logger,
+    MongoDbContext? db = null)
 {
     private const string Trigger = CutsceneTriggers.Intro;
+    private const string PipelineRunPrefix = "import-intro-";
 
     // ---------------------------------------------------------------- players
 
@@ -77,7 +81,9 @@ public sealed class CutsceneService(
         if (open is null && existing.Count > 0 && !regenerate)
             throw ApiException.Conflict("This case already has a cutscene. Asking Claude again replaces the draft; confirm to continue.",
                 "CUTSCENE_REGENERATE_CONFIRM", "cutscene.regenerate.confirm");
-        return await RunAsync(caseId, open?.GenerationRunId ?? Guid.NewGuid().ToString("N"), actor, ct);
+        var runId = open?.GenerationRunId
+            ?? (actor == "ai-pipeline" && existing.Count == 0 ? PipelineRunPrefix : "") + Guid.NewGuid().ToString("N");
+        return await RunAsync(caseId, runId, actor, ct);
     }
 
     /// <summary>Called by the bridge after the bot answered a CUTSCENE request: replays the run with its answers.</summary>
@@ -88,8 +94,21 @@ public sealed class CutsceneService(
     {
         var gameCase = await cases.GetCaseAsync(caseId);
         var existing = await store.ListAsync(caseId, Trigger, ct);
-        if (existing.Any(version => version.GenerationRunId == generationRunId))
+        var fromImport = generationRunId.StartsWith(PipelineRunPrefix, StringComparison.Ordinal)
+            && !string.IsNullOrEmpty(gameCase.SourceAiDraftId);
+        var stored = existing.FirstOrDefault(version => version.GenerationRunId == generationRunId);
+        if (stored is not null)
+        {
+            var ready = stored.Status == CutsceneStatus.Approved;
+            if (fromImport && stored.Status == CutsceneStatus.Draft && stored.Source != "MANUAL" && existing.Count == 1)
+            {
+                await ApproveAsync(caseId, stored.Id, actor, ct);
+                ready = true;
+            }
+            if (fromImport && ready)
+                await SaveImportIntroStatusAsync(gameCase, AiIntroCutsceneStatuses.Ready, ct);
             return await GetAdminAsync(caseId, ct);
+        }
         CutsceneGenerationResult result;
         try
         {
@@ -99,10 +118,31 @@ public sealed class CutsceneService(
         {
             return await GetAdminAsync(caseId, ct);
         }
+        catch (ApiException) when (fromImport)
+        {
+            await SaveImportIntroStatusAsync(gameCase, AiIntroCutsceneStatuses.Failed, ct);
+            throw;
+        }
         var saved = await InsertNextVersionAsync(caseId, existing, result.ScriptJson, result.Script, result.Mock ? "MOCK" : "CLAUDE",
             result.Model, actor, ct, generationRunId);
-        if (settings.Value.AutoApprove) await ApproveAsync(caseId, saved.Id, actor, ct);
+        // A later admin edit or regeneration keeps the normal approval workflow.
+        if (settings.Value.AutoApprove
+            || (fromImport && existing.Count == 0 && (await store.ListAsync(caseId, Trigger, ct)).Count == 1))
+        {
+            await ApproveAsync(caseId, saved.Id, actor, ct);
+            if (fromImport) await SaveImportIntroStatusAsync(gameCase, AiIntroCutsceneStatuses.Ready, ct);
+        }
         return await GetAdminAsync(caseId, ct);
+    }
+
+    private async Task SaveImportIntroStatusAsync(GameCase gameCase, string status, CancellationToken ct)
+    {
+        if (db is null) return;
+        await db.AiCaseDrafts.UpdateOneAsync(
+            d => d.Id == gameCase.SourceAiDraftId && d.ImportedCaseId == gameCase.CaseId
+                && d.IntroCutsceneStatus != status,
+            Builders<AiCaseDraft>.Update.Set(d => d.IntroCutsceneStatus, status)
+                .Set(d => d.IntroCutsceneFinishedAt, DateTime.UtcNow), cancellationToken: ct);
     }
 
     /// <summary>The newest Claude run of this case that has not produced a version yet.</summary>
@@ -112,6 +152,7 @@ public sealed class CutsceneService(
         var requests = await bridgeRequests.ListForOwnerAsync(AiBridgeOwnerTypes.Cutscene, caseId, ct);
         var latest = requests.LastOrDefault(request => request.Status is not (AiBridgeStatuses.Stale or AiBridgeStatuses.Cancelled));
         if (latest is null || versions.Any(version => version.GenerationRunId == latest.GenerationRunId)) return null;
+        if (latest.Step == "CutsceneScriptRepair" && AiBridgeStatuses.Answered.Contains(latest.Status)) return null;
         return latest;
     }
 

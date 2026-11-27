@@ -44,7 +44,7 @@ test('server readiness blockers stay visible in Vietnamese and retry preserves t
   await page.goto('/admin/ai');
   await expect(page.locator('#quick-create-btn')).toBeDisabled();
   await expect(page.locator('#ai-readiness-error')).toContainText('Chưa thể tạo vụ án');
-  await expect(page.locator('#ai-readiness-error')).toContainText('Máy chủ chưa có khóa bridge của Claude');
+  await expect(page.locator('#ai-readiness-error')).toContainText('Máy chủ chưa có khóa bridge');
   await expect(page.locator('#ai-readiness-error')).toContainText('scripts/set-bridge-key.sh');
   await page.screenshot({ path: testInfo.outputPath('ai-readiness-blockers-vi-desktop.png'), fullPage: true });
   await page.locator('#ai-creator-direction').fill('Giữ lại hướng điều tra ở nhà hát.');
@@ -207,8 +207,8 @@ test('failed terminal generation shows the configuration issue without a success
     ? [] : { ...draft, status: 'GENERATED_INVALID', lastGenerationErrorCode: 'BRIDGE_NOT_CONFIGURED', storyPreview: null }) }));
   await page.goto('/admin/ai');
   await page.locator('#quick-create-btn').click();
-  await expect(page.locator('#ai-output')).toContainText('Generation invalid');
-  await expect(page.locator('#ai-request-error')).toContainText('Claude bridge key');
+  await expect(page.locator('#ai-output')).toContainText('Needs attention');
+  await expect(page.locator('#ai-request-error')).toContainText('bridge key');
   await expect(page.locator('.toast-success')).toHaveCount(0);
 });
 

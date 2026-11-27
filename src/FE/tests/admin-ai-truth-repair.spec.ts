@@ -51,6 +51,9 @@ async function openDraft(page: Page) {
   await page.goto('/admin/ai');
   await page.locator('[data-view="truth-repair"]').click();
   await expect(page.locator('#ai-output')).toContainText('Truth repair case');
+  const details = page.locator('#ai-output [data-ai-technical]');
+  await expect(details).not.toHaveAttribute('open', '');
+  await details.locator('> summary').click();
 }
 
 test('full logic exposes scoped repair and shows candidate findings independently before acceptance', async ({ page }, testInfo) => {
@@ -75,12 +78,12 @@ test('full logic exposes scoped repair and shows candidate findings independentl
   await expect(review).toContainText('inheritance motive has no supporting evidence');
   await expect(review).toContainText('Structure passed; review the content');
   await expect(review).toContainText('requires gameplay to be generated again');
-  await expect(page.locator('[data-ai-quality-summary]')).toContainText('Story review (advisory): PASSED');
+  await expect(page.locator('[data-ai-quality-summary]')).toContainText('Story review Checked');
   await expect(page.locator('#ai-output [data-approve-full-logic]')).toHaveCount(0);
   await expect(page.locator('[data-truth-review] [data-repair-truth]')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('truth-repair-review-desktop.png'), fullPage: true });
   await page.locator('[data-accept-truth-repair]').click();
-  await expect(page.locator('[data-ai-quality-summary]')).toContainText('Story review (advisory): FAILED');
+  await expect(page.locator('[data-ai-quality-summary]')).toContainText('Story review Needs correction');
   // Semantic review stays advisory; structural validity still allows gameplay approval.
   await expect(page.locator('#ai-output [data-approve-truth]')).toBeVisible();
 });
@@ -89,7 +92,7 @@ test('Vietnamese copy distinguishes valid structure from an unreviewed candidate
   await arrange(page, { ...candidateDraft, truthReviewerResult: { status: 'NOT_RUN' }, truthRepairReviewerResult: null });
   await page.addInitScript(() => localStorage.setItem('sirlocked.uiLanguage', 'vi'));
   await openDraft(page);
-  await expect(page.locator('[data-ai-quality-summary]')).toContainText('Chất lượng cốt truyện chưa được đánh giá');
+  await expect(page.locator('[data-ai-quality-summary]')).toContainText('Chưa kiểm tra');
   await expect(page.locator('[data-truth-repair-review]')).toContainText('Đánh giá cốt truyện bản sửa (tham khảo): NOT_RUN');
   await expect(page.locator('[data-truth-repair-review]')).toContainText('Cấu trúc hợp lệ');
   await expect(page.locator('[data-accept-truth-repair]')).toBeEnabled();

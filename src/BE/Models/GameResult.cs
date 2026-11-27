@@ -31,6 +31,8 @@ public class GameResultCaseSnapshot
 {
     public string Title { get; set; } = string.Empty;
     public string Language { get; set; } = CaseLanguages.English;
+    [BsonIgnoreIfNull]
+    public Dictionary<string, string>? AlternateLanguageText { get; set; }
     public int MechanicsVersion { get; set; }
     public Dictionary<string, string> CharacterNames { get; set; } = new();
     public Dictionary<string, string> ClueTitles { get; set; } = new();

@@ -459,10 +459,10 @@ public sealed class AiBridgeService(
         if (string.IsNullOrWhiteSpace(draft.GeneratedJson))
             throw ApiException.Conflict("This draft has no case JSON yet.", "BRIDGE_DRAFT_HAS_NO_CASE", "ai.bridge.noCase");
         var gameCase = caseService.ParseCase(draft.GeneratedJson);
-        var known = AiCaseService.BuildAssetSlots(draft, gameCase, AiAssetPhases.SceneLayout)
+        var slot = AiCaseService.BuildAssetSlots(draft, gameCase, AiAssetPhases.SceneLayout)
             .Concat(AiCaseService.BuildAssetSlots(draft, gameCase, AiAssetPhases.FinalAssets))
-            .Any(slot => slot.SlotId == slotId);
-        if (!known)
+            .FirstOrDefault(slot => slot.SlotId == slotId);
+        if (slot is null)
             throw ApiException.BadRequest($"Slot '{slotId}' is not an image slot of this draft. See assets-needed.",
                 new ApiErrorDetails("BRIDGE_UNKNOWN_SLOT", "ai.bridge.unknownSlot"));
         double? feetAnchorY = null;
@@ -472,9 +472,6 @@ public sealed class AiBridgeService(
                 throw ApiException.Conflict(
                     "Declare the asset plan first (PUT asset-plan): library pictures, variants and PixelLab requests within pixelLabCap.",
                     "AI_ASSET_PLAN_REQUIRED", "ai.assetPlan.required");
-            var slot = AiCaseService.BuildAssetSlots(draft, gameCase, AiAssetPhases.SceneLayout)
-                .Concat(AiCaseService.BuildAssetSlots(draft, gameCase, AiAssetPhases.FinalAssets))
-                .First(entry => entry.SlotId == slotId);
             var info = BridgeAssetStorage.Inspect(bytes, Math.Max(1024, bridge.Value.MaxAssetBytes));
             if (info.Width != slot.Width || info.Height != slot.Height)
                 throw ApiException.BadRequest(
@@ -483,6 +480,10 @@ public sealed class AiBridgeService(
             if (slot.Kind != AiAssetSlotKinds.Background && !info.HasAlpha)
                 throw ApiException.BadRequest($"Slot '{slotId}' needs a transparent background (PNG/WebP with alpha).",
                     new ApiErrorDetails("ASSET_NEEDS_ALPHA", "ai.bridge.assetNeedsAlpha"));
+            if (slot.Kind == AiAssetSlotKinds.Background && BridgeAssetStorage.HasOpaqueMagentaPatch(bytes))
+                throw ApiException.BadRequest(
+                    $"Slot '{slotId}' has a solid magenta patch. Replace this scene image with the removal option enabled and natural colors inside the doorway.",
+                    new ApiErrorDetails("ASSET_CHROMA_BACKGROUND", "ai.bridge.assetChromaBackground"));
             if (slot.Kind == AiAssetSlotKinds.CharacterSprite)
             {
                 feetAnchorY = PixelCasePipeline.MeasureFeetAnchorY(bytes);

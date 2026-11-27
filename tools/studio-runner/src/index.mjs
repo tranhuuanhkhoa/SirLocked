@@ -14,7 +14,7 @@ import { createScheduler } from './scheduler.mjs';
 import { isScriptStep, runScriptRequest } from '../../studio-mcp/scripts/easy-text.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const logDir = path.join(repoRoot, 'tmp', 'studio-runner');
+const logDir = path.resolve(repoRoot, process.env.SIRLOCKED_RUNNER_LOG_DIR || 'tmp/studio-runner');
 mkdirSync(logDir, { recursive: true });
 const executable = process.env.SIRLOCKED_CODEX_BIN || 'codex';
 const model = process.env.SIRLOCKED_CODEX_MODEL || 'gpt-6.2-sol';
@@ -48,10 +48,12 @@ async function runBot(state) {
     return 3;
   }
   if (!checkOnly && state?.scriptRequest) {
-    log(`Codex ${model} · ${state.scriptRequest.step} · ${state.scriptRequest.requestId}`);
+    const { step, draftId, requestId } = state.scriptRequest;
+    log(`Codex ${model} · ${step} · ${requestId} · đơn ${draftId}`);
     try {
       await runScriptRequest({ repo: repoRoot, row: state.scriptRequest, executable, model, servers: ready.servers, log,
         env: { ...process.env, SIRLOCKED_API: api, SIRLOCKED_BRIDGE_KEY: key, SIRLOCKED_REPO_ROOT: repoRoot } });
+      log(`Đã nộp · ${step} · ${requestId} · đơn ${draftId}`);
       return 0;
     } catch (error) {
       log(hideSecrets(error.message));
@@ -60,7 +62,9 @@ async function runBot(state) {
   }
   const command = buildBotCommand({ repoRoot, executable, model, servers: ready.servers, check: checkOnly, easyScript: state?.easyScript });
   const file = path.join(logDir, `${stamp()}${checkOnly ? '-check' : ''}.log`);
-  log(`${checkOnly ? 'Kiểm tra' : 'Chạy bot'} Codex (${model}) — ${path.relative(repoRoot, file)}`);
+  const first = state?.first;
+  const work = first?.step ? ` · ${first.step} · ${first.requestId} · ${first.draftId ? 'đơn ' + first.draftId : first.caseId ?? '—'}` : '';
+  log(`${checkOnly ? 'Kiểm tra' : 'Chạy bot'} Codex (${model})${work} — ${path.relative(repoRoot, file)}`);
   const out = createWriteStream(file);
   return new Promise((resolve) => {
     const child = spawn(command.file, command.args, {
@@ -71,6 +75,7 @@ async function runBot(state) {
       windowsHide: true,
     });
     const passed = new Set();
+    let active = first;
     let stderr = '';
     const maxRunMs = (checkOnly ? 3 : 100) * 60_000;
     const timer = setTimeout(() => {
@@ -80,12 +85,28 @@ async function runBot(state) {
     createInterface({ input: child.stdout }).on('line', (line) => {
       let event;
       try { event = JSON.parse(line); } catch { return; }
-      if (event.type === 'item.completed' && event.item?.type === 'mcp_tool_call') {
+      if (event.item?.type === 'mcp_tool_call' && ['item.started', 'item.completed'].includes(event.type)) {
         const item = event.item;
-        const ok = item.status === 'completed' && !item.error && !item.result?.is_error && !item.result?.isError;
         const name = `${item.server}.${item.tool}`;
+        if (event.type === 'item.started') {
+          if (item.server === 'pixellab' && /^(wait_for_jobs|create_|animate_|inpaint_)/.test(item.tool))
+            log(`PixelLab đang xử lý · ${item.tool}${active?.draftId ? ` · đơn ${active.draftId}` : ''}`);
+          return;
+        }
+        const ok = item.status === 'completed' && !item.error && !item.result?.is_error && !item.result?.isError;
         if (ok) passed.add(name);
         out.write(`${new Date().toISOString()} ${name}: ${ok ? 'OK' : 'FAILED'}${item.error?.message ? ' — ' + hideSecrets(item.error.message).slice(0, 400) : ''}\n`);
+        if (item.server === 'sirlocked-studio' && /^(bridge_take|bridge_submit|bridge_release|assets_complete|draft_import|playtest)$/.test(item.tool)) {
+          let data;
+          try { data = JSON.parse(item.result?.content?.find(part => part.type === 'text')?.text ?? '{}'); } catch { data = {}; }
+          if (item.tool === 'bridge_take' && ok) active = data;
+          const id = item.arguments?.requestId ?? item.arguments?.draftId ?? data.requestId ?? data.draftId;
+          const identification = typeof id === 'string' && /^[\w-]+$/.test(id) ? ` · ${id}` : '';
+          const step = typeof data.step === 'string' && /^[\w:-]+$/.test(data.step) ? ` · ${data.step}` : '';
+          const draft = data.draftId ?? item.arguments?.draftId
+            ?? (id === active?.requestId ? active?.draftId : null);
+          log(`${item.tool}: ${ok && data.accepted !== false ? 'OK' : 'Chưa đạt'}${step}${identification}${draft && draft !== id ? ` · đơn ${draft}` : ''}`);
+        }
       } else if (event.type === 'turn.failed' || event.type === 'error') {
         out.write(`${event.type}: ${hideSecrets(event.error?.message ?? event.message ?? '').slice(0, 600)}\n`);
       }
@@ -126,7 +147,7 @@ async function pendingSnapshot() {
       const easyScript = rows.length > 0 && rows.every(row => row.kind === 'JSON' && row.difficulty === 'easy' && row.reviewMode === 'AUTO');
       const first = rows[0];
       const scriptRequest = isEasyScriptRequest(first) ? first : undefined;
-      return { count: rows.length, signature: ids.join(','), easyScript, scriptRequest };
+      return { count: rows.length, signature: ids.join(','), easyScript, scriptRequest, first };
     }
   } catch {
     // Fall back to SignalR PendingCount below.

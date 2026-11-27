@@ -393,6 +393,7 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
 
     private static CaseClue CreateTraceClue(TraceLedgerEntry trace, string clueId) => new()
     {
+        ProjectionTraceId = trace.TraceId,
         ClueId = clueId,
         IsCritical = false,
         IsEvidence = trace.SupportsConclusionIds.Count > 0,
@@ -905,17 +906,10 @@ public sealed partial class GameplayProjectionPlanner : IGameplayProjectionPlann
                 UnlockClueIds = item.UnlockClueIds.ToList()
             };
 
-        var traceBySource = truth.TraceLedger
-            .GroupBy(item => (item.SourceActionId, item.LocationId, item.IndependentSourceGroup))
-            .ToDictionary(group => group.Key, group => group.First());
+        var traceById = truth.TraceLedger.ToDictionary(trace => trace.TraceId, StringComparer.Ordinal);
         foreach (var clue in plan.Skeleton.Clues)
         {
-            var trace = truth.TraceLedger.FirstOrDefault(item =>
-                item.SourceActionId == clue.SourceActionId
-                && item.LocationId == clue.SceneId
-                && item.IndependentSourceGroup == clue.IndependentSourceGroup)
-                ?? traceBySource.GetValueOrDefault((clue.SourceActionId, clue.SceneId, clue.IndependentSourceGroup));
-            if (trace is null) continue;
+            var trace = traceById[clue.ProjectionTraceId];
             plan.Clues[clue.ClueId] = new ClueProjectionSlot
             {
                 ClueId = clue.ClueId,

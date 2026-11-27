@@ -18,6 +18,7 @@ public static class GameResultFactory
         bool success,
         DateTime completedAt)
     {
+        gameCase = CaseTextLocalization.Original(gameCase);
         var isV2 = gameCase.MechanicsVersion >= CaseMechanicsVersions.InvestigationV2;
         return new FinalAccusationSnapshot
         {
@@ -65,6 +66,7 @@ public static class GameResultFactory
     {
         Title = gameCase.Title,
         Language = gameCase.Language,
+        AlternateLanguageText = ResultTranslations(gameCase),
         MechanicsVersion = gameCase.MechanicsVersion,
         CharacterNames = gameCase.Characters.ToDictionary(character => character.CharacterId, character => character.Name),
         ClueTitles = gameCase.Clues.ToDictionary(clue => clue.ClueId, clue => clue.Title),
@@ -107,12 +109,24 @@ public static class GameResultFactory
     private static List<AccusationOption> CopyOptions(IEnumerable<AccusationOption> options) =>
         options.Select(option => new AccusationOption { Id = option.Id, Label = option.Label }).ToList();
 
+    private static Dictionary<string, string>? ResultTranslations(GameCase gameCase)
+    {
+        if (gameCase.AlternateLanguageText is not { Count: > 0 } texts) return null;
+        var logic = gameCase.FinalLogic;
+        return gameCase.Clues.Select(clue => clue.Title)
+            .Concat(logic.MotiveOptions.Concat(logic.MethodOptions).Select(option => option.Label))
+            .Concat([gameCase.Title, logic.Motive, logic.Method, logic.WinEnding, logic.FailEnding])
+            .Select(CaseTextLocalization.Key).Distinct().Where(texts.ContainsKey)
+            .ToDictionary(key => key, key => texts[key]);
+    }
+
     internal static GameCase CaseForResult(GameResult result, GameCase currentCase) =>
         result.CaseDefinitionSnapshot is not { } definition ? currentCase : new GameCase
         {
             CaseId = result.CaseId,
             Title = definition.Title,
             Language = definition.Language,
+            AlternateLanguageText = definition.AlternateLanguageText,
             MechanicsVersion = definition.MechanicsVersion,
             Characters = definition.CharacterNames.Select(pair => new CaseCharacter { CharacterId = pair.Key, Name = pair.Value }).ToList(),
             Clues = definition.ClueTitles.Select(pair => new CaseClue { ClueId = pair.Key, Title = pair.Value }).ToList(),

@@ -119,6 +119,7 @@ builder.Services.Configure<CaseCatalogSettings>(builder.Configuration.GetSection
 builder.Services.AddSingleton<CaseCatalogPolicy>();
 builder.Services.Configure<WeeklyChallengeSettings>(builder.Configuration.GetSection("WeeklyChallenge"));
 builder.Services.Configure<CutsceneSettings>(builder.Configuration.GetSection("Cutscene"));
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICutsceneStore, MongoCutsceneStore>();
 builder.Services.AddScoped<CutsceneScriptGenerator>();
 builder.Services.AddScoped<CutsceneService>();

@@ -1,0 +1,267 @@
+{
+  "format": "motion-comic-v1",
+  "caseId": "case-ai-6b09d6cf457e2d0b4223954b",
+  "language": "vi",
+  "title": {
+    "eyebrow": "Hồ sơ 01",
+    "title": "Cánh én bên ga Hàng Đường",
+    "subtitle": "Một thoáng vắng quầy. Mở sổ tay và lần theo dấu vết."
+  },
+  "mood": "warm-dusk",
+  "pages": [
+    {
+      "layout": "wide-top-two-bottom",
+      "panels": [
+        {
+          "art": {
+            "kind": "scene",
+            "id": "hang_duong_station_square_and_parcel_awning",
+            "focus": [
+              0.04,
+              0.02,
+              0.92,
+              0.8
+            ]
+          },
+          "weather": "rain",
+          "enter": "none",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Chập tối. Ga Hàng Đường, năm 1912.",
+              "style": "",
+              "textEn": "Dusk. Hang Duong Station, 1912."
+            },
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Mưa bụi phủ mặt đá dưới đèn khí.",
+              "style": "",
+              "textEn": "Drizzle coats the cobbles under the gas lamps."
+            }
+          ],
+          "audio": []
+        },
+        {
+          "art": {
+            "kind": "scene",
+            "id": "hang_duong_station_square_and_parcel_awning",
+            "focus": [
+              0.33,
+              0.11,
+              0.37,
+              0.43
+            ]
+          },
+          "weather": "rain",
+          "enter": "left",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Chủ hiệu đóng sách sang mái hiên ga nhận một bưu kiện.",
+              "style": "",
+              "textEn": "The bindery owner crossed to the station awning to collect a parcel."
+            }
+          ],
+          "audio": []
+        },
+        {
+          "art": {
+            "kind": "scene",
+            "id": "bindery_back_room",
+            "focus": [
+              0.27,
+              0.23,
+              0.52,
+              0.46
+            ]
+          },
+          "weather": "none",
+          "enter": "right",
+          "beats": [
+            {
+              "type": "sfx",
+              "speakerId": "",
+              "text": "KENG.",
+              "style": "soft",
+              "textEn": "CLINK."
+            },
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Trong phòng sau, có người nghe tiếng kim loại chạm nền.",
+              "style": "",
+              "textEn": "In the back room, someone heard metal strike the floor."
+            }
+          ],
+          "audio": []
+        }
+      ]
+    },
+    {
+      "layout": "tall-left-two-right",
+      "panels": [
+        {
+          "art": {
+            "kind": "character",
+            "id": "edmund_vale",
+            "focus": [
+              0.27,
+              0.15,
+              0.46,
+              0.75
+            ]
+          },
+          "weather": "none",
+          "enter": "left",
+          "beats": [
+            {
+              "type": "speech",
+              "speakerId": "edmund_vale",
+              "text": "Tôi mang giấy tờ của hội thợ đến.",
+              "style": "",
+              "textEn": "I brought some papers from the guild."
+            },
+            {
+              "type": "speech",
+              "speakerId": "edmund_vale",
+              "text": "Tôi đã ra quảng trường trước khi chủ hiệu rời quầy.",
+              "style": "",
+              "textEn": "I was out in the square before the owner left the counter."
+            }
+          ],
+          "audio": []
+        },
+        {
+          "art": {
+            "kind": "character",
+            "id": "clara_finch",
+            "focus": [
+              0.26,
+              0.1,
+              0.48,
+              0.79
+            ]
+          },
+          "weather": "none",
+          "enter": "right",
+          "beats": [
+            {
+              "type": "speech",
+              "speakerId": "clara_finch",
+              "text": "Tôi đang đứng bên máy ép.",
+              "style": "",
+              "textEn": "I was standing by the press."
+            },
+            {
+              "type": "speech",
+              "speakerId": "clara_finch",
+              "text": "Tôi cứ tưởng tiếng lanh canh vọng từ quầy.",
+              "style": "",
+              "textEn": "I thought the clink came from the counter."
+            }
+          ],
+          "audio": []
+        },
+        {
+          "art": {
+            "kind": "character",
+            "id": "arthur_bell",
+            "focus": [
+              0.23,
+              0.09,
+              0.54,
+              0.81
+            ]
+          },
+          "weather": "none",
+          "enter": "bottom",
+          "beats": [
+            {
+              "type": "speech",
+              "speakerId": "arthur_bell",
+              "text": "Tôi trực ở bàn dưới mái hiên.",
+              "style": "",
+              "textEn": "I was on duty at the desk under the awning."
+            },
+            {
+              "type": "speech",
+              "speakerId": "arthur_bell",
+              "text": "Ai qua cửa kính vào hiệu, tôi nghĩ mình đều thấy.",
+              "style": "",
+              "textEn": "I think I would have seen anyone go through the shop's glass door."
+            }
+          ],
+          "audio": []
+        }
+      ]
+    },
+    {
+      "layout": "splash-inset",
+      "panels": [
+        {
+          "art": {
+            "kind": "scene",
+            "id": "bindery_front_counter",
+            "focus": [
+              0.06,
+              0.35,
+              0.43,
+              0.44
+            ]
+          },
+          "weather": "streetlight",
+          "enter": "none",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Khi chủ hiệu quay lại, chiếc thẻ én bằng đồng đã biến mất.",
+              "style": "",
+              "textEn": "When the owner returned, the bronze swallow token was gone."
+            },
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Một mép khay gác trên cuốn sổ nhận việc.",
+              "style": "",
+              "textEn": "One edge of the tray now rested on the order book."
+            }
+          ],
+          "audio": []
+        },
+        {
+          "art": {
+            "kind": "scene",
+            "id": "hang_duong_station_square_and_parcel_awning",
+            "focus": [
+              0.62,
+              0.19,
+              0.37,
+              0.52
+            ]
+          },
+          "weather": "rain",
+          "enter": "left",
+          "beats": [
+            {
+              "type": "caption",
+              "speakerId": "",
+              "text": "Mở sổ tay. Một người hỏi chuyện, một người xem khay.",
+              "style": "",
+              "textEn": "Open your notebook. One of you asks questions while the other checks the tray."
+            }
+          ],
+          "audio": []
+        }
+      ]
+    }
+  ],
+  "titleEn": {
+    "eyebrow": "Case File 01",
+    "title": "The Swallow at Hang Duong Station",
+    "subtitle": "The counter was left unattended for a moment. Open your notebook and follow the clues."
+  }
+}
