@@ -356,6 +356,9 @@ public static class AiStrictSchemaProvider
             SetArrayBounds(schema, ["trueTimeline"], requiredEvents.Count, budget.MaxTimelineEvents);
         }
         var properties = schema["properties"]!["trueTimeline"]!["items"]!["properties"]!.AsObject();
+        properties["startMinute"]!["minimum"] = 0;
+        properties["endMinute"]!["minimum"] = 1;
+        properties["travelFromPreviousMinutes"]!["minimum"] = 0;
         properties["actorId"] = StringEnumSchema(actors);
         properties["locationId"] = StringEnumSchema(locations);
         properties["witnessIds"]!["items"] = StringEnumSchema(actors);

@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.Text.Json.Serialization;
 
 namespace SirLocked.Api.Models;
 
@@ -72,6 +73,11 @@ public class AiBridgeRequest
     public string Instructions { get; set; } = string.Empty;
     /// <summary>JSON Schema of the expected answer, stored as JSON text.</summary>
     public string SchemaJson { get; set; } = string.Empty;
+    // A repair builds a new upstream truth while the draft still holds the accepted checkpoint.
+    [BsonIgnoreIfNull, JsonIgnore]
+    public CaseTruthPackage? TruthRepairUpstream { get; set; }
+    [BsonIgnoreIfNull, JsonIgnore]
+    public string? TruthEditScope { get; set; }
     public string PromptSha256 { get; set; } = string.Empty;
     public int MaxOutputTokens { get; set; }
     /// <summary>For ASSETS requests: the asset phase (SCENE_LAYOUT or FINAL_ASSETS) and the slot ids the bot must fill.</summary>

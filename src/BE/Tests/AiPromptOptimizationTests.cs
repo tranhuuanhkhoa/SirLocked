@@ -176,6 +176,45 @@ public sealed class AiPromptOptimizationTests
     }
 
     [Fact]
+    public void ABlindFindingScopesAuthoringAndReviewToTheCitedClue()
+    {
+        var draft = AiPromptBenchmark.Fixture(isV3: true);
+        var plan = draft.ProjectionPlan!;
+        var schema = ProjectionWireContract.Schema(new ProjectionContentSchemaFactory().Build(plan), ProjectionWireContract.CompactVersion);
+        var (challengeId, crack) = plan.Challenges.First();
+        var clueId = crack.CandidateEvidenceIds.First();
+        var paths = ProjectionFieldRepair.BlindPaths(schema, [clueId, "unknown-id"]);
+        Assert.NotEmpty(paths);
+        Assert.All(paths, path => Assert.Equal(new[] { "clues", clueId }, path.Take(2)));
+        Assert.Contains(challengeId, ProjectionFieldRepair.AffectedChallenges(plan, paths));
+        Assert.All(ProjectionFieldRepair.AffectedChallenges(plan, paths),
+            id => Assert.Contains(clueId, plan.Challenges[id].CandidateEvidenceIds));
+    }
+
+    [Fact]
+    public void ProjectionFieldRepairPatchesPuzzleDocumentAndPreservesOtherAuthoredFields()
+    {
+        var schema = JsonNode.Parse("""
+            {"properties":{"puzzles":{"properties":{"puzzle-01":{"properties":{"authored":{"type":"object"},"kind":{"type":"string"}}}}}}}
+            """)!.AsObject();
+        var validation = new SirLocked.Api.DTOs.Case.CaseValidationResult();
+        validation.Add("PROJECTION_CONTENT_MISMATCH", "$.projectionContent",
+            "PROJECTION_PUZZLE puzzles.puzzle-01.params.doc: doc.lines must hold 1–3 typed lines.");
+        var paths = ProjectionFieldRepair.Paths(schema, validation);
+        Assert.Equal(new[] { "puzzles", "puzzle-01", "authored", "doc" }, Assert.Single(paths));
+        var patch = ProjectionFieldRepair.Schema(schema, paths);
+        var fields = patch["properties"]!["puzzles"]!["properties"]!["puzzle-01"]!["properties"]!;
+        Assert.Equal("authored", Assert.Single(fields.AsObject()).Key);
+        var result = ProjectionFieldRepair.Merge(
+            """{"puzzles":{"puzzle-01":{"kind":"torn_paper","authored":{"doc":"old","note":{"text":"unchanged"}}}}}""",
+            """{"puzzles":{"puzzle-01":{"authored":{"doc":{"lines":["A corrected line"]}}}}}""", paths);
+        var puzzle = JsonNode.Parse(result)!["puzzles"]!["puzzle-01"]!;
+        Assert.Equal("unchanged", puzzle["authored"]!["note"]!["text"]!.GetValue<string>());
+        Assert.Equal("A corrected line", puzzle["authored"]!["doc"]!["lines"]![0]!.GetValue<string>());
+        Assert.Equal("torn_paper", puzzle["kind"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void SemanticPatchKeepsUnrelatedAcceptedContentAndRejectsExtraSections()
     {
         var draft = AiPromptBenchmark.Fixture(isV3: true);

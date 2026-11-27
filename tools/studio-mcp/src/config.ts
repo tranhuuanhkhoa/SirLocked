@@ -23,14 +23,13 @@ export interface StudioConfig {
   httpTimeoutMs: number;
   /** Where PixelLab character zips are downloaded from; https://api.pixellab.ai when unset (tests point it at a fake). */
   pixellabBase?: string;
+  unattended?: boolean;
 }
 
-/** tools/studio-mcp/dist/src/config.js -> repo root. Falls back to CLAUDE_PROJECT_DIR or SIRLOCKED_REPO_ROOT. */
+/** Find the repository from the MCP module location unless the operator sets SIRLOCKED_REPO_ROOT. */
 export function findRepoRoot(env: NodeJS.ProcessEnv = process.env): string {
-  const candidates = [env.SIRLOCKED_REPO_ROOT, env.CLAUDE_PROJECT_DIR];
-  for (const candidate of candidates) {
-    if (candidate && existsSync(path.join(candidate, 'tools', 'studio-mcp', 'package.json'))) return path.resolve(candidate);
-  }
+  const configured = env.SIRLOCKED_REPO_ROOT;
+  if (configured && existsSync(path.join(configured, 'tools', 'studio-mcp', 'package.json'))) return path.resolve(configured);
   let dir = path.dirname(fileURLToPath(import.meta.url));
   for (let depth = 0; depth < 8; depth++) {
     if (existsSync(path.join(dir, 'tools', 'studio-mcp', 'package.json')) && existsSync(path.join(dir, 'src', 'BE'))) return dir;
@@ -73,6 +72,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): StudioConfig {
     apiBase: normalizeApiBase(env.SIRLOCKED_API),
     bridgeKey: (env.SIRLOCKED_BRIDGE_KEY ?? '').trim(),
     tmpRoot: path.join(repoRoot, 'tmp'),
+    unattended: env.SIRLOCKED_STUDIO_UNATTENDED === '1',
     // SIRLOCKED_LIBRARY_INDEX: another index file (the e2e run works on a copy so local URLs never reach git).
     libraryIndexPath: env.SIRLOCKED_LIBRARY_INDEX
       ? path.resolve(repoRoot, env.SIRLOCKED_LIBRARY_INDEX)
@@ -84,7 +84,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): StudioConfig {
 /** How Yen sets the key herself, shown whenever a tool needs it and it is missing or refused. */
 export const KEY_HELP = [
   'Biến môi trường SIRLOCKED_BRIDGE_KEY chưa có (hoặc sai). Yen tự đặt, không dán khóa vào chat hay file trong repo:',
-  '- Windows: Start > "Edit environment variables for your account" > New > SIRLOCKED_BRIDGE_KEY = <khóa>; rồi đóng hẳn VS Code/terminal và mở lại Claude Code.',
+  '- Windows: Start > "Edit environment variables for your account" > New > SIRLOCKED_BRIDGE_KEY = <khóa>; rồi mở lại Codex và terminal.',
   '- Linux (VPS studio): thêm dòng export SIRLOCKED_BRIDGE_KEY=... vào ~/.config/sirlocked/env (chmod 600), file này được ~/.bashrc nạp; mở phiên mới.',
   '- Khóa phải giống Bridge__Key trên server (đặt bằng bash scripts/set-bridge-key.sh). Server khác: đặt thêm SIRLOCKED_API (mặc định https://sirlocked.id.vn).',
 ].join('\n');

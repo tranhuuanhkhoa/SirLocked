@@ -17,8 +17,21 @@ public sealed class TruthStageRules(ICaseTruthService truthService, IGameplayPro
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public CaseValidationResult Timeline(CaseTruthPackage truth, AiTruthGenerationBudget budget) =>
-        truthService.ValidateTimelineReferences(truth, budget);
+    public CaseValidationResult Timeline(CaseTruthPackage truth, AiTruthGenerationBudget budget, AiDraftSettings settings)
+    {
+        CaseTruthService.FillMissingTravelDurations(truth);
+        var result = truthService.ValidateTimelineReferences(truth, budget);
+        if (AiPipelineVersions.IsOpenCoop(settings))
+        {
+            var puzzleCount = AiDifficultyProfiles.PuzzleCount(AiDifficultyProfiles.For(settings.Difficulty), settings.Leaning);
+            var plannedCount = CaseTruthReferenceContract.PlannedTraceIds(truth.TrueTimeline).Distinct(StringComparer.Ordinal).Count();
+            var minimum = ProofConclusionIds.ByCategory.Count + puzzleCount;
+            if (plannedCount < minimum)
+                result.Add("InsufficientPlannedPuzzleTraces", "trueTimeline.traceIds",
+                    $"Plan at least {minimum} distinct traces: five final evidence sources and {puzzleCount} optional puzzle rewards.");
+        }
+        return result;
+    }
 
     public CaseValidationResult Evidence(CaseTruthPackage truth, IReadOnlyCollection<string> plannedTraceIds)
     {
@@ -39,18 +52,30 @@ public sealed class TruthStageRules(ICaseTruthService truthService, IGameplayPro
     }
 
     /// <summary>
-    /// Checks a bridge answer to a first-run truth stage against the draft's saved upstream truth. Returns null when the
-    /// answer cannot be checked here (another run, a truth repair whose base is the candidate, a checkpoint that is not
-    /// the stage's upstream, or a stage without deterministic rules): the generation run still checks it then.
+    /// Checks against the exact upstream truth used to request the answer. A first run uses the draft checkpoint;
+    /// a repair uses the request's snapshot of the repair being built.
     /// </summary>
     public CaseValidationResult? CheckAnswer(AiCaseDraft draft, AiBridgeRequest request, string json)
     {
         if (request.OwnerType != AiBridgeOwnerTypes.CaseDraft
-            || draft.CaseTruth is null
-            || draft.QueuedOperation != AiQueuedOperations.CaseTruth
             || string.IsNullOrEmpty(request.GenerationRunId)
             || request.GenerationRunId != draft.GenerationRunId)
             return null;
+        if (request.SchemaVersion == TruthFindingRepair.Version && draft.QueuedOperation == AiQueuedOperations.TruthRepair
+            && request.TruthRepairUpstream is { } input && request.TruthEditScope is { } scope)
+        {
+            // An explicit empty list requests structural regeneration. A nonempty invalid edit stays on this lease.
+            using var edits = JsonDocument.Parse(json);
+            if (edits.RootElement.TryGetProperty("edits", out var rows) && rows.ValueKind == JsonValueKind.Array && rows.GetArrayLength() == 0)
+                return null;
+            var editBudget = AiCaseService.TruthBudgetForDraft(draft);
+            var corrected = TruthFindingRepair.Apply(input, scope, json, editBudget.MaxDescriptionLength);
+            if (corrected is not null)
+                return AiTruthRepairCandidatePolicy.ValidateForGameplay(draft, corrected, editBudget, truthService, planner);
+            var invalid = new CaseValidationResult();
+            invalid.Add("InvalidTruthEdit", "edits", "Use an existing editable row and field, with a changed value. Return [] for edits only when a structural change is required.");
+            return invalid;
+        }
         var (upstream, index) = request.SchemaVersion switch
         {
             AiGenerationSchemaVersions.TrueTimeline => (CaseTruthArtifacts.CoreTruth, 2),
@@ -59,9 +84,16 @@ public sealed class TruthStageRules(ICaseTruthService truthService, IGameplayPro
             AiGenerationSchemaVersions.ProofGraph => (CaseTruthArtifacts.Statements, 6),
             _ => (string.Empty, -1)
         };
-        if (index < 0 || draft.TruthCheckpointArtifact != upstream) return null;
+        if (index < 0) return null;
+        var upstreamTruth = draft.QueuedOperation switch
+        {
+            AiQueuedOperations.CaseTruth when draft.TruthCheckpointArtifact == upstream => draft.CaseTruth,
+            AiQueuedOperations.TruthRepair => request.TruthRepairUpstream,
+            _ => null
+        };
+        if (upstreamTruth is null) return null; // older repair requests may not carry a snapshot
 
-        var truth = JsonSerializer.Deserialize<CaseTruthPackage>(JsonSerializer.Serialize(draft.CaseTruth, Json), Json)!;
+        var truth = JsonSerializer.Deserialize<CaseTruthPackage>(JsonSerializer.Serialize(upstreamTruth, Json), Json)!;
         AiCaseService.ClearInvalidatedTruthArtifacts(truth, index);
         var budget = AiCaseService.TruthBudgetForDraft(draft);
         CaseValidationResult validation;
@@ -71,7 +103,7 @@ public sealed class TruthStageRules(ICaseTruthService truthService, IGameplayPro
             {
                 case 2:
                     truth.TrueTimeline = Parse<GeneratedTimelineArtifact>(json).TrueTimeline;
-                    validation = Timeline(truth, budget);
+                    validation = Timeline(truth, budget, draft.Settings);
                     break;
                 case 4:
                     var planned = CaseTruthReferenceContract.PlannedTraceIds(truth.TrueTimeline)

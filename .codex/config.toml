@@ -1,0 +1,18 @@
+model = "gpt-6.2-sol"
+model_reasoning_effort = "high"
+
+[mcp_servers.sirlocked-studio]
+command = "node"
+args = ["tools/studio-mcp/dist/src/index.js"]
+env_vars = ["SIRLOCKED_BRIDGE_KEY", "SIRLOCKED_API", "SIRLOCKED_STUDIO_UNATTENDED", "SIRLOCKED_LIBRARY_INDEX"]
+startup_timeout_sec = 30
+tool_timeout_sec = 1800
+
+[mcp_servers.sirlocked-studio.tools.bridge_list]
+approval_mode = "approve"
+
+[mcp_servers.pixellab]
+url = "https://api.pixellab.ai/mcp"
+
+[mcp_servers.pixellab.tools.get_balance]
+approval_mode = "approve"

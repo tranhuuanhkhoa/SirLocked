@@ -27,10 +27,11 @@ const AWAITING_STATUSES = new Set([STATUS_AWAITING_APPROVAL, STATUS_TRUTH_AWAITI
 const isTerminalDraft = (draft) => draft?.status === 'CANCELLED'
   || draft?.orderStatus === 'AWAITING_OWNER_APPROVAL' || draft?.orderStatus === 'REJECTED'
   || draft?.orderStatus === 'AWAITING_DECISION'
-  || (TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState));
+  || (TERMINAL_STATUSES.has(draft?.status) && !ACTIVE_QUEUE_STATES.has(draft?.queueState) && !draft?.autopilotNextStep);
 // A queued or running draft still carries the failurePhase/validationErrors of the attempt before
 // it, so the UI must not present them as the outcome of the run that is currently in flight.
 const isGeneratingDraft = (draft) => ACTIVE_QUEUE_STATES.has(draft?.queueState)
+  || Boolean(draft?.autopilotNextStep)
   || String(draft?.status || '').startsWith('GENERATING_');
 const TRUTH_ARTIFACT_ORDER = ['CASE_SEED', 'CORE_TRUTH', 'TIMELINE', 'OPPORTUNITY', 'EVIDENCE', 'STATEMENTS', 'PROOF_GRAPH'];
 const PRESETS = {
@@ -222,8 +223,8 @@ function statusLabel(status) {
 const ORDER_STATUS_LABELS = {
   AWAITING_OWNER_APPROVAL: ['Waiting for admin approval', 'Chờ admin duyệt'],
   AWAITING_DECISION: ['Waiting for your choice', 'Chờ bạn chọn'],
-  QUEUED_FOR_CLAUDE: ['Waiting for Claude', 'Chờ Claude'],
-  CLAUDE_WORKING: ['Claude is working', 'Claude đang làm'],
+  QUEUED_FOR_CLAUDE: ['Waiting for the AI runner', 'Chờ AI nhận đơn'],
+  CLAUDE_WORKING: ['AI is working', 'AI đang xử lý'],
   AWAITING_GATE: ['Waiting for review', 'Chờ duyệt cổng'],
   SUBMITTED: ['Submitted', 'Đã nộp'],
   REJECTED: ['Rejected', 'Đã từ chối'],
@@ -239,7 +240,7 @@ function orderedByLabel(role) {
 }
 
 const CREATION_ERROR_LABELS = {
-  BRIDGE_NOT_CONFIGURED: ['The Claude bridge key is not set on the server yet, so no bot can take orders. The administrator runs scripts/set-bridge-key.sh.', 'Máy chủ chưa có khóa bridge của Claude nên chưa bot nào nhận được đơn. Quản trị viên chạy scripts/set-bridge-key.sh.'],
+  BRIDGE_NOT_CONFIGURED: ['The bridge key is not set on the server yet, so no runner can take orders. The administrator runs scripts/set-bridge-key.sh.', 'Máy chủ chưa có khóa bridge nên chưa runner nào nhận được đơn. Quản trị viên chạy scripts/set-bridge-key.sh.'],
   ASSET_STORAGE_UNAVAILABLE: ['Cloudinary is not configured, so the bot cannot upload case images yet.', 'Chưa cấu hình Cloudinary nên bot chưa tải được hình của vụ.'],
   AI_WEEKLY_LIMIT: ['You have used this week\'s AI case orders. A new week starts on Monday (Vietnam time).', 'Bạn đã dùng hết số đơn tạo vụ của tuần này. Tuần mới bắt đầu từ thứ Hai (giờ Việt Nam).'],
   AI_ORDER_INVALID: ['Some order options are not valid. Check them and try again.', 'Một số lựa chọn của đơn chưa hợp lệ. Hãy kiểm tra lại rồi gửi lại.'],
@@ -249,7 +250,7 @@ const CREATION_ERROR_LABELS = {
   AI_ORDER_REASON_REQUIRED: ['Write a reason for the rejection.', 'Hãy ghi lý do từ chối.'],
   AI_CREATIVE_CONSTRAINT_WORLD_MISMATCH: ['The setting lock belongs to the Victorian world.', 'Khóa bối cảnh chỉ dùng cho thế giới kiểu Victoria.'],
   AI_SETTINGS_INVALID: ['The weekly limit must be a whole number from 0 to 50.', 'Giới hạn mỗi tuần phải là số nguyên từ 0 đến 50.'],
-  AI_BRIDGE_RUN_REQUIRED: ['Claude answers this step inside a queued run. Use Continue or retry.', 'Claude chỉ trả lời bước này trong lượt chạy của hàng chờ. Hãy bấm Tiếp tục hoặc thử lại.'],
+  AI_BRIDGE_RUN_REQUIRED: ['The runner answers this step inside a queued run. Use Continue or retry.', 'Runner xử lý bước này trong lượt chạy của hàng chờ. Hãy bấm Tiếp tục hoặc thử lại.'],
   AI_TRUTH_REPAIR_PENDING: ['Review and accept or reject the pending truth repair before continuing with gameplay or assets.', 'Hãy kiểm tra và chấp nhận hoặc từ chối bản sửa truth đang chờ trước khi tiếp tục gameplay hoặc tài nguyên.'],
   AI_WORKFLOW_CONFLICT: ['This draft is running or has changed. Refresh its details before trying again.', 'Bản nháp đang chạy hoặc đã thay đổi. Hãy tải lại chi tiết trước khi thử lại.'],
   AI_TRUTH_REPAIR_CANDIDATE_UNAVAILABLE: ['This repair candidate is no longer available. Refresh the draft before continuing.', 'Bản sửa này không còn khả dụng. Hãy tải lại bản nháp trước khi tiếp tục.'],
@@ -281,7 +282,7 @@ const PROGRESS_STATES = {
   GENERATING_STORY: {
     percent: 8,
     title: ['Creating the case premise', 'Đang tạo tiền đề vụ án'],
-    detail: ['Claude prepares a spoiler-free mystery outline (the order waits until the bot takes it).', 'Claude chuẩn bị dàn ý bí ẩn không tiết lộ đáp án (đơn chờ tới khi bot nhận).'],
+    detail: ['AI prepares a mystery outline without revealing the solution.', 'AI chuẩn bị dàn ý bí ẩn, giữ kín lời giải.'],
   },
   STORY_AWAITING_APPROVAL: {
     percent: 18,
@@ -411,6 +412,7 @@ export async function renderAdminAiPage(app) {
     timeOfDay: 'AUTO',
     idea: '',
     pixelLabCap: -1,
+    blindReviewEnabled: false,
     // VUAN-7, VIP orders: "Nhanh" (Claude API) or "Tiết kiệm" (Batch), and 0 or 30 extra PixelLab pictures.
     speed: 'FAST',
     vipExtraPixelLab: 0,
@@ -698,7 +700,8 @@ export async function renderAdminAiPage(app) {
       return `<button class="btn ${style} btn-sm" type="button" data-repair-truth="${escapeHtml(d.draftId)}">${tr('Repair scoped truth', 'Sửa truth theo phạm vi')}</button>`;
     }
     if (d.status === STATUS_FULL_LOGIC_AWAITING_APPROVAL) {
-      return hasPassedRequiredReview(d)
+      const blindPassed = d.order?.blindReviewEnabled !== true || d.blindReviewAssessment?.status === 'PASSED';
+      return hasPassedRequiredReview(d) && blindPassed
         ? `<button class="btn ${style} btn-sm" type="button" data-approve-full-logic="${escapeHtml(d.draftId)}">${tr('Approve full logic', 'Duyệt logic đầy đủ')}</button>`
         : '';
     }
@@ -958,7 +961,7 @@ export async function renderAdminAiPage(app) {
       </label>`).join('');
 
     const vipQuota = isVip ? `
-      <p class="aai-order-quota" id="ai-vip-quota">${icon('clock', 16)}<span>${vipPaidLane() ? tr('This order waits for an admin to approve it.', 'Đơn sẽ chờ admin duyệt.') : tr('Your order goes straight to Claude.', 'Đơn vào hàng chờ Claude ngay.')}</span> <strong data-quota-remaining>${escapeHtml(vipQuotaText())}</strong></p>` : '';
+      <p class="aai-order-quota" id="ai-vip-quota">${icon('clock', 16)}<span>${vipPaidLane() ? tr('This order waits for an admin to approve it.', 'Đơn sẽ chờ admin duyệt.') : tr('Your order goes straight to the AI queue.', 'Đơn vào hàng chờ để AI xử lý.')}</span> <strong data-quota-remaining>${escapeHtml(vipQuotaText())}</strong></p>` : '';
 
     return `
       <section class="aai-order" aria-labelledby="aai-order-title">
@@ -1054,6 +1057,10 @@ export async function renderAdminAiPage(app) {
                 <p class="aai-help" id="ai-content-help">${escapeHtml(pairLabel(CONTENT_LEVEL_HELP, form.contentLevel))}</p>
                 ${fieldErrorHtml('contentLevel')}
               </div>
+              <label class="aai-field">
+                <span><input type="checkbox" id="ai-blind-review" ${form.blindReviewEnabled ? 'checked' : ''}> ${tr('Blind detective review', 'Thám tử mù')}</span>
+                <small>${tr('An independent AI tries to solve the case from the player’s clues before LOGIC passes.', 'AI độc lập giải thử từ manh mối người chơi thấy trước khi qua cổng LOGIC.')}</small>
+              </label>
               ${vipPaidLane() ? '' : `<div class="aai-field" data-field="pixelLabCap">
                 <label class="aai-label" for="ai-pixellab-cap">${tr('PixelLab generations', 'Lượt PixelLab')}</label>
                 <select class="field-input" id="ai-pixellab-cap">${PIXELLAB_CAPS.map((cap) => `<option value="${cap}" ${form.pixelLabCap === cap ? 'selected' : ''}>${escapeHtml(pixelLabCapLabel(cap))}</option>`).join('')}</select>
@@ -1261,6 +1268,7 @@ export async function renderAdminAiPage(app) {
       weather: form.weather,
       timeOfDay: form.timeOfDay,
       contentLevel: form.contentLevel,
+      blindReviewEnabled: form.blindReviewEnabled,
     };
     if (vipPaidLane()) {
       // VUAN-7: a paid VIP order never sends the cap; the server sets 30 (+ bought packs) and the FULL review.
@@ -1471,11 +1479,14 @@ export async function renderAdminAiPage(app) {
   function qualitySummary(d) {
     if (!d.truthSummary) return '';
     const status = d.truthReviewerResult?.status || d.truthSummary.reviewerStatus || 'NOT_RUN';
+    const reviewNeedsAdmin = d.order?.reviewMode === 'AUTO' && d.status === STATUS_TRUTH_AWAITING_APPROVAL
+      && !ACTIVE_QUEUE_STATES.has(d.queueState) && status === 'NOT_RUN' && !!d.truthReviewerResult?.findings?.length;
     const validationErrors = (d.truthValidationReport?.length || d.truthSummary.validationErrorCount || 0)
       + (d.validationErrors?.length || 0);
     return `<section class="notice ${validationErrors || ['FAILED', 'AMBIGUOUS'].includes(status) ? 'notice-bad' : ''} aai-panel aai-quality" data-ai-quality-summary>
       <h3 class="aai-panel-title">${tr('Quality checks', 'Kiểm tra chất lượng')}</h3>
-      <p>${tr('Structure', 'Cấu trúc')}: ${validationErrors ? tr('Needs repair', 'Cần sửa') : tr('Passed deterministic validation', 'Đã qua kiểm tra tất định')} · ${tr('Story review (advisory)', 'Đánh giá cốt truyện (tham khảo)')}: <strong>${escapeHtml(status)}</strong></p>
+      <p>${tr('Structure', 'Cấu trúc')}: ${validationErrors ? tr('Needs repair', 'Cần sửa') : tr('Passed deterministic validation', 'Đã qua kiểm tra tất định')} · ${tr('Story review', 'Đánh giá cốt truyện')}: <strong>${escapeHtml(status)}</strong></p>
+      ${reviewNeedsAdmin ? `<p><strong>${tr('TRUTH needs an admin decision. The review could not substantiate a verdict.', 'TRUTH cần admin xem xét. Lượt kiểm định chưa đủ căn cứ để kết luận.')}</strong></p>` : ''}
       <p class="muted small">${status === 'NOT_RUN'
         ? tr('Story quality has not been reviewed. A valid structure alone does not establish that the mystery is playable.', 'Chất lượng cốt truyện chưa được đánh giá. Cấu trúc hợp lệ chưa đủ để xác nhận vụ án chơi được.')
         : tr('Review the findings below before approval. Structural validation and V3 pair checks do not establish the quality of the whole story.', 'Hãy đọc các phát hiện bên dưới trước khi duyệt. Kiểm tra cấu trúc và cặp đối chất V3 chưa xác nhận chất lượng toàn bộ cốt truyện.')}</p>
@@ -1540,6 +1551,7 @@ export async function renderAdminAiPage(app) {
     if (!summary) return '';
     const truth = d.caseTruth;
     const review = d.truthReviewerResult;
+    const auto = d.order?.reviewMode === 'AUTO';
     const reviewPassed = truthReviewPassed(d);
     const findings = reviewFindings(review);
     const repairPlan = d.truthRepairPlan;
@@ -1547,7 +1559,7 @@ export async function renderAdminAiPage(app) {
     const core = truth?.coreTruth;
     const conclusions = truth?.proofGraph?.conclusions || [];
     return `<section class="notice ${!summary.validationErrorCount ? 'notice-ok' : 'notice-bad'} truth-review-panel aai-panel" data-truth-review>
-      ${panelHead(tr('Immutable case truth (spoiler)', 'Sự thật vụ án bất biến (có spoiler)'), `<span class="chip ${reviewPassed ? 'chip-ok' : ''}">${tr('Advisory', 'Tham khảo')}: ${escapeHtml(review?.status || summary.reviewerStatus || 'NOT_RUN')}</span>`)}
+      ${panelHead(tr('Immutable case truth (spoiler)', 'Sự thật vụ án bất biến (có spoiler)'), `<span class="chip ${reviewPassed ? 'chip-ok' : ''}">${auto ? tr('Review', 'Kiểm định') : tr('Advisory', 'Tham khảo')}: ${escapeHtml(review?.status || summary.reviewerStatus || 'NOT_RUN')}</span>`)}
       <p class="aai-mono-line">Schema ${escapeHtml(summary.schemaVersion || '')} · SHA-256 <code>${escapeHtml(summary.truthHash || '')}</code></p>
       <div class="aai-tiles">
         ${tile({ label: tr('timeline events', 'sự kiện'), value: summary.timelineEventCount, of: summary.maxTimelineEvents || '?' })}
@@ -1555,12 +1567,14 @@ export async function renderAdminAiPage(app) {
         ${tile({ label: tr('statements', 'lời khai'), value: summary.statementCount, of: summary.maxStatements || '?' })}
         ${tile({ label: tr('proof conclusions', 'kết luận'), value: summary.proofConclusionCount })}
       </div>
-      ${review ? `<p class="muted small"><strong>${tr('Advisory AI review', 'Đánh giá AI tham khảo')}:</strong> ${tr('Findings do not block approval when deterministic validation passes.', 'Các phát hiện không chặn phê duyệt khi validator tất định đã pass.')}</p><div class="truth-review-verdicts">
+      ${review ? `<p class="muted small">${auto
+        ? tr('In AUTO orders, this review determines whether TRUTH advances, requests a repair, or waits for an admin.', 'Với đơn AUTO, kết quả này quyết định TRUTH đi tiếp, yêu cầu sửa hay chờ admin.')
+        : tr('Review these findings before approving the truth.', 'Xem các phát hiện trước khi duyệt sự thật.')}</p>${review.status === 'NOT_RUN' ? '' : `<div class="truth-review-verdicts">
         <strong>${tr('Reviewer confidence', 'Độ tin cậy của reviewer')}: ${(Number(review.confidence || 0) * 100).toFixed(0)}%</strong>
         <span class="chip ${review.timelineFeasible ? 'chip-ok' : 'chip-bad'}">${tr('Timeline', 'Thời gian')} ${review.timelineFeasible ? 'PASS' : 'BLOCK'}</span>
         <span class="chip ${review.physicalCausalityFeasible ? 'chip-ok' : 'chip-bad'}">${tr('Causality', 'Nhân quả')} ${review.physicalCausalityFeasible ? 'PASS' : 'BLOCK'}</span>
         <span class="chip ${review.uniqueSolution ? 'chip-ok' : 'chip-bad'}">${tr('Unique solution', 'Nghiệm duy nhất')} ${review.uniqueSolution ? 'PASS' : 'BLOCK'}</span>
-      </div>${findings.length ? `<div class="aai-subpanel truth-validation-errors"><strong>${tr('Advisory reviewer findings', 'Phát hiện tham khảo từ reviewer')}</strong>${renderReviewFindingGroups(findings)}</div>` : ''}` : ''}
+      </div>`}${findings.length ? `<div class="aai-subpanel truth-validation-errors"><strong>${tr('Reviewer findings', 'Phát hiện từ reviewer')}</strong>${renderReviewFindingGroups(findings)}</div>` : ''}` : ''}
       ${d.truthValidationReport?.length ? `<div class="notice notice-bad truth-validation-errors"><strong>${tr('Validation report', 'Báo cáo validation')}</strong><ul>${d.truthValidationReport.slice(0, 20).map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>` : ''}
       ${truth && core ? `${factTiles([
     [tr('Culprit', 'Thủ phạm'), core.culpritId],
@@ -1611,13 +1625,15 @@ export async function renderAdminAiPage(app) {
     const assessment = d.blindReviewAssessment || { status: 'NOT_RUN', validationErrors: [] };
     const findings = reviewFindings(review);
     const passed = assessment.status === 'PASSED';
+    const reviewNeedsAdmin = d.order?.reviewMode === 'AUTO' && d.status === STATUS_FULL_LOGIC_AWAITING_APPROVAL
+      && !ACTIVE_QUEUE_STATES.has(d.queueState) && ['INVALID', 'UNAVAILABLE', 'LEGACY_UNVERIFIED'].includes(assessment.status);
     const assessmentLabel = {
       PASSED: tr('Verified pass', 'Đã xác minh đạt'),
       FAILED: tr('Reviewer failed', 'Reviewer đánh giá chưa đạt'),
       AMBIGUOUS: tr('Ambiguous', 'Còn mơ hồ'),
       INVALID: tr('Reviewer result invalid', 'Kết quả reviewer không hợp lệ'),
       UNAVAILABLE: tr('Review unavailable', 'Không lấy được review'),
-      DISABLED: tr('Review disabled', 'Review đang tắt'),
+      DISABLED: tr('Review disabled', 'Thám tử mù đang tắt'),
       LEGACY_UNVERIFIED: tr('Legacy / unverified', 'Case cũ / chưa xác minh'),
       STALE: tr('Review is stale', 'Review đã cũ'),
     }[assessment.status] || tr('Not verified', 'Chưa xác minh');
@@ -1626,15 +1642,16 @@ export async function renderAdminAiPage(app) {
     const claimProofs = (review.claimProofs || []).map((proof) =>
       `<li><strong>${escapeHtml(proof.claimType || '')}</strong>: ${truthValues(proof.evidenceIds)}${proof.reasoning ? ` — ${escapeHtml(proof.reasoning)}` : ''}</li>`).join('');
     return `<section class="notice ${passed ? 'notice-ok' : ''} blind-review-panel aai-panel" data-blind-review>
-      ${panelHead(tr('Advisory blind solvability review', 'Đánh giá khả năng giải mù (tham khảo)'), `<span class="chip ${passed ? 'chip-ok' : ''}">${escapeHtml(assessmentLabel)}</span>`)}
-      <p class="muted">${tr('The reviewer only received information collectible before accusation; truth metadata and the final answer were removed.', 'Reviewer chỉ nhận thông tin người chơi có thể thu thập trước cáo buộc; metadata truth và đáp án cuối đã bị loại bỏ.')}</p>
+      ${panelHead(tr('Blind solvability review', 'Đánh giá của thám tử mù'), `<span class="chip ${passed ? 'chip-ok' : ''}">${escapeHtml(assessmentLabel)}</span>`)}
+      ${reviewNeedsAdmin ? `<p><strong>${tr('LOGIC needs an admin decision. The review could not verify the solution.', 'LOGIC cần admin xem xét. Lượt kiểm định chưa xác minh được lời giải.')}</strong></p>` : ''}
+      ${assessment.status === 'DISABLED' ? '' : `<p class="muted">${tr('The reviewer only received information collectible before accusation; truth metadata and the final answer were removed.', 'Reviewer chỉ nhận thông tin người chơi có thể thu thập trước cáo buộc; metadata truth và đáp án cuối đã bị loại bỏ.')}</p>`}
       <dl class="aai-pairs">
         <div><dt>${tr('Server assessment', 'Xác minh từ server')}:</dt> <dd>${escapeHtml(assessment.status || 'NOT_RUN')}</dd></div>
         <div><dt>${tr('Reviewer confidence', 'Độ tin cậy của reviewer')}:</dt> <dd>${(Number(review.confidence || 0) * 100).toFixed(0)}%</dd></div>
       </dl>
       ${factTiles([
     [tr('Inferred culprit', 'Thủ phạm suy ra'), review.culpritId || '—'],
-    [tr('Unique solution', 'Nghiệm duy nhất'), review.uniqueSolution ? 'PASS' : 'BLOCK'],
+    [tr('Unique solution', 'Nghiệm duy nhất'), assessment.status === 'DISABLED' || reviewNeedsAdmin ? '—' : review.uniqueSolution ? 'PASS' : 'BLOCK'],
     [tr('Inferred motive', 'Động cơ suy ra'), review.motive || '—'],
     [tr('Inferred method', 'Phương thức suy ra'), review.method || '—'],
   ])}
@@ -1942,7 +1959,9 @@ export async function renderAdminAiPage(app) {
         syncForm();
         return;
       }
-      if (control.id === 'ai-pixellab-cap') {
+      if (control.id === 'ai-blind-review') {
+        form.blindReviewEnabled = control.checked;
+      } else if (control.id === 'ai-pixellab-cap') {
         form.pixelLabCap = Number(control.value);
         clearFieldError('pixelLabCap');
       } else return;
@@ -2141,7 +2160,7 @@ export async function renderAdminAiPage(app) {
         }
       } else {
         startPolling(activeDraftId, version);
-        toast(tr('Order sent to Claude.', 'Đã gửi đơn cho Claude.'), 'success', 5000);
+        toast(tr('Order queued for AI generation.', 'Đã đưa đơn vào hàng chờ tạo vụ án.'), 'success', 5000);
       }
       draw(previewDraft);
     } catch (err) {
@@ -2284,7 +2303,7 @@ export async function renderAdminAiPage(app) {
       await loadDraftList();
       if (disposed || version !== runVersion) return;
       draw(visibleDraft?.draftId === draftId ? (draft || visibleDraft) : visibleDraft);
-      toast(approve ? tr('Order approved; it now waits for Claude.', 'Đã duyệt đơn; đơn đang chờ Claude.') : tr('Order rejected.', 'Đã từ chối đơn.'), 'success');
+      toast(approve ? tr('Order approved and queued for AI generation.', 'Đã duyệt và đưa đơn vào hàng chờ tạo vụ án.') : tr('Order rejected.', 'Đã từ chối đơn.'), 'success');
     } catch (error) {
       if (disposed || version !== runVersion) return;
       button.disabled = false;
@@ -2307,6 +2326,8 @@ export async function renderAdminAiPage(app) {
       order.pixelLabCap < 0 ? tr('unlimited PixelLab', 'PixelLab không giới hạn')
         : order.pixelLabCap === 0 ? tr('library pictures only', 'chỉ ảnh thư viện') : tr(`≤ ${order.pixelLabCap} PixelLab`, `≤ ${order.pixelLabCap} lượt PixelLab`),
       pairLabel(REVIEW_MODES, order.reviewMode, order.reviewMode),
+      ...(typeof order.blindReviewEnabled === 'boolean' ? [order.blindReviewEnabled
+        ? tr('Blind detective on', 'Thám tử mù bật') : tr('Blind detective off', 'Thám tử mù tắt')] : []),
     ].filter(Boolean);
     return facts.map(escapeHtml).join(' · ');
   }
@@ -2318,7 +2339,7 @@ export async function renderAdminAiPage(app) {
       .map((change) => `${escapeHtml(orderStatusLabel(change.status))} · ${escapeHtml(formatTime(change.at))}`)
       .join(' → ');
     const facts = orderFacts(d.order);
-    const waiting = d.claudeWait ? `<p class="aai-note" data-claude-wait>${tr('Waiting for Claude on step', 'Đang chờ Claude ở bước')} <code>${escapeHtml(d.claudeWait.step)}</code></p>` : '';
+    const waiting = d.claudeWait ? `<p class="aai-note" data-claude-wait>${tr('Waiting for the AI runner on step', 'Đang chờ AI xử lý bước')} <code>${escapeHtml(d.claudeWait.step)}</code></p>` : '';
     const rejected = d.orderRejectReason ? `<p class="aai-note">${tr('Rejection reason', 'Lý do từ chối')}: ${escapeHtml(d.orderRejectReason)}</p>` : '';
     return `<div class="aai-order"><p class="aai-draft-meta">${tr('Order', 'Đơn')}: ${orderStatusPill(d)} ${orderButtons(d)}</p>${vipDraftLine(d)}${facts ? `<p class="aai-note" data-order-facts>${facts}</p>` : ''}${history ? `<p class="muted small">${history}</p>` : ''}${waiting}${rejected}</div>`;
   }
@@ -2398,8 +2419,8 @@ export async function renderAdminAiPage(app) {
           <div class="ac-dialog-heading">
             <h2 id="aai-cancel-title">${tr('Cancel this draft?', 'Hủy bản nháp này?')}</h2>
             <p class="ac-dialog-sub" id="aai-cancel-sub">${tr(
-              "Generation stops and open Claude requests are closed. Cancelling does not reset today's creation limit.",
-              'Các bước tạo tiếp theo sẽ dừng và các yêu cầu đang chờ Claude sẽ bị đóng. Hủy bản nháp không đặt lại hạn mức tạo hôm nay.'
+              "Generation stops and open AI requests are closed. Cancelling does not reset today's creation limit.",
+              'Các bước tạo tiếp theo sẽ dừng và các yêu cầu AI còn mở sẽ bị đóng. Hủy bản nháp không đặt lại hạn mức tạo hôm nay.'
             )}</p>
           </div>
           <button type="button" class="ac-dialog-close" data-cancel-keep aria-label="${tr('Close', 'Đóng')}">${icon('x', 20)}</button>

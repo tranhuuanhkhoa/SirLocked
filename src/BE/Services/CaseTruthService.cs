@@ -213,6 +213,16 @@ public sealed class CaseTruthService : ICaseTruthService
             }
         };
         result.Errors.AddRange(_readinessAnalyzer.AllocateDialogues(statementStage, contract).Validation.Errors);
+        // A later proof graph can select these statements, but cannot give a speaker a second topic in a scene.
+        var availableTopics = truth.StatementLedger.SelectMany(statement => truth.TrueTimeline
+            .Where(evt => statement.EventIds.Contains(evt.EventId)
+                && (evt.ActorId == statement.SpeakerId || evt.WitnessIds.Contains(statement.SpeakerId)))
+            .Select(evt => new { statement.SpeakerId, evt.LocationId, statement.StatementId })).Distinct();
+        var possibleSpeakers = availableTopics.GroupBy(topic => (topic.SpeakerId, topic.LocationId))
+            .Where(group => group.Count() >= 2).Select(group => group.Key.SpeakerId).Distinct().Count();
+        if (possibleSpeakers < contract.MinConversationCharacters)
+            result.Add("ProjectionConversationCoverage", "statementLedger",
+                $"Provide two different statements grounded at the same scene for {contract.MinConversationCharacters} speaker(s); only {possibleSpeakers} currently qualify.");
         result.Deduplicate();
         return result;
     }
@@ -886,7 +896,9 @@ public sealed class CaseTruthService : ICaseTruthService
                 if (required is null)
                     result.Add("MissingTravelEdge", "caseSeed.locationGraph", "No travel rule connects consecutive character locations.", current.EventId);
                 else if (gap < required || current.TravelFromPreviousMinutes < required)
-                    result.Add("InsufficientTravelTime", "trueTimeline", $"Only {gap} minute(s) are available but travel requires {required}.", current.EventId);
+                    result.Add("InsufficientTravelTime", "trueTimeline",
+                        $"Travel from {previous.EventId} requires {required} minute(s). The event gap is {gap}; " +
+                        $"travelFromPreviousMinutes is {current.TravelFromPreviousMinutes}. Both must be at least {required}.", current.EventId);
             }
         }
 
@@ -900,7 +912,8 @@ public sealed class CaseTruthService : ICaseTruthService
             if (!observable || observation is null || !observation.LineOfSightOrHearingClear
                 || observation.Mode is not ("SIGHT" or "HEARING")
                 || string.IsNullOrWhiteSpace(observation.ObservableDetail))
-                result.Add("WitnessNotObservable", "trueTimeline.witnessIds", "Witness is not present at the event location and time.", witnessId);
+                    result.Add("WitnessNotObservable", "trueTimeline.witnessIds",
+                        $"Witness is not present for event {item.EventId} at {item.LocationId} during minutes {item.StartMinute}–{item.EndMinute}.", witnessId);
         }
         foreach (var item in truth.TrueTimeline)
         foreach (var observation in item.WitnessObservations.Where(value => !item.WitnessIds.Contains(value.WitnessId)))
@@ -1200,6 +1213,22 @@ public sealed class CaseTruthService : ICaseTruthService
             .ToHashSet(StringComparer.Ordinal);
         foreach (var id in consumed.Intersect(requiredLater))
             result.Add("ConsumedItemDeadEnd", "interactions.consumeItemIds", "A consumed item is still required by progression.", id);
+    }
+
+    internal static void FillMissingTravelDurations(CaseTruthPackage truth)
+    {
+        foreach (var actor in truth.TrueTimeline.GroupBy(evt => evt.ActorId))
+        {
+            TrueTimelineEvent? previous = null;
+            foreach (var evt in actor.OrderBy(item => item.StartMinute).ThenBy(item => item.EndMinute))
+            {
+                if (previous is not null && previous.LocationId != evt.LocationId && evt.TravelFromPreviousMinutes == 0
+                    && TravelMinutes(truth.CaseSeed.LocationGraph, previous.LocationId, evt.LocationId) is int required
+                    && required > 0 && evt.StartMinute - previous.EndMinute >= required)
+                    evt.TravelFromPreviousMinutes = required;
+                previous = evt;
+            }
+        }
     }
 
     private static int? TravelMinutes(IEnumerable<LocationTravelEdge> edges, string from, string to) =>

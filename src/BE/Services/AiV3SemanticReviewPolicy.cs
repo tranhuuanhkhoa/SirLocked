@@ -64,7 +64,7 @@ public static class AiV3SemanticReviewPolicy
         Relevance, suspicion, likelihood, or useful timeline context alone is never enough. Be strict but not adversarial: use the literal player-facing meaning of the evidence content and narrativeMeaning. Confidence measures confidence in your valid/invalid classification, not confidence that a suspicious person is guilty.
 
         Source material:
-        {JsonSerializer.Serialize(cracks, PrettyJson)}
+        {JsonSerializer.Serialize(cracks, AiCaseService.PromptJson)}
 
         Return one cracks entry for every supplied challengeId. Set expectedPairCount to the supplied value and return exactly that many pairEvaluations. Preserve every supplied ID and cover every expectedPairKey exactly once. For each pair return isValidContradiction, confidence from 0 to 1, a concise reason, and one reasonCode: DIRECT_NEGATION, RELATED_ONLY, ACTOR_NOT_IDENTIFIED, SCOPE_MISMATCH, INFERENCE_REQUIRED, or AMBIGUOUS. DIRECT_NEGATION is the only reasonCode allowed when isValidContradiction is true. Return pairEvaluations as [] at the root for backward compatibility. Do not choose or rewrite an answer and do not omit ambiguous pairs.
         """;
@@ -168,6 +168,7 @@ public static class AiV3SemanticReviewPolicy
             - Prefer a subject-neutral physical claim about an observable object state or event, such as "the trolley never left the room" or "the seal remained intact".
             - If a claim names an actor (for example "I did not move it"), the evidence must independently identify that exact actor performing the action. Movement, ownership, assignment, proximity, opportunity, or timing is not actor identification.
             - Make the correct evidence content and narrativeMeaning explicitly establish the negation of the exact fragment with matching object, place, and time scope.
+            - Keep each edited source dialogue answer at 45–100 words. Any edited testimony fragment must be a verbatim excerpt of its source answer and contain 5–25 words.
             - Prefer distractor pairs that stay compatible: the evidence and selected claim should both still be able to be true together.
             - Internally audit the complete dynamic Cartesian product before returning JSON. The authored pair must pass; other pairs may also contradict when the story genuinely implies it. Do not output the audit table.
             {(challengeIds is null

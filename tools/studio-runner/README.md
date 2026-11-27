@@ -1,27 +1,19 @@
 # studio-runner
 
-Chương trình chạy nền trên máy chạy bot. Nó giữ một kết nối tới `https://sirlocked.id.vn/hubs/bridge` (khóa trong header `X-Bridge-Key`). Server báo `WorkAvailable` khi máy vừa kết nối, khi có đơn hoặc yêu cầu mới, và khi người đặt đơn trả lời câu hỏi của bot. Runner không hỏi server theo chu kỳ.
+Runner nhận tín hiệu WorkAvailable từ /hubs/bridge khi có việc hoặc khi vừa kết nối. Với đơn Dễ AUTO, runner nhận từng yêu cầu kịch bản qua MCP, chuyển prompt và schema cho một phiên Codex riêng rồi nộp JSON cho server kiểm tra. STORY và LOGIC có thêm lượt biên tập. Thám tử mù chỉ nhận đề từ server dành cho người giải. Các việc còn lại chạy theo skill $tao-vu-an. Mỗi lúc có tối đa một lượt Codex. Nếu sau ba lượt hàng chờ vẫn không đổi, runner đợi tín hiệu mới.
 
-Có việc thì runner chạy:
+## Cài và chạy trên Windows
 
-```
-claude.cmd -p "/tao-vu-an" --permission-mode dontAsk --allowedTools mcp__sirlocked-studio mcp__pixellab Read Glob Grep "Write(tmp/**)" "Edit(tmp/**)" Agent
-```
+1. Đặt SIRLOCKED_BRIDGE_KEY trong biến môi trường người dùng. Đăng nhập Codex trong cùng tài khoản Windows và kiểm tra `codex mcp list` thấy `sirlocked-studio` và `pixellab`. Nếu thiếu cấu hình project, mở Codex ở gốc SirLocked và đặt repo là trusted.
+2. Từ gốc repo, chạy `powershell -ExecutionPolicy Bypass -File scripts/install-studio-runner.ps1`. Script build MCP và đăng ký tác vụ `SirLocked Studio Runner` lúc đăng nhập.
+3. Nếu tác vụ đang `Disabled`, chạy `Enable-ScheduledTask -TaskName 'SirLocked Studio Runner'`. Chạy `Start-ScheduledTask -TaskName 'SirLocked Studio Runner'` để bắt đầu nhận đơn. Runner cần máy bật, có mạng và tài khoản Windows còn đăng nhập.
 
-Mỗi lúc một bot. Bot không có quyền shell. Nếu một việc cứ còn đó sau 3 lần chạy liền, runner chờ sự kiện mới thay vì chạy tiếp.
+Phiên Codex tự động chỉ dùng các tool của SirLocked và PixelLab. Các tool workspace ghi dữ liệu vụ trong `tmp/`. Nhật ký và bản sao thư viện nằm trong `tmp/studio-runner/`. Đơn VIP trả xu đi vào luồng API riêng của server.
 
-## Cài một lần
+## Kiểm tra và theo dõi
 
-1. Đặt `SIRLOCKED_BRIDGE_KEY` cho tài khoản Windows (khóa giống `Bridge__Key` trên server).
-2. Mở cmd ở thư mục repo, chạy `claude.cmd` một lần: tin cậy thư mục, đồng ý dùng các MCP server trong `.mcp.json`, rồi `/exit`. Kiểm bằng `claude.cmd mcp list`: `sirlocked-studio` phải `Connected`.
-3. `powershell -ExecutionPolicy Bypass -File scripts/install-studio-runner.ps1`
+- Từ gốc repo, chạy `node tools/studio-runner/src/index.mjs --check` để đọc hàng chờ, kiểm tra số dư PixelLab và đọc lại một file thử trong `tmp/`.
+- `Get-Content tmp/studio-runner/runner.log -Tail 30 -Wait` theo dõi kết nối và lượt chạy. Mỗi lượt có log tool trong cùng thư mục, và draft có báo cáo trên `/admin/ai`.
+- `Stop-ScheduledTask -TaskName 'SirLocked Studio Runner'` dừng runner. `scripts/uninstall-studio-runner.ps1` gỡ tác vụ.
 
-Từ lần đăng nhập Windows sau, runner tự chạy. Muốn chạy ngay: `Start-ScheduledTask -TaskName 'SirLocked Studio Runner'`.
-
-## Xem và gỡ
-
-- Log chung: `tmp/studio-runner/runner.log`. Mỗi lần chạy bot: `tmp/studio-runner/<thời điểm>.log`.
-- Chạy tay để xem trực tiếp: `node tools/studio-runner/src/index.mjs` (từ gốc repo).
-- Gỡ: `powershell -ExecutionPolicy Bypass -File scripts/uninstall-studio-runner.ps1`
-
-Biến tùy chọn: `SIRLOCKED_API` (mặc định `https://sirlocked.id.vn`; thử trên máy: `http://localhost:5000`).
+Biến tùy chọn gồm `SIRLOCKED_API` (mặc định `https://sirlocked.id.vn`), `SIRLOCKED_CODEX_MODEL` (mặc định `gpt-6.2-sol`) và `SIRLOCKED_CODEX_BIN` để chỉ định đường dẫn Codex CLI. Launcher Windows tự tìm bản Codex đã cài mỗi khi tác vụ chạy.

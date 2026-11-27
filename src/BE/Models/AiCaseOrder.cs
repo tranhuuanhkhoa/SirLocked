@@ -103,6 +103,8 @@ public class AiCaseOrder
     /// <summary>0 means library pictures only; -1 means no fixed cap.</summary>
     public int PixelLabCap { get; set; } = UnlimitedPixelLabCap;
     public string ReviewMode { get; set; } = AiCaseReviewModes.Full;
+    /// <summary>Null is reserved for drafts created before the per-order switch.</summary>
+    public bool? BlindReviewEnabled { get; set; }
     /// <summary>VIP orders (VUAN-7): "FAST" (Claude Messages API) or "SAVER" (Message Batches, about half the price).</summary>
     public string Speed { get; set; } = "FAST";
     /// <summary>

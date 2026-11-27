@@ -1,5 +1,5 @@
 /** Small file helpers: every working file lives under <repo>/tmp, ids are sanitised before they become folders. */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { StudioError } from './bridge-client.js';
 import type { StudioConfig } from './config.js';
@@ -12,21 +12,53 @@ export function safeId(value: string, label = 'id'): string {
 }
 
 export function bridgeDir(config: StudioConfig, id: string): string {
-  const dir = path.join(config.tmpRoot, 'bridge', safeId(id));
-  mkdirSync(dir, { recursive: true });
-  return dir;
+  return tmpDir(config, 'bridge', safeId(id));
 }
 
 export function tmpDir(config: StudioConfig, ...parts: string[]): string {
-  const dir = path.join(config.tmpRoot, ...parts);
+  const dir = resolveOutput(config, path.join(config.tmpRoot, ...parts));
   mkdirSync(dir, { recursive: true });
   return dir;
 }
 
-/** Resolves a path given by Claude: absolute, or relative to the repo root. */
-export function resolveInput(config: StudioConfig, file: string): string {
+/** Resolves an absolute or repository-relative tool path. */
+function resolveFile(config: StudioConfig, file: string): string {
   if (!file || typeof file !== 'string') throw new StudioError('BAD_PATH', 'Thiếu đường dẫn file.');
   return path.isAbsolute(file) ? path.normalize(file) : path.resolve(config.repoRoot, file);
+}
+
+const readableRoots = ['docs', 'ai-game-docs', '.agents/skills/tao-vu-an',
+  'src/FE/public/assets', 'tools/studio-mcp/library'];
+
+export function studioPath(config: StudioConfig, file: string, write = false): string {
+  const resolved = resolveFile(config, file);
+  const relative = path.relative(config.repoRoot, resolved);
+  const parts = relative.split(path.sep);
+  const inside = (dir: string) => relative === dir || relative.startsWith(dir + path.sep);
+  const tmp = inside(path.relative(config.repoRoot, config.tmpRoot)) && !inside(path.join('tmp', 'studio-runner'));
+  if (path.isAbsolute(relative) || (!tmp && (write || !readableRoots.some((root) => inside(path.normalize(root))))) ||
+    parts.some((part) => /[:\x00-\x1f]|[. ]$|^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part) ||
+      (part.startsWith('.') && part !== '.agents'))) {
+    throw new StudioError('BAD_PATH', 'Đường dẫn nằm ngoài vùng làm việc của studio.');
+  }
+  let current = config.repoRoot;
+  for (const part of parts) {
+    current = path.join(current, part);
+    const info = lstatSync(current, { throwIfNoEntry: false });
+    if (!info) break;
+    if (info.isSymbolicLink() || (info.isFile() && info.nlink > 1)) {
+      throw new StudioError('BAD_PATH', 'Studio không mở liên kết tới file hoặc thư mục.');
+    }
+  }
+  return resolved;
+}
+
+export function resolveInput(config: StudioConfig, file: string): string {
+  return config.unattended ? studioPath(config, file) : resolveFile(config, file);
+}
+
+export function resolveOutput(config: StudioConfig, file: string): string {
+  return config.unattended ? studioPath(config, file, true) : resolveFile(config, file);
 }
 
 export function requireFile(config: StudioConfig, file: string): string {

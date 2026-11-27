@@ -85,6 +85,42 @@ public sealed class MongoBridgeTruthStageCheckTests
         });
     }
 
+    [Fact]
+    public async Task RepairRequest_ReportsInvalidTimelineAndAcceptsTheCorrectionOnTheSameRequest()
+    {
+        await WithDatabase(async db =>
+        {
+            var (draft, truth) = PausedAtStatements();
+            draft.Status = AiDraftStatus.CaseTruthAwaitingApproval;
+            draft.QueuedOperation = AiQueuedOperations.TruthRepair;
+            draft.TruthCheckpointArtifact = CaseTruthArtifacts.ProofGraph;
+            draft.CaseTruth!.CoreTruth.CrimeActionIds.Add("old-crime-action");
+            await db.AiCaseDrafts.InsertOneAsync(draft);
+            var store = new AiBridgeRequestStore(db, TimeProvider.System);
+            var provider = new ClaudeBridgeTextProvider(store, db, Options.Create(new AiGenerationSettings()),
+                Options.Create(new BridgeSettings()), environment: null!, NullLogger<ClaudeBridgeTextProvider>.Instance);
+            var wait = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => provider.GenerateJsonAsync(new AiTextRequest
+            {
+                OwnerId = draft.Id, GenerationRunId = Run, Step = "BuildTrueTimeline",
+                SchemaVersion = AiGenerationSchemaVersions.TrueTimeline, TruthRepairUpstream = truth,
+                Schema = System.Text.Json.Nodes.JsonNode.Parse("""{"type":"object"}""")!.AsObject()
+            }));
+            var valid = JsonSerializer.SerializeToElement(new { trueTimeline = truth.TrueTimeline }, Json);
+            var observed = truth.TrueTimeline.First();
+            observed.WitnessIds.Add(truth.CaseSeed.SuspectIds.First(id => id != observed.ActorId && !observed.WitnessIds.Contains(id)));
+            var invalid = JsonSerializer.SerializeToElement(new { trueTimeline = truth.TrueTimeline }, Json);
+            var bridge = Bridge(db, store);
+
+            var rejected = await bridge.SubmitAsync(wait.RequestId, invalid, CancellationToken.None);
+            Assert.False(rejected.Accepted);
+            Assert.Contains(rejected.Errors, error => error.StartsWith("WitnessNotObservable", StringComparison.Ordinal));
+            Assert.Contains((await store.GetAsync(wait.RequestId))!.Status, AiBridgeStatuses.Open);
+
+            var corrected = await bridge.SubmitAsync(wait.RequestId, valid, CancellationToken.None);
+            Assert.True(corrected.Accepted, string.Join("\n", corrected.Errors));
+        });
+    }
+
     /// <summary>
     /// Run 8: the locked opportunity step holds a verified alibi that only the suspect's own unseen visit backs, an error
     /// only the whole-truth check at the proof graph finds. The proof graph cannot fix it, so the bridge takes the answer

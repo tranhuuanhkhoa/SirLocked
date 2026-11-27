@@ -477,6 +477,8 @@ public class AiV3SemanticBatchCheckpoint
     /// <summary>Provider response/request ID when the response is known; remains empty when unresolved.</summary>
     public string CallId { get; set; } = string.Empty;
     public int AttemptNumber { get; set; }
+    public string PendingStep { get; set; } = string.Empty;
+    public string GenerationRunId { get; set; } = string.Empty;
     public int AttemptCount { get; set; }
     public string ResultJson { get; set; } = string.Empty;
     public DateTime? UpdatedAt { get; set; }

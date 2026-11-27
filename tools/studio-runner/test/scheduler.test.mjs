@@ -35,6 +35,25 @@ test('does nothing when pendingCount is 0', async () => {
   assert.equal(runs, 0);
 });
 
+test('rechecks an empty snapshot when WorkAvailable arrived while it was in flight', async () => {
+  let resolveFirstSnapshot;
+  let snapshots = 0;
+  let runs = 0;
+  const scheduler = createScheduler({
+    pendingSnapshot: async () => {
+      if (++snapshots === 1) return new Promise((resolve) => { resolveFirstSnapshot = resolve; });
+      return runs ? { count: 0, signature: '' } : { count: 1, signature: 'new-request' };
+    },
+    runBot: async () => { runs++; return 0; },
+    log: () => {},
+  });
+  scheduler.onWorkAvailable();
+  scheduler.onWorkAvailable();
+  resolveFirstSnapshot({ count: 0, signature: '' });
+  await scheduler.whenIdle();
+  assert.equal(runs, 1);
+});
+
 test('an event during a run triggers exactly one more run afterwards', async () => {
   const bot = controlledBot();
   let pending = 1;
@@ -114,4 +133,42 @@ test('errors are logged and the scheduler keeps working', async () => {
   scheduler.onWorkAvailable();
   await scheduler.whenIdle();
   assert.equal(runs, 1);
+});
+
+test('stops after 3 runs when bridge_release fires WorkAvailable for the exact same pending request', async () => {
+  let runs = 0;
+  const lines = [];
+  const scheduler = createScheduler({
+    pendingSnapshot: async () => ({ count: 1, signature: 'req-stuck' }),
+    runBot: async () => {
+      runs++;
+      // Simulates the bot calling bridge_take then bridge_release during its turn,
+      // which makes the server push WorkAvailable for the same request.
+      scheduler.onWorkAvailable();
+      return 0;
+    },
+    log: (line) => lines.push(line),
+  });
+  scheduler.onWorkAvailable();
+  await scheduler.whenIdle();
+  assert.equal(runs, 3);
+  assert.ok(lines.some((line) => /3/.test(line)), lines.join('\n'));
+});
+
+test('keeps going past 3 runs when each step advances to a new pending request', async () => {
+  const queue = ['req-1', 'req-2', 'req-3', 'req-4', 'req-5'];
+  let runs = 0;
+  const scheduler = createScheduler({
+    pendingSnapshot: async () => ({ count: queue.length ? 1 : 0, signature: queue[0] ?? '' }),
+    runBot: async () => {
+      runs++;
+      queue.shift();
+      if (queue.length) scheduler.onWorkAvailable();
+      return 0;
+    },
+    log: () => {},
+  });
+  scheduler.onWorkAvailable();
+  await scheduler.whenIdle();
+  assert.equal(runs, 5);
 });

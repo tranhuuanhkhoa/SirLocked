@@ -1,22 +1,22 @@
-# Tạo vụ án AI bằng bot Claude (bridge)
+# Tạo vụ án AI bằng Codex qua Bridge
 
-Từ đợt VUAN-1, server **không gọi API AI nào**. Mọi bước tạo vụ (xem trước truyện, sự thật, logic, bố cục, kiểm tra vị trí, cutscene) được đưa vào **hàng chờ Claude**. Bot là Claude Code chạy trên máy Yen hoặc VPS studio, lấy việc qua **API bridge** có khóa riêng, viết JSON và nộp lại. Server giữ nguyên prompt, schema, bộ kiểm tra, các cổng duyệt, sửa theo phạm vi, import và publish; chỉ đổi người viết.
+Đơn Admin và VIP miễn phí được đưa vào hàng chờ Bridge. Codex lấy từng yêu cầu, viết JSON hoặc chuẩn bị ảnh và nộp lại qua MCP `sirlocked-studio`. Backend giữ prompt, schema, bộ kiểm tra, cổng duyệt và dữ liệu bản nháp. Đơn VIP trả xu dùng luồng Claude API riêng trên backend.
 
-Người chơi chỉ nhận vụ đã đăng, không bao giờ gọi tới Claude. Bot **không bao giờ publish**: chỉ ADMIN bấm Xuất bản trên admin.
+Người chơi nhận các vụ đã xuất bản. Admin duyệt và xuất bản vụ sau khi chơi thử.
 
-Bài này là hướng dẫn trọn vẹn cách tạo vụ bằng bot Claude: phần đầu cho người làm (Yen), phần sau là chi tiết server. Cài đặt máy chạy bot: [docs/studio-vps.md](studio-vps.md). Luật viết vụ: [docs/case-style-guide.md](case-style-guide.md). Âm thanh, thời tiết, bíp: [docs/case-audio-weather.md](case-audio-weather.md). Quy trình của bot: skill `.claude/skills/tao-vu-an/SKILL.md`.
+Cài đặt runner theo [studio-vps.md](studio-vps.md). Codex đọc [skill tạo vụ án](../.agents/skills/tao-vu-an/SKILL.md), [luật viết vụ](case-style-guide.md) và [hướng dẫn âm thanh, thời tiết](case-audio-weather.md).
 
 ## Tạo một vụ từ đầu đến cuối
 
 | # | Ai | Làm gì | Ở đâu |
 | --- | --- | --- | --- |
-| 0 | Yen, một lần | Đặt khóa `SIRLOCKED_BRIDGE_KEY`, `PIXELLAB_API_KEY` vào biến môi trường của máy chạy bot; `cd tools/studio-mcp && npm ci`; `claude mcp list` thấy `sirlocked-studio` và `pixellab` là Connected | [studio-vps.md](studio-vps.md) mục A hoặc B |
-| 1 | Yen (ADMIN) hoặc VIP | Đặt đơn: thế giới, địa điểm, nghi phạm, thời tiết, thời điểm, preset, mức nội dung, trần PixelLab, chế độ duyệt, ý tưởng. Bấm "Gửi đơn cho Claude" | `/admin/ai` |
+| 0 | Người vận hành | Cài Codex CLI, đặt `SIRLOCKED_BRIDGE_KEY`, build MCP và chạy kiểm tra kết nối | [studio-vps.md](studio-vps.md) |
+| 1 | Admin hoặc VIP | Chọn bối cảnh, độ khó, địa điểm, NPC, thời tiết, giới hạn PixelLab và ý tưởng. Bấm **Tạo vụ án** | `/admin/ai` |
 | 2 | Yen | Đơn VIP trả xu (server có khóa Claude API): bấm **Duyệt đơn** (hoặc Từ chối). Đơn ADMIN và đơn VIP miễn phí (server chưa có khóa) vào hàng chờ ngay | bảng "Bản nháp AI gần đây" ở `/admin/ai` |
-| 3 | Yen | Mở Claude Code ở gốc repo (`claude`), gõ `/tao-vu-an` | máy Yen hoặc VPS studio trong `tmux` |
-| 4 | Bot | Viết xem trước truyện → dừng ở **cổng 1 STORY** | — |
-| 5 | Yen | Đọc truyện, duyệt; gõ lại `/tao-vu-an` | `/admin/ai` → chi tiết draft |
-| 6 | Bot | Viết sự thật, cho thám tử mù thử → **cổng 2 TRUTH** (luôn là Yen, kể cả chế độ nhanh) | — |
+| 3 | Runner | Nhận tín hiệu từ Bridge, mở Codex với skill `$tao-vu-an` | Máy chạy bot |
+| 4 | Bot | Viết bản xem trước truyện cho **cổng 1 STORY** | — |
+| 5 | Backend hoặc người đặt đơn | Đơn AUTO chuyển cổng khi đạt kiểm tra. Đơn cũ có thể cần người duyệt | `/admin/ai` → chi tiết draft |
+| 6 | Bot | Dựng sự thật của vụ án và kiểm định tính khả thi cho **cổng 2 TRUTH** | — |
 | 7 | Bot | Viết logic chơi: cảnh, giải đố, hội thoại, đối chất, **gợi ý 3 mức cho mọi câu hỏi**, kết thúc; agent `kiem-dinh` trả lời bước đánh giá → **cổng 3 LOGIC** | — |
 | 8 | Bot | Hình nền cảnh (vụ pixel: khai `asset_plan`, thư viện → biến thể → PixelLab trong trần lượt) và bố cục pixel → **cổng 4 LAYOUT**; rồi sprite, chân dung, icon; nhạc, bíp, thời tiết | — |
 | 9 | Bot | Import bản nháp (không đăng), Playwright tự chơi, viết `report.md` 5 lớp | chi tiết draft hiện `report.md` |
@@ -25,7 +25,7 @@ Bài này là hướng dẫn trọn vẹn cách tạo vụ bằng bot Claude: ph
 
 Chế độ nhanh (`reviewMode = FAST`, chỉ ADMIN chọn): bot tự qua STORY, LOGIC, LAYOUT khi cả 5 lớp kiểm tra đạt; Yen chỉ duyệt TRUTH và bản cuối. Bot **không bao giờ** publish: bridge không có đường publish.
 
-Mỗi lần gõ `/tao-vu-an`, bot làm các đơn đang chờ rồi dừng ở cổng của Yen hoặc khi hết việc. Không có vòng lặp tự động; đơn chờ trong hàng tới lần gõ sau.
+Runner nhận tín hiệu khi Bridge có việc. Khi cần vận hành thủ công, có thể mở Codex ở gốc repo và gọi `$tao-vu-an`.
 
 ## Luật nội dung từ VUAN-6
 
@@ -82,7 +82,7 @@ Validator kiểm: chứng cứ có thật và `isEvidence: true`; tìm được 
 - Lỗi `AI_ORDER_INVALID` có thêm `errors.field` (ví dụ `order.suspectCount`, `order.npcIds`) để form hiện lỗi ngay cạnh ô sai. Lỗi khác không có trường này.
 - Trạng thái đơn (`orderStatus`, kèm `orderStatusHistory` có mốc thời gian): `AWAITING_OWNER_APPROVAL` → `QUEUED_FOR_CLAUDE` → `CLAUDE_WORKING` → `AWAITING_GATE` → … → `SUBMITTED` (sẵn sàng đăng hoặc đã import). Thêm `REJECTED`, `CANCELLED`.
 
-## Hàng chờ Claude (park/resume)
+## Hàng chờ Bridge (park/resume)
 
 - Mỗi câu hỏi là một tài liệu trong collection `aiBridgeRequests` (ownerType `CASE_DRAFT` hoặc `CUTSCENE`, kind `JSON` hoặc `ASSETS`, trạng thái `PENDING` | `TAKEN` | `SUBMITTED` | `ACCEPTED` | `REJECTED` | `STALE` | `CANCELLED`).
 - `requestKey` xác định = SHA-256(ownerType, ownerId, `GenerationRunId`, bước, số lần thử, thứ tự của lời gọi cùng bước và cùng lần thử trong lượt chạy). Chạy lại bước nào thì tìm lại đúng câu trả lời cũ.
@@ -169,7 +169,7 @@ Nút "Tạo bằng AI" của cutscene tạo yêu cầu bridge `ownerType = CUTSC
 
 Làn này chỉ mở khi server có `Anthropic__ApiKey`:
 
-- **Làn mở:** đơn của **VIP** là đơn trả xu, không đi bot Claude Code. Đơn được viết bằng **Claude API** (khóa riêng, tính
+- **Làn mở:** đơn của **VIP** là đơn trả xu. Đơn được viết bằng **Claude API** (khóa riêng, tính
   tiền theo token, đúng Commercial Terms) và chờ admin duyệt trước khi chạy.
 - **Làn đóng (chưa có khóa, như production hiện nay):** đơn VIP miễn phí và vào thẳng hàng chờ bot qua bridge như đơn
   ADMIN. VIP tự chọn trần PixelLab và chế độ duyệt. Không giữ xu, không gọi Anthropic. Đây là luồng "bot tự chạy" ngày
@@ -218,7 +218,7 @@ Tool của `sirlocked-studio` trả mã lỗi kèm cách sửa; bot chép nguyê
 Server không nhận khóa bot gửi.
 
 1. Kiểm máy chạy bot có biến mà không in giá trị: PowerShell `[bool]$env:SIRLOCKED_BRIDGE_KEY`, bash `test -n "$SIRLOCKED_BRIDGE_KEY" && echo co`.
-2. Biến vừa đặt mà phiên Claude Code cũ không thấy: đóng hẳn VS Code và mọi terminal, mở lại (Windows); `source ~/.config/sirlocked/env` hoặc SSH lại (VPS studio).
+2. Nếu phiên Codex chưa nhận biến môi trường mới, mở lại Codex và terminal (Windows), hoặc nạp lại `~/.config/sirlocked/env` (VPS studio).
 3. Khóa trên máy và trên server lệch nhau (vừa đổi khóa ở một bên): chạy lại `bash scripts/set-bridge-key.sh` trên máy Yen. Script đặt cùng một khóa cho server và biến Windows; VPS studio thì sửa `~/.config/sirlocked/env`.
 4. Kiểm: `GET https://sirlocked.id.vn/api/bridge/ping` có header `X-Bridge-Key` phải ra 200; không có header ra 401. Bot gọi được bằng `bridge_list`.
 
@@ -233,7 +233,7 @@ Server không nhận khóa bot gửi.
 
 ### Yêu cầu bị treo do lease
 
-Khi bot nhận một yêu cầu (`bridge_take`), yêu cầu thành `TAKEN` trong `Bridge__LeaseHours` (mặc định 2 giờ, tối đa 24). Phiên Claude Code tắt giữa chừng thì yêu cầu nằm đó: `bridge_list` mặc định không hiện nó, nhận lại thì báo `BRIDGE_REQUEST_NOT_TAKEABLE` kèm giờ hết lease.
+Khi bot nhận một yêu cầu bằng `bridge_take`, yêu cầu chuyển sang `TAKEN` trong thời hạn `Bridge__LeaseHours` (mặc định 2 giờ). Nếu phiên Codex dừng trước khi trả việc, yêu cầu chờ đến khi hết hạn hoặc được trả lại.
 
 1. Xem: `bridge_list { status: "TAKEN" }` (cột `leaseExpiresAt`), hoặc `draft_get { draftId }`.
 2. Chắc chắn không còn phiên nào khác đang làm yêu cầu đó (chỉ một phiên `/tao-vu-an` mỗi lúc), rồi `bridge_release { requestId }` và `bridge_take` lại. Còn file trong `tmp/bridge/<requestId>/` thì có thể sửa `answer.json` và `bridge_submit` luôn: yêu cầu `TAKEN` vẫn nộp được.
@@ -263,7 +263,7 @@ PixelLab giới hạn số job chạy cùng lúc và số lần gọi.
 
 Không mất gì. Mọi câu trả lời đã nộp nằm trên server; draft đỗ ở trạng thái chờ Claude (`queueState = AWAITING_CLAUDE`) và đứng yên trong hàng chờ.
 
-1. Khi hạn mức hồi lại, mở phiên Claude Code mới ở gốc repo và gõ `/tao-vu-an`: bot thấy yêu cầu đang chờ và làm tiếp đúng bước đó.
+1. Khi hạn mức hồi lại, chạy runner hoặc mở Codex ở gốc repo và gọi `$tao-vu-an` để tiếp tục yêu cầu đang chờ.
 2. Yêu cầu đang dở có thể còn `TAKEN` tới hết lease: làm như mục "Yêu cầu bị treo do lease".
 3. Đơn FAST bị dừng giữa lúc chạy thử: gõ lại `/tao-vu-an`, bot `draft_get` rồi chạy tiếp `playtest`.
 4. Hay hết hạn mức: chia việc như skill dặn (bước sự thật và logic dùng model mạnh nhất; hình và âm giao agent chạy Sonnet), và làm từng đơn một.
@@ -277,7 +277,7 @@ Không mất gì. Mọi câu trả lời đã nộp nằm trên server; draft đ
 - `AI_ACTIVE_DRAFT_LIMIT`, `AI_DAILY_LIMIT`: hạn mức số bản nháp khi `AiQuota__Enabled=true`.
 - `ASSET_STORAGE_UNAVAILABLE`: bot tải hình khi server chưa có Cloudinary.
 - `MissingHintLevel`, `DuplicateHintLevel`, `MissingPuzzleHints`: thiếu gợi ý 3 mức (mục "Gợi ý 3 mức cho mọi câu hỏi"). Bản nháp AI: bot sửa đúng chỗ và nộp lại. Vụ mới ở `/admin/import`: thêm gợi ý rồi nhập lại.
-- Tool `playtest` bị cắt giữa chừng trong Claude Code: đặt `MCP_TOOL_TIMEOUT=1800000` rồi mở lại phiên.
+- Nếu tool `playtest` hết thời gian, kiểm tra log Playwright và `tool_timeout_sec` của `sirlocked-studio` trong `.codex/config.toml`.
 
 ## Sửa chất lượng từ checkpoint
 

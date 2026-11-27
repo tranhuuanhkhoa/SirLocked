@@ -102,6 +102,20 @@ public class AiRequestValidationTests
     }
 
     [Fact]
+    public void EasyStorySelectsSingleActionBeforeTheTruthContractIsLocked()
+    {
+        for (var seed = 0; seed < 32; seed++)
+        {
+            var easy = AiStoryDiversityPolicy.CreateDistinct(AiCaseTypes.Theft, seed.ToString(), [], difficulty: "easy");
+            Assert.StartsWith("one direct action", easy.MethodArchetype);
+            Assert.DoesNotContain("two causally separate stages", easy.TwistArchetype);
+            var standard = AiStoryDiversityPolicy.Create(AiCaseTypes.Theft, seed.ToString());
+            Assert.Equal(standard.CoreFingerprint,
+                AiStoryDiversityPolicy.Create(AiCaseTypes.Theft, seed.ToString(), difficulty: "medium").CoreFingerprint);
+        }
+    }
+
+    [Fact]
     public void DiversityProfile_IsStableForSeedAndDistinctFromRecentStructure()
     {
         var first = AiStoryDiversityPolicy.Create(AiCaseTypes.Random, "draft-seed-001");

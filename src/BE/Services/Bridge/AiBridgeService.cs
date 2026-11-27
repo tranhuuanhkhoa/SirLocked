@@ -75,6 +75,7 @@ public sealed class AiBridgeService(
                 request.Status,
                 request.AttemptNumber,
                 preset = draft?.Settings.GenerationPreset,
+                difficulty = draft?.Settings.Difficulty,
                 language = draft?.Settings.Language,
                 world = draft?.Order?.World,
                 reviewMode = draft?.Order?.ReviewMode,
@@ -643,11 +644,13 @@ public sealed class AiBridgeService(
             return "The server is working; poll again in a few seconds.";
         if (AiDraftAutopilot.NextStep(draft) is { } step)
             return $"Autopilot order: the server takes the next step ({step.Name}) by itself within a few seconds; never wait for a person, stop or poll again.";
+        if (draft.Order?.ReviewMode == AiCaseReviewModes.Auto && WaitingGate(draft) is BridgeGates.Truth or BridgeGates.Logic)
+            return "Autopilot paused for an admin. Check review findings, validation errors and pending repair candidates.";
         return draft.Status switch
         {
             AiDraftStatus.StoryAwaitingApproval => draft.Order?.ReviewMode == AiCaseReviewModes.Fast
                 ? "Fast mode: run your checks, then approve-gate STORY." : "Wait for an admin to approve the story preview.",
-            AiDraftStatus.CaseTruthAwaitingApproval => "Wait for an admin to approve the case truth (always a person).",
+            AiDraftStatus.CaseTruthAwaitingApproval => "Wait for an admin to approve the case truth.",
             AiDraftStatus.CaseTruthInvalid => "The truth failed validation; an admin must ask for a scoped repair.",
             AiDraftStatus.FullLogicAwaitingApproval => draft.Order?.ReviewMode == AiCaseReviewModes.Fast
                 ? "Fast mode: run the blind detective and editor checks, then approve-gate LOGIC." : "Wait for an admin to approve the logic.",

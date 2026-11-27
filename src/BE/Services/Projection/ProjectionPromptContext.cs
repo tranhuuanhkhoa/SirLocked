@@ -78,7 +78,7 @@ public static class ProjectionPromptContext
                     methodOptions = plan.Skeleton.FinalLogic.MethodOptions.Select(option => option.Id)
                 }
             }
-        }, JsonOptions);
+        }, AiCaseService.PromptJson);
     }
 
     private static string BuildRepair(AiCaseDraft draft, ProjectionRepairScope scope)
@@ -182,7 +182,7 @@ public static class ProjectionPromptContext
                         && !Editable("testimonyFragments").Contains(pair.Key))
                     .ToDictionary(pair => pair.Key, pair => new { pair.Value.Text })
             }
-        }, JsonOptions);
+        }, AiCaseService.PromptJson);
     }
 
     private static Dictionary<string, T> Select<T>(Dictionary<string, T> source, IEnumerable<string> ids)

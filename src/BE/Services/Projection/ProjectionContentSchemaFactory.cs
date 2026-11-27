@@ -247,7 +247,10 @@ public sealed class ProjectionContentSchemaFactory : IProjectionContentSchemaFac
         ["type"] = "object",
         ["description"] = "Text params the player reads, by kind: " + string.Join("; ", offered.Select(kind =>
             $"{kind}: {(PuzzleKindAuthoring.AllowedAuthoredKeys(kind) is { Count: > 0 } keys ? string.Join(", ", keys) : "none, use {}")}"))
-            + ". Never write the answer or the puzzle's mechanics."
+            + ". For torn_paper, doc is an object with lines (1–3 nonempty strings) and optional head, sub, meta, to, sign (strings). "
+            + "Example: {\"doc\":{\"head\":\"Inspection note\",\"lines\":[\"The seal was intact at closing.\"]}}. "
+            + "Optional note: {\"text\":\"…\",\"mark\":\"…\"}; optional find: {\"title\":\"…\",\"text\":\"…\",\"tag\":\"…\"}. "
+            + "Never write the answer or the puzzle's mechanics."
     };
 
     private static JsonObject Const(string value) => new()

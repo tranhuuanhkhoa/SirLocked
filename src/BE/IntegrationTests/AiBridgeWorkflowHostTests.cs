@@ -688,7 +688,294 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
         Assert.Equal(AiBridgeStatuses.Cancelled, (await db.AiBridgeRequests.Find(item => item.Id == changed.RequestId).SingleAsync()).Status);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SemanticReview_ResumesEveryBatchAndItsRetry(bool retrySecondBatch)
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
+        using var client = factory.CreateClient();
+        using var control = factory.Services.CreateScope();
+        var db = control.ServiceProvider.GetRequiredService<MongoDbContext>();
+        var store = control.ServiceProvider.GetRequiredService<AiBridgeRequestStore>();
+        var draftId = ObjectId.GenerateNewId().ToString();
+        var settings = new AiDraftSettings
+        {
+            StageCount = 1, Difficulty = "easy", Language = "vi",
+            MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation,
+            GenerationPreset = AiGenerationPresets.NormalRandom, IncludeCrackTheLie = true
+        };
+        await db.AiCaseDrafts.InsertOneAsync(new AiCaseDraft
+        {
+            Id = draftId, GenerationRunId = "semantic-review-run", Settings = settings
+        });
+        var gameCase = AiCaseMockFactory.CreateMockAdditiveV3GeneratedLogic(settings).ToGameCase(settings);
+        var original = gameCase.EvidenceChallenges[0];
+        var pairCount = original.CandidateEvidenceIds.Count * original.CandidateTestimonyFragmentIds.Count;
+        Assert.InRange(pairCount, 1, 24);
+        gameCase.EvidenceChallenges.Clear();
+        for (var i = 0; i <= 24 / pairCount; i++)
+        {
+            var challenge = JsonSerializer.Deserialize<EvidenceChallenge>(JsonSerializer.Serialize(original, Web), Web)!;
+            challenge.ChallengeId = $"challenge-{i}";
+            challenge.Order = i;
+            gameCase.EvidenceChallenges.Add(challenge);
+        }
+        var batches = AiCaseService.BuildSemanticReviewBatches(gameCase);
+        Assert.Equal(2, batches.Count);
+        string Answer(int batch) => AiV3SemanticReviewPolicy.BuildMockResponse(
+            gameCase, batches[batch].Select(challenge => challenge.ChallengeId).ToArray());
+
+        async Task<AiV3SemanticReview> ResumeAsync()
+        {
+            using var run = factory.Services.CreateScope();
+            var draft = await db.AiCaseDrafts.Find(item => item.Id == draftId).SingleAsync();
+            return await run.ServiceProvider.GetRequiredService<AiCaseService>().ReviewV3LogicAsync(draft, gameCase);
+        }
+
+        var first = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => ResumeAsync());
+        Assert.NotNull(await store.SubmitAsync(first.RequestId, Answer(0)));
+        var second = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => ResumeAsync());
+        Assert.Equal("ReviewV3PairMatrix", second.Step);
+        var secondAnswer = retrySecondBatch ? """{"cracks":[],"pairEvaluations":[]}""" : Answer(1);
+        Assert.NotNull(await store.SubmitAsync(second.RequestId, secondAnswer));
+        if (retrySecondBatch)
+        {
+            var retry = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => ResumeAsync());
+            Assert.Equal("RetryIncompleteV3PairBatch", retry.Step);
+            Assert.NotNull(await store.SubmitAsync(retry.RequestId, Answer(1)));
+        }
+        var result = await ResumeAsync();
+        Assert.All(result.BatchCheckpoints, checkpoint => Assert.Equal("COMPLETED", checkpoint.Status));
+        Assert.Equal(2, result.BatchCheckpoints.Count);
+        var requests = await store.ListForOwnerAsync(AiBridgeOwnerTypes.CaseDraft, draftId);
+        Assert.Equal(retrySecondBatch ? 3 : 2, requests.Count);
+        Assert.All(requests, request => Assert.Equal(AiBridgeStatuses.Accepted, request.Status));
+    }
+
+    [Fact]
+    public async Task TruthRepair_ResumesAfterEachBridgeAnswer()
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
+        using var client = factory.CreateClient();
+        using var control = factory.Services.CreateScope();
+        var db = control.ServiceProvider.GetRequiredService<MongoDbContext>();
+        var store = control.ServiceProvider.GetRequiredService<AiBridgeRequestStore>();
+        var draft = new AiCaseDraft
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            Status = AiDraftStatus.FullLogicAwaitingApproval,
+            QueueState = AiQueueStates.Running,
+            QueuedOperation = AiQueuedOperations.TruthRepair,
+            GenerationRunId = "scoped-truth-repair-test",
+            GenerationClaimedAt = DateTime.UtcNow,
+            LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
+            Order = new AiCaseOrder { ReviewMode = AiCaseReviewModes.Auto },
+            Settings = new AiDraftSettings
+            {
+                Difficulty = "medium", StageCount = 1, PipelineVersion = AiPipelineVersions.OpenCoop1,
+                GenerationPreset = AiGenerationPresets.NormalRandom,
+                MechanicsVersion = CaseMechanicsVersions.InvestigationV3PairedConfrontation,
+                IncludeCrackTheLie = true
+            },
+            TruthCheckpointArtifact = CaseTruthArtifacts.ProofGraph,
+            TruthRepairOriginalFromArtifact = CaseTruthArtifacts.Timeline,
+            TruthRepairFromArtifact = CaseTruthArtifacts.Timeline
+        };
+        draft.CaseTruthJson = AiCaseMockFactory.BuildMockTruthPackageJson(draft);
+        draft.CaseTruth = JsonSerializer.Deserialize<CaseTruthPackage>(draft.CaseTruthJson, Web)!;
+        draft.TruthRepairBaseHash = new CaseTruthService().ComputeHash(draft.CaseTruth);
+        draft.TruthReviewerResult = new CaseTruthFeasibilityReview
+        {
+            Status = CaseTruthReviewStatuses.Failed,
+            Findings = { new CaseTruthReviewFinding { Code = CaseTruthReviewFindingCodes.TimelineFeasibility } }
+        };
+        await db.AiCaseDrafts.InsertOneAsync(draft);
+
+        async Task ResumeAsync()
+        {
+            using var run = factory.Services.CreateScope();
+            var stored = await db.AiCaseDrafts.Find(item => item.Id == draft.Id).SingleAsync();
+            await run.ServiceProvider.GetRequiredService<AiCaseService>().ExecuteAsync(stored, CancellationToken.None);
+        }
+
+        string[] steps = ["BuildTrueTimeline", "BuildOpportunityMatrix", "GenerateCausalEvidence",
+            "BuildStatements", "BuildProofGraph", "ReviewCaseTruthFeasibility"];
+        foreach (var step in steps)
+        {
+            var error = await Record.ExceptionAsync(ResumeAsync);
+            if (error is null)
+            {
+                var stopped = await db.AiCaseDrafts.Find(item => item.Id == draft.Id).SingleAsync();
+                Assert.Fail($"Expected {step}, draft stopped as {stopped.TruthRepairStatus}: {string.Join(" | ", stopped.TruthRepairValidationReport)}");
+            }
+            var wait = Assert.IsType<AiAwaitingClaudeException>(error);
+            Assert.Equal(step, wait.Step);
+            var request = await store.GetAsync(wait.RequestId);
+            Assert.False(string.IsNullOrWhiteSpace(request?.MockResponseJson));
+            Assert.NotNull(await store.SubmitAsync(wait.RequestId, request!.MockResponseJson!));
+        }
+        await ResumeAsync();
+
+        var saved = await db.AiCaseDrafts.Find(item => item.Id == draft.Id).SingleAsync();
+        Assert.Equal(AiRepairStatus.CandidateReady, saved.TruthRepairStatus);
+        Assert.Equal(draft.CaseTruthJson, saved.CaseTruthJson);
+        Assert.Equal(steps.Length, (await store.ListForOwnerAsync(AiBridgeOwnerTypes.CaseDraft, draft.Id)).Count);
+
+        await db.AiCaseDrafts.UpdateOneAsync(item => item.Id == draft.Id,
+            Builders<AiCaseDraft>.Update.Set(item => item.QueueState, AiQueueStates.None)
+                .Set(item => item.AutopilotRepairs, AiDraftAutopilot.MaxRepairs));
+        await control.ServiceProvider.GetRequiredService<IAiDraftAutopilot>().AdvanceAsync(draft.Id, CancellationToken.None);
+
+        var accepted = await db.AiCaseDrafts.Find(item => item.Id == draft.Id).SingleAsync();
+        Assert.Equal(AiRepairStatus.Accepted, accepted.TruthRepairStatus);
+        Assert.Equal(AiDraftAutopilot.MaxRepairs, accepted.AutopilotRepairs);
+    }
+
+
+    [Theory]
+    [InlineData("EQUIVALENT", BlindReviewAssessmentStatuses.Passed)]
+    [InlineData("CONTRADICTS", BlindReviewAssessmentStatuses.Failed)]
+    [InlineData("INSUFFICIENT", BlindReviewAssessmentStatuses.Invalid)]
+    public async Task BlindReview_ComparesMeaningAfterTheEvidencePasses(string verdict, string expected)
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
+        using var client = factory.CreateClient();
+        using var control = factory.Services.CreateScope();
+        var db = control.ServiceProvider.GetRequiredService<MongoDbContext>();
+        var store = control.ServiceProvider.GetRequiredService<AiBridgeRequestStore>();
+        var draft = new AiCaseDraft
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            GenerationRunId = "blind-review-test",
+            LogicContractVersion = CaseLogicContractVersions.CausalFiveClaim,
+            Order = new AiCaseOrder { ReviewMode = AiCaseReviewModes.Auto },
+            Settings = new AiDraftSettings { Difficulty = "medium" }
+        };
+        var truth = JsonSerializer.Deserialize<CaseTruthPackage>(AiCaseMockFactory.BuildMockTruthPackageJson(draft), Web)!;
+        draft.CaseTruth = truth;
+        await db.AiCaseDrafts.InsertOneAsync(draft);
+        var gameCase = JsonSerializer.Deserialize<GeneratedCaseLogic>(AiCaseMockFactory.BuildMockFullCaseJson(draft), Web)!
+            .ToGameCase(draft.Settings);
+        var answer = AiCaseMockFactory.BuildMockBlindReview(truth, gameCase);
+        answer.Motive = verdict == "EQUIVALENT"
+            ? truth.CoreTruth.Motive.TrimEnd('.') + "!"
+            : "The culprit acted to collect a completely unrelated reward.";
+
+        async Task<BlindReviewAssessment> ResumeAsync()
+        {
+            using var run = factory.Services.CreateScope();
+            var stored = await db.AiCaseDrafts.Find(item => item.Id == draft.Id).SingleAsync();
+            await run.ServiceProvider.GetRequiredService<AiCaseService>().ReviewAndAssessBlindSolvabilityAsync(stored, gameCase);
+            return stored.BlindReviewAssessment;
+        }
+
+        var blind = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => ResumeAsync());
+        Assert.Equal("ReviewBlindSolvability", blind.Step);
+        Assert.NotNull(await store.SubmitAsync(blind.RequestId, JsonSerializer.Serialize(answer, Web)));
+        var comparison = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => ResumeAsync());
+        Assert.Equal("ReviewBlindSolutionMeaning", comparison.Step);
+        var comparisonJson = JsonSerializer.Serialize(new { verdict, reason = "Controlled comparison result for the bridge test." }, Web);
+        Assert.NotNull(await store.SubmitAsync(comparison.RequestId, comparisonJson));
+        if (verdict == "INSUFFICIENT")
+        {
+            var retry = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => ResumeAsync());
+            Assert.Equal("ReviewBlindSolvability:Retry", retry.Step);
+            Assert.NotNull(await store.SubmitAsync(retry.RequestId, JsonSerializer.Serialize(answer, Web)));
+            var retryComparison = await Assert.ThrowsAsync<AiAwaitingClaudeException>(() => ResumeAsync());
+            Assert.Equal("ReviewBlindSolutionMeaning", retryComparison.Step);
+            Assert.NotNull(await store.SubmitAsync(retryComparison.RequestId, comparisonJson));
+        }
+
+        var assessment = await ResumeAsync();
+        Assert.Equal(expected, assessment.Status);
+        if (expected == BlindReviewAssessmentStatuses.Failed)
+            Assert.Contains(assessment.ValidationErrors, error => error.Code == "BlindReviewContradictsTruth");
+        Assert.Equal(verdict == "INSUFFICIENT" ? 4 : 2, (await store.ListForOwnerAsync(AiBridgeOwnerTypes.CaseDraft, draft.Id)).Count);
+    }
+
     // ---------------------------------------------------------------- the test bot
+
+    [Fact]
+    public async Task A44WordSemanticRepair_SendsOnlyTheAnswerBackAndRechecksLogic()
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory(vipLaneOpen: false);
+        await SeedUsersAsync(factory);
+        using var admin = User(factory, AdminId, UserRole.Admin);
+        using var bot = Bot(factory);
+        var response = await admin.PostAsJsonAsync("/api/admin/ai-cases", new GenerateAiCaseRequest
+        {
+            Prompt = "A missing pocket watch in a pawnshop.", Language = "vi", Difficulty = "easy",
+            Order = new AiCaseOrder { World = AiCaseWorlds.HangDuongVictorian, PixelLabCap = 0 }
+        });
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        var id = (await response.Content.ReadFromJsonAsync<ApiResponse<AiDraftResponse>>(Web))!.Data!.DraftId;
+
+        var steps = new List<string>();
+        string? shortenedDialogue = null;
+        var end = DateTime.UtcNow.AddSeconds(90);
+        while (DateTime.UtcNow < end)
+        {
+            var status = await GetData<JsonObject>(bot, $"/api/bridge/drafts/{id}");
+            if (status["generationPhase"]?.GetValue<string>() == "SCENE_LAYOUT")
+            {
+                Assert.NotNull(shortenedDialogue);
+                Assert.Single(steps, step => step.StartsWith("RepairProjectionFields:Semantic:", StringComparison.Ordinal));
+                Assert.Equal(2, steps.Count(step => step == "ReviewV3PairMatrix"));
+                Assert.DoesNotContain("RetryFullCaseJson", steps);
+                Assert.Equal("PASSED", status["validator"]!["semanticReview"]!.GetValue<string>());
+                return;
+            }
+            foreach (var pending in (await PendingAsync(bot)).Where(row => row["draftId"]?.GetValue<string>() == id
+                         && row["kind"]?.GetValue<string>() == AiBridgeKinds.Json))
+            {
+                var requestId = pending["requestId"]!.GetValue<string>();
+                var request = await TakeAsync(bot, requestId);
+                var step = request["step"]!.GetValue<string>();
+                var mock = JsonNode.Parse(request["devMockResponse"]!.GetValue<string>())!.AsObject();
+                if (step == "ReviewV3PairMatrix" && !steps.Contains(step))
+                {
+                    var evaluations = mock["cracks"]!.AsArray().SelectMany(row => row!["pairEvaluations"]!.AsArray())
+                        .Concat(mock["pairEvaluations"]?.AsArray().AsEnumerable() ?? []);
+                    foreach (var evaluation in evaluations.Where(row => row!["isValidContradiction"]!.GetValue<bool>()))
+                    {
+                        evaluation!["isValidContradiction"] = false;
+                        evaluation["reasonCode"] = "RELATED_ONLY";
+                        evaluation["reason"] = "The given artifact does not refute the specific claim.";
+                    }
+                }
+                if (step == "RepairV3SemanticLogic")
+                {
+                    var (dialogueId, value) = Assert.Single(mock["dialogues"]!.AsObject());
+                    shortenedDialogue = dialogueId;
+                    var fragments = mock["testimonyFragments"]!.AsObject()
+                        .Select(row => row.Value!["text"]!.GetValue<string>()).ToArray();
+                    var excerpt = string.Join(' ', fragments);
+                    var words = excerpt.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+                    Assert.True(words.Length <= 44);
+                    value!["answer"] = string.Join(' ', words.Concat(Enumerable.Repeat("vâng", 44 - words.Length)));
+                }
+                if (step.StartsWith("RepairProjectionFields:Semantic:", StringComparison.Ordinal))
+                {
+                    var (section, entries) = Assert.Single(mock);
+                    Assert.Equal("dialogues", section);
+                    var (dialogueId, fields) = Assert.Single(entries!.AsObject());
+                    Assert.Equal(shortenedDialogue, dialogueId);
+                    Assert.Equal("answer", Assert.Single(fields!.AsObject()).Key);
+                    fields["answer"] = fields["answer"]!.GetValue<string>() + " Tôi nhớ rõ từng việc ấy.";
+                }
+                steps.Add(step);
+                var result = await Submit(bot, requestId, mock);
+                Assert.True(result["accepted"]!.GetValue<bool>(), $"{step}: {result["errors"]}");
+            }
+            await Task.Delay(100);
+        }
+        throw new TimeoutException($"The case did not reach layout. Steps: {string.Join(", ", steps)}");
+    }
 
     private enum GateApprover { Admin, BotWhereAllowed }
 

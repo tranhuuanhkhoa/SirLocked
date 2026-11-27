@@ -1,8 +1,9 @@
 /** draft_get, draft_approve_gate, draft_import, draft_report, player_view, assets_needed, asset_upload, assets_complete. */
 import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { StudioError } from '../bridge-client.js';
-import { bridgeDir, display, requireFile, safeId, writeJsonFile } from '../files.js';
+import { bridgeDir, display, requireFile, safeId, studioPath, writeJsonFile } from '../files.js';
 import { inspect } from '../image/process.js';
 import { clip, type ToolContext } from './context.js';
 
@@ -18,6 +19,7 @@ export async function draftGet(ctx: ToolContext, args: { draftId: string }) {
     draftId, status: data.status, queueState: data.queueState, orderStatus: data.orderStatus, waitingGate: data.waitingGate ?? null,
     nextAction: data.nextAction, reviewMode: data.order?.order?.reviewMode ?? data.order?.reviewMode ?? null,
     pixelLabCap: data.order?.order?.pixelLabCap ?? null, world: data.order?.order?.world ?? null,
+    blindReviewEnabled: data.order?.order?.blindReviewEnabled ?? null,
     caseId: data.caseId, caseTitle: data.caseTitle, importedCaseId: data.importedCaseId || null,
     claudeWait: data.claudeWait ?? null,
     openRequests: list(data.openRequests),
@@ -168,6 +170,26 @@ export async function assetUpload(ctx: ToolContext, args: { draftId: string; slo
   return { draftId, slotId: args.slotId, url: data?.url, width: data?.width, height: data?.height, hasAlpha: data?.hasAlpha, bytes: data?.bytes, warnings };
 }
 
+/** A foreground layer has no separate draft slot. Store it under a draft-specific library key. */
+export async function foregroundUpload(ctx: ToolContext, args: { draftId: string; layerId: string; file: string }) {
+  const draftId = safeId(args.draftId, 'draftId').toLowerCase();
+  const layerId = safeId(args.layerId, 'layerId').toLowerCase().replaceAll('_', '-').slice(0, 37);
+  const file = studioPath(ctx.config, args.file, true);
+  const stat = statSync(file, { throwIfNoEntry: false });
+  if (!stat?.isFile() || stat.size > 5 * 1024 * 1024) throw new StudioError('BAD_PATH', 'Cần file ảnh không quá 5 MB.');
+  const bytes = readFileSync(file);
+  const info = await inspect(bytes);
+  if (!['png', 'webp'].includes(info.format) || !info.hasAlpha) {
+    throw new StudioError('ASSET_FORMAT', 'Lớp che cần PNG hoặc WebP có alpha.');
+  }
+  const form = new FormData();
+  form.set('key', `case-${draftId}-foreground`);
+  form.set('role', `fg-${layerId}`);
+  form.set('file', new Blob([new Uint8Array(bytes)], { type: `image/${info.format}` }), `foreground.${info.format}`);
+  const { data } = await ctx.client.call<any>('POST', '/api/bridge/library/files', { form });
+  return { url: data?.url, width: info.width, height: info.height };
+}
+
 /**
  * Saves the picture a slot of this draft already has (its currentUrl from assets-needed) under
  * tmp/bridge/<draftId>/assets/, so a later step (scene layout) can measure it. Only URLs the server gives
@@ -203,9 +225,22 @@ export async function assetDownload(ctx: ToolContext, args: { draftId: string; s
 export async function assetsComplete(ctx: ToolContext, args: { draftId: string }) {
   const draftId = safeId(args.draftId, 'draftId');
   const { data } = await ctx.client.call<any>('POST', `/api/bridge/drafts/${draftId}/assets/complete`);
+  let draft;
+  if (data?.accepted && ctx.config.unattended) {
+    // The final asset job can reach READY_TO_PUBLISH without creating another bridge request.
+    // Keep this turn open long enough to see that transition and import for playtest.
+    const deadline = Date.now() + 75_000;
+    do {
+      draft = await draftGet(ctx, { draftId });
+      if (draft.status === 'READY_TO_PUBLISH' || !['PENDING', 'RUNNING', 'RETRY_SCHEDULED'].includes(draft.queueState)) break;
+      await delay(2_000);
+    } while (Date.now() < deadline);
+  }
   return {
-    draftId, accepted: Boolean(data?.accepted), errors: (data?.errors ?? []).slice(0, 40), next: data?.next ?? null,
-    hint: data?.accepted ? 'Server đi tiếp (bố cục, kiểm tra vị trí...). Xem bridge_list.' : 'Còn ô chưa có ảnh: tải nốt rồi gọi lại.',
+    draftId, accepted: Boolean(data?.accepted), errors: (data?.errors ?? []).slice(0, 40), next: draft?.nextAction ?? data?.next ?? null,
+    draftStatus: draft?.status, queueState: draft?.queueState,
+    hint: draft?.status === 'READY_TO_PUBLISH' ? 'Gọi draft_import, playtest và draft_report trong lượt này.'
+      : data?.accepted ? 'Server đi tiếp (bố cục, kiểm tra vị trí...). Xem bridge_list hoặc draft_get.' : 'Còn ô chưa có ảnh: tải nốt rồi gọi lại.',
   };
 }
 
