@@ -42,6 +42,35 @@ public sealed class TruthStageAnswerCheckTests
     private static string Statements(CaseTruthPackage truth) => JsonSerializer.Serialize(new { statementLedger = truth.StatementLedger }, Json);
 
     [Fact]
+    public void EasyTimelineNeedsASpareTraceForTheOptionalPuzzleBeforeEvidenceGeneration()
+    {
+        var (draft, truth) = PausedAt(CaseTruthArtifacts.CoreTruth);
+        var kept = 0;
+        foreach (var item in truth.TrueTimeline)
+            item.TraceIds = item.TraceIds.Where(_ => ++kept <= 5).ToList();
+        var answer = JsonSerializer.Serialize(new { trueTimeline = truth.TrueTimeline }, Json);
+        var result = Rules.CheckAnswer(draft, Request(AiGenerationSchemaVersions.TrueTimeline), answer);
+        Assert.Contains(result!.Errors, error => error.Code == "InsufficientPlannedPuzzleTraces");
+    }
+
+    [Fact]
+    public void TargetedEditRejectsNewTimelineErrorsOnSameRequestButAllowsExplicitStructuralRepair()
+    {
+        var (draft, truth) = PausedAt(CaseTruthArtifacts.ProofGraph);
+        draft.QueuedOperation = AiQueuedOperations.TruthRepair;
+        var request = Request(TruthFindingRepair.Version);
+        request.TruthEditScope = CaseTruthArtifacts.Timeline;
+        request.TruthRepairUpstream = truth;
+        var first = truth.TrueTimeline.First();
+        var end = first.EndMinute;
+        var answer = JsonSerializer.Serialize(new { edits = new[] { new { rowId = first.EventId, field = "endMinute", value = "0" } } });
+        var check = Rules.CheckAnswer(draft, request, answer);
+        Assert.Contains(check!.Errors, error => error.Code == "InvalidTimeline");
+        Assert.Equal(end, first.EndMinute);
+        Assert.Null(Rules.CheckAnswer(draft, request, """{"edits":[]}"""));
+    }
+
+    [Fact]
     public void ACorrectStatementsAnswer_IsAccepted()
     {
         var (draft, truth) = PausedAt(CaseTruthArtifacts.Evidence);
@@ -88,11 +117,32 @@ public sealed class TruthStageAnswerCheckTests
     }
 
     [Fact]
-    public void ATruthRepairRun_IsNotCheckedHere_ItsBaseIsTheCandidate()
+    public void ADraftWithALegacyRepairRequestWithoutASnapshot_IsNotCheckedAgainstTheActiveTruth()
     {
         var (draft, truth) = PausedAt(CaseTruthArtifacts.Evidence);
         draft.QueuedOperation = AiQueuedOperations.TruthRepair;
         Assert.Null(Rules.CheckAnswer(draft, Request(AiGenerationSchemaVersions.StatementLedger), Statements(truth)));
+    }
+
+    [Fact]
+    public void ARepairTimeline_IsCheckedAgainstItsOwnUpstreamAndCorrectedBeforeSubmit()
+    {
+        var (draft, truth) = PausedAt(CaseTruthArtifacts.ProofGraph);
+        draft.QueuedOperation = AiQueuedOperations.TruthRepair;
+        draft.CaseTruth!.CoreTruth.CrimeActionIds.Add("obsolete-active-action");
+        var request = Request(AiGenerationSchemaVersions.TrueTimeline);
+        request.TruthRepairUpstream = truth;
+        var observed = truth.TrueTimeline.First();
+        var invalid = JsonSerializer.Deserialize<CaseTruthPackage>(JsonSerializer.Serialize(truth, Json), Json)!;
+        var invalidEvent = invalid.TrueTimeline.Single(item => item.EventId == observed.EventId);
+        var absent = truth.CaseSeed.SuspectIds.First(id => id != observed.ActorId && !observed.WitnessIds.Contains(id));
+        invalidEvent.WitnessIds.Add(absent);
+
+        var invalidAnswer = JsonSerializer.Serialize(new { trueTimeline = invalid.TrueTimeline }, Json);
+        var correctedAnswer = JsonSerializer.Serialize(new { trueTimeline = truth.TrueTimeline }, Json);
+
+        Assert.Contains(Rules.CheckAnswer(draft, request, invalidAnswer)!.Errors, error => error.Code == "WitnessNotObservable");
+        Assert.Empty(Rules.CheckAnswer(draft, request, correctedAnswer)!.Errors);
     }
 
     [Fact]

@@ -21,7 +21,8 @@ public interface IAiDraftWorkflowCoordinator
         string generatingStatus,
         string operation,
         string phase,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool countAutopilotRepair = false);
 
     Task<AiCaseDraft?> ClaimNextQueuedAsync(CancellationToken cancellationToken = default);
 

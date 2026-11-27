@@ -41,7 +41,9 @@ public partial class AiCaseService
         Func<string>? mockResponseFactory = null,
         string? generationRunId = null,
         string? instructions = null,
-        IReadOnlyList<string>? imageUrls = null)
+        IReadOnlyList<string>? imageUrls = null,
+        CaseTruthPackage? truthRepairUpstream = null,
+        string? truthEditScope = null)
     {
         var containsSpoilers = !step.Contains("StoryPreview", StringComparison.OrdinalIgnoreCase);
         var loggedPrompt = containsSpoilers ? $"[REDACTED SPOILER PROMPT: {step}]" : prompt;
@@ -68,8 +70,11 @@ public partial class AiCaseService
             Step = step,
             SchemaVersion = schemaVersion,
             Schema = schema,
+            TruthRepairUpstream = truthRepairUpstream,
+            TruthEditScope = truthEditScope,
             Instructions = instructions ?? DefaultInstructions,
-            Prompt = await WithOrderAsync(draftId, prompt),
+            Prompt = step.StartsWith("ReviewBlindSolvability", StringComparison.Ordinal)
+                ? prompt : await WithOrderAsync(draftId, prompt),
             MaxOutputTokens = maxOutputTokens,
             AttemptNumber = attemptNumber,
             GenerationRunId = generationRunId ?? string.Empty,

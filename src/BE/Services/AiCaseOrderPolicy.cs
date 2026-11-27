@@ -42,6 +42,7 @@ public static class AiCaseOrderPolicy
             SuspectCount = profile.Suspects, CharacterNotes = requested.CharacterNotes, Weather = requested.Weather,
             TimeOfDay = requested.TimeOfDay, PlayMinutes = 30, ContentLevel = requested.ContentLevel,
             PixelLabCap = requested.PixelLabCap, ReviewMode = AiCaseReviewModes.Full,
+            BlindReviewEnabled = requested.BlindReviewEnabled ?? false,
             Speed = requested.Speed, VipExtraPixelLab = requested.VipExtraPixelLab
         };
         var order = Normalize(levelled, role, paidVipMaxPixelLabCap);
@@ -74,6 +75,7 @@ public static class AiCaseOrderPolicy
             ContentLevel = Pick(requested.ContentLevel, AiCaseContentLevels.All, AiCaseContentLevels.Standard, "contentLevel"),
             PixelLabCap = requested.PixelLabCap,
             ReviewMode = Pick(requested.ReviewMode, AiCaseReviewModes.All, AiCaseReviewModes.Full, "reviewMode"),
+            BlindReviewEnabled = requested.BlindReviewEnabled ?? false,
             Speed = SirLocked.Api.Services.Vip.VipSpeeds.Normalize(requested.Speed)
         };
         if (order.SuspectCount is < AiCaseOrder.MinSuspects or > AiCaseOrder.MaxSuspects)

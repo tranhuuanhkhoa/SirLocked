@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { buildBotCommand, checkPrerequisites, listMcpIn } from './bot.mjs';
 import { createScheduler } from './scheduler.mjs';
+import { isScriptStep, runScriptRequest } from '../../studio-mcp/scripts/easy-text.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const logDir = path.join(repoRoot, 'tmp', 'studio-runner');
@@ -18,6 +19,7 @@ mkdirSync(logDir, { recursive: true });
 const executable = process.env.SIRLOCKED_CODEX_BIN || 'codex';
 const model = process.env.SIRLOCKED_CODEX_MODEL || 'gpt-6.2-sol';
 const checkOnly = process.argv.includes('--check');
+const scriptOnly = process.argv.includes('--script-only');
 const library = path.join(logDir, 'library.json');
 if (!existsSync(library)) copyFileSync(path.join(repoRoot, 'tools', 'studio-mcp', 'library', 'index.json'), library);
 
@@ -39,13 +41,24 @@ const hideSecrets = (message) => String(message).replaceAll(key, '[redacted]')
   .replace(/https:\/\/api\.pixellab\.ai\/v2\/uploads\S*/g, '[PixelLab upload URL]');
 
 /** One headless bot run; its output goes to tmp/studio-runner/<time>.log. Resolves with the exit code. */
-async function runBot() {
+async function runBot(state) {
   const ready = await checkPrerequisites(listMcpIn(repoRoot, executable));
   if (!ready.ok) {
     log(ready.reason);
     return 3;
   }
-  const command = buildBotCommand({ repoRoot, executable, model, servers: ready.servers, check: checkOnly });
+  if (!checkOnly && state?.scriptRequest) {
+    log(`Codex ${model} · ${state.scriptRequest.step} · ${state.scriptRequest.requestId}`);
+    try {
+      await runScriptRequest({ repo: repoRoot, row: state.scriptRequest, executable, model, servers: ready.servers, log,
+        env: { ...process.env, SIRLOCKED_API: api, SIRLOCKED_BRIDGE_KEY: key, SIRLOCKED_REPO_ROOT: repoRoot } });
+      return 0;
+    } catch (error) {
+      log(hideSecrets(error.message));
+      return 1;
+    }
+  }
+  const command = buildBotCommand({ repoRoot, executable, model, servers: ready.servers, check: checkOnly, easyScript: state?.easyScript });
   const file = path.join(logDir, `${stamp()}${checkOnly ? '-check' : ''}.log`);
   log(`${checkOnly ? 'Kiểm tra' : 'Chạy bot'} Codex (${model}) — ${path.relative(repoRoot, file)}`);
   const out = createWriteStream(file);
@@ -107,15 +120,24 @@ async function pendingSnapshot() {
     });
     if (response.ok) {
       const payload = await response.json();
-      const rows = Array.isArray(payload?.data) ? payload.data : [];
+      const pending = Array.isArray(payload?.data) ? payload.data : [];
+      const rows = scriptOnly ? pending.filter(row => isEasyScriptRequest(row)) : pending;
       const ids = rows.map((row) => String(row?.requestId ?? '')).filter(Boolean).sort();
-      return { count: rows.length, signature: ids.join(',') };
+      const easyScript = rows.length > 0 && rows.every(row => row.kind === 'JSON' && row.difficulty === 'easy' && row.reviewMode === 'AUTO');
+      const first = rows[0];
+      const scriptRequest = isEasyScriptRequest(first) ? first : undefined;
+      return { count: rows.length, signature: ids.join(','), easyScript, scriptRequest };
     }
   } catch {
     // Fall back to SignalR PendingCount below.
   }
+  if (scriptOnly) throw new Error('Không đọc được yêu cầu kịch bản qua bridge.');
   const count = await connection.invoke('PendingCount');
   return { count, signature: null };
+}
+
+function isEasyScriptRequest(row) {
+  return row?.kind === 'JSON' && row.difficulty === 'easy' && row.reviewMode === 'AUTO' && isScriptStep(row.step);
 }
 
 const scheduler = createScheduler({ pendingSnapshot, runBot, log });

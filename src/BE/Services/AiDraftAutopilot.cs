@@ -45,6 +45,7 @@ public sealed class AiDraftAutopilot(
     public const string RepairTruthCandidate = "REPAIR_TRUTH_CANDIDATE";
     public const string AcceptTruthRepair = "ACCEPT_TRUTH_REPAIR";
     public const string RetryJson = "RETRY_JSON";
+    public const string RepairProjection = "REPAIR_PROJECTION";
     private const int SweepLimit = 20;
 
     private const string RepairInstructions =
@@ -72,9 +73,13 @@ public sealed class AiDraftAutopilot(
         if (!Steerable(draft)) return null;
         if (draft.TruthRepairStatus == AiRepairStatus.CandidateReady || draft.RepairStatus == AiRepairStatus.CandidateReady) return null;
         // The AI truth reviewer decides the TRUTH gate a person used to decide: a truth it failed is repaired, never passed.
-        if (draft.Status == AiDraftStatus.CaseTruthAwaitingApproval && TruthReviewFailed(draft)) return null;
+        if (draft.Status == AiDraftStatus.CaseTruthAwaitingApproval && (TruthReviewFailed(draft)
+            || draft.TruthReviewerResult is { Status: CaseTruthReviewStatuses.NotRun, Findings.Count: > 0 })) return null;
         // Likewise the AI blind detective decides the LOGIC gate: a logic it could not solve is repaired, never passed.
-        if (draft.Status == AiDraftStatus.FullLogicAwaitingApproval && BlindReviewFailed(draft)) return null;
+        if (draft.Status == AiDraftStatus.FullLogicAwaitingApproval && (BlindReviewFailed(draft)
+            || (draft.Order?.BlindReviewEnabled == true && draft.BlindReviewAssessment?.Status != BlindReviewAssessmentStatuses.Passed)
+            || draft.BlindReviewAssessment?.Status is BlindReviewAssessmentStatuses.Invalid
+                or BlindReviewAssessmentStatuses.Unavailable or BlindReviewAssessmentStatuses.LegacyUnverified)) return null;
         return Gates.TryGetValue(draft.Status, out var gate) ? gate : null;
     }
 
@@ -92,17 +97,22 @@ public sealed class AiDraftAutopilot(
         if (GateToPass(draft) is { } gate) return new AutopilotStep(gate, false);
         if (!Steerable(draft)) return null;
         if (draft.TruthRepairStatus == AiRepairStatus.CandidateReady
-            && draft.Status is AiDraftStatus.CaseTruthInvalid or AiDraftStatus.CaseTruthAwaitingApproval)
+            && draft.TruthRepairReviewerResult.Status is CaseTruthReviewStatuses.Failed or CaseTruthReviewStatuses.Ambiguous
+            && (draft.TruthRepairReasonCodes.Contains(TruthFindingRepair.UnresolvedAfterRebuild)
+                || (!string.IsNullOrEmpty(draft.TruthRepairBaseHash) && draft.TruthRepairCandidateHash == draft.TruthRepairBaseHash)))
+            return null;
+        if (draft.TruthRepairStatus == AiRepairStatus.CandidateReady
+            && draft.Status is AiDraftStatus.CaseTruthInvalid or AiDraftStatus.CaseTruthAwaitingApproval
+                or AiDraftStatus.FullLogicAwaitingApproval)
             return new AutopilotStep(AcceptTruthRepair, false);
         if (draft.AutopilotRepairs >= MaxRepairs) return null;
         return draft.Status switch
         {
-            AiDraftStatus.CaseTruthInvalid => new AutopilotStep(
+            AiDraftStatus.CaseTruthInvalid or AiDraftStatus.CaseTruthAwaitingApproval when
+                draft.Status == AiDraftStatus.CaseTruthInvalid || TruthReviewFailed(draft) => new AutopilotStep(
                 draft.TruthRepairStatus == AiRepairStatus.CandidateInvalid ? RepairTruthCandidate : RepairTruth, true),
-            // The repair prompt carries the reviewer's findings, and the repaired truth is reviewed again.
-            AiDraftStatus.CaseTruthAwaitingApproval when TruthReviewFailed(draft) => new AutopilotStep(RepairTruth, true),
-            // A causal case's logic is projected from its truth, so an unsolvable logic is repaired in the truth.
-            AiDraftStatus.FullLogicAwaitingApproval when BlindReviewFailed(draft) => new AutopilotStep(RepairTruth, true),
+            AiDraftStatus.FullLogicAwaitingApproval when BlindReviewFailed(draft) =>
+                new AutopilotStep(draft.ProjectionPlan is null ? RepairTruth : RepairProjection, true),
             AiDraftStatus.GeneratedInvalid when draft.AutopilotJsonRetries < MaxJsonRetries => new AutopilotStep(RetryJson, true),
             _ => null
         };
@@ -123,6 +133,7 @@ public sealed class AiDraftAutopilot(
                 BridgeGates.Layout => await cases.ApproveSceneLayoutAsync(AutopilotUser, draft.Id),
                 AcceptTruthRepair => await cases.AcceptTruthRepairAsync(AutopilotUser, draft.Id),
                 RetryJson => await cases.RetryJsonAsync(AutopilotUser, draft.Id),
+                RepairProjection => await cases.RepairBlindProjectionAsync(AutopilotUser, draft.Id),
                 _ => await cases.RepairTruthAsync(AutopilotUser, draft.Id, new RepairCaseTruthRequest
                 {
                     UseRepairCandidate = step.Name == RepairTruthCandidate,
@@ -152,33 +163,20 @@ public sealed class AiDraftAutopilot(
 
     public async Task AdvanceAsync(string draftId, CancellationToken ct)
     {
-        var draft = await db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync(ct);
-        if (draft is null) return;
-        var step = NextStep(draft);
-        if (step is null) return;
-        if (step.CostsRepair)
+        // Accepting a candidate is a synchronous write. Re-read once to act on the actual review
+        // immediately, instead of losing up to a sweep interval before enqueueing the next operation.
+        for (var pass = 0; pass < 2; pass++)
         {
-            // Claim one repair from the budget first, so two sweeps never repair the same failure twice. A draft that
-            // was never repaired has no autopilotRepairs field at all (it is written only when not 0), and an equality
-            // on 0 does not match a missing field in MongoDB.
-            var filter = Builders<AiCaseDraft>.Filter;
-            var used = draft.AutopilotRepairs == 0
-                ? filter.Or(filter.Eq(item => item.AutopilotRepairs, 0), filter.Exists(item => item.AutopilotRepairs, false))
-                : filter.Eq(item => item.AutopilotRepairs, draft.AutopilotRepairs);
-            var claimed = await db.AiCaseDrafts.UpdateOneAsync(
-                filter.And(filter.Eq(item => item.Id, draftId), filter.Eq(item => item.Status, draft.Status), used),
-                step.Name == RetryJson
-                    ? Builders<AiCaseDraft>.Update.Inc(item => item.AutopilotRepairs, 1).Inc(item => item.AutopilotJsonRetries, 1)
-                    : Builders<AiCaseDraft>.Update.Inc(item => item.AutopilotRepairs, 1),
-                cancellationToken: ct);
-            if (claimed.ModifiedCount == 0) return;
+            var draft = await db.AiCaseDrafts.Find(item => item.Id == draftId).FirstOrDefaultAsync(ct);
+            if (draft is null || NextStep(draft) is not { } step) return;
+            var taken = await AdvanceAsync(draft, cases, (name, exception) =>
+                logger.LogWarning("Autopilot step {Step} on draft {DraftId} was refused: {Reason}", name, draftId, exception.Message));
+            if (taken is null) return;
+            logger.LogInformation("Autopilot took step {Step} on draft {DraftId} (repairs used {Repairs}/{Max}).",
+                taken, draftId, draft.AutopilotRepairs + (step.CostsRepair ? 1 : 0), MaxRepairs);
+            await workflow.SyncOrderStatusAsync(draftId, ct);
+            if (taken != AcceptTruthRepair) return;
         }
-        var taken = await AdvanceAsync(draft, cases, (name, exception) =>
-            logger.LogWarning("Autopilot step {Step} on draft {DraftId} was refused: {Reason}", name, draftId, exception.Message));
-        if (taken is null) return;
-        logger.LogInformation("Autopilot took step {Step} on draft {DraftId} (repairs used {Repairs}/{Max}).",
-            taken, draftId, draft.AutopilotRepairs + (step.CostsRepair ? 1 : 0), MaxRepairs);
-        await workflow.SyncOrderStatusAsync(draftId, ct);
     }
 
     public async Task SweepAsync(CancellationToken ct)

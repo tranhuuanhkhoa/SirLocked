@@ -1,6 +1,6 @@
 # Xưởng vụ án (sirlocked-studio): cài đặt và chạy
 
-Xưởng là Claude Code mở ở gốc repo, có MCP `sirlocked-studio` (`tools/studio-mcp/`), MCP `pixellab`, skill `/tao-vu-an` và 3 agent phụ (`.claude/agents/`). Bot chỉ nói chuyện với server qua `/api/bridge/*` bằng khóa bridge; không có mật khẩu database, không có `.env` của game, không publish.
+Xưởng chạy Codex ở gốc repo với MCP `sirlocked-studio`, MCP `pixellab` và skill `$tao-vu-an`. Cấu hình MCP nằm trong `.codex/config.toml`, còn quy trình và hướng dẫn kiểm định nằm trong `.agents/skills/tao-vu-an/`. Runner trao đổi với backend qua Bridge. Admin xuất bản vụ từ Case Studio.
 
 Chạy được ở hai nơi:
 
@@ -12,16 +12,14 @@ Các biến môi trường dùng chung:
 | Biến | Bắt buộc | Ý nghĩa |
 | --- | --- | --- |
 | `SIRLOCKED_BRIDGE_KEY` | có | Khóa bridge, giống `Bridge__Key` trên server (đặt bằng `bash scripts/set-bridge-key.sh`). Chủ dự án tự đặt, không dán vào chat hay file trong repo |
-| `PIXELLAB_API_KEY` | khi vẽ mới | Token PixelLab; `.mcp.json` đưa vào header `Authorization: Bearer ${PIXELLAB_API_KEY}` |
 | `SIRLOCKED_API` | không | Mặc định `https://sirlocked.id.vn`; thử trên máy: `http://localhost:5000` |
-| `MCP_TOOL_TIMEOUT` | không | Đặt `1800000` (30 phút) nếu tool `playtest` bị Claude Code cắt giữa chừng |
 | `FFMPEG_PATH` | không | ffmpeg cho `weather_preview` (cắt đoạn tải trang, xuất MP4). Không có thì tool trả WebM nguyên đoạn. Ubuntu: `sudo apt install ffmpeg` (có trên PATH là đủ) |
 
 ## A. Máy Windows chạy bot (PowerShell)
 
 ### A1. Cài một lần
 
-Cần: Git, Node 22 trở lên, .NET SDK 9, Claude Code, MongoDB (repo đã có bản portable ở `.tools/mongodb-8.0.12/`, tool tự tìm).
+Cần Git, Node 22 trở lên, .NET SDK 9, Codex CLI và MongoDB để chạy playtest.
 
 ```powershell
 cd D:\Sirlocked
@@ -42,36 +40,36 @@ Cách an toàn nhất là hộp thoại của Windows (không để lại khóa 
 
 1. Start → gõ "environment" → **Edit environment variables for your account**.
 2. **New…** → Name `SIRLOCKED_BRIDGE_KEY`, Value: khóa bridge → OK.
-3. **New…** → Name `PIXELLAB_API_KEY`, Value: token PixelLab → OK.
-4. Đóng hẳn VS Code và mọi cửa sổ terminal, mở lại (phiên đang mở không thấy biến mới).
+3. Mở lại Codex và terminal để nhận biến mới.
 
 Kiểm có biến mà không in giá trị:
 
 ```powershell
-[bool]$env:SIRLOCKED_BRIDGE_KEY; [bool]$env:PIXELLAB_API_KEY
+[bool]$env:SIRLOCKED_BRIDGE_KEY
 ```
 
 ### A3. Kiểm MCP
 
 ```powershell
 cd D:\Sirlocked
-claude mcp list
+codex login
+codex mcp list
 ```
 
-Phải thấy `sirlocked-studio` và `pixellab` là `✔ Connected`. Lần đầu mở `claude` ở thư mục này, Claude Code hỏi có dùng các server trong `.mcp.json` không: chọn đồng ý. Thấy `⏸ Pending approval` thì mở `claude` một lần để duyệt.
+Mở Codex ở gốc repo và xác nhận tin cậy thư mục dự án để nạp cấu hình MCP. Danh sách cần có `sirlocked-studio` và `pixellab`. Nếu PixelLab yêu cầu đăng nhập, chạy `codex mcp login pixellab`. Kiểm tra cả hai kết nối bằng `node tools/studio-runner/src/index.mjs --check`.
 
 ### A4. Chạy vụ
 
 ```powershell
 cd D:\Sirlocked
-claude
+codex
 ```
 
-Trong Claude Code gõ `/tao-vu-an`. Bot làm các đơn đang chờ rồi dừng ở cổng của người đặt đơn. Duyệt cổng trên `https://sirlocked.id.vn/admin/ai`, rồi gõ lại `/tao-vu-an` để bot làm tiếp. Muốn bot tự chạy thì cài runner ở mục A6.
+Trong Codex, gọi skill `$tao-vu-an`. Đơn AUTO chuyển cổng theo kiểm định của backend. Đơn cũ có thể cần người đặt duyệt trên `https://sirlocked.id.vn/admin/ai`. Muốn bot tự chạy thì cài runner ở mục A6.
 
 ### A6. Bot tự chạy khi server báo có việc (studio-runner)
 
-`tools/studio-runner` giữ một kết nối tới `/hubs/bridge`. Server đẩy `WorkAvailable` khi máy vừa kết nối, khi có đơn hoặc yêu cầu mới, và khi người đặt đơn bấm chọn câu hỏi của bot trên `/admin/ai`. Runner khi đó chạy `claude.cmd -p "/tao-vu-an"` (không quyền shell, chỉ tool của xưởng và PixelLab). Máy không hỏi server theo chu kỳ.
+`tools/studio-runner` giữ kết nối tới `/hubs/bridge`. Khi server gửi `WorkAvailable`, runner kiểm tra hàng chờ và gọi `codex exec` với hai MCP của xưởng. Mỗi máy chỉ chạy một lượt Codex tại một thời điểm.
 
 Cài một lần (sau A2, A3):
 
@@ -131,15 +129,15 @@ Không mở cổng nào khác: stack playtest (5231, 5232, 27031) chỉ nghe `12
 ```bash
 ssh studio@<ip-vps-studio>
 
-# Claude Code (bản cài chính chủ), đăng nhập bằng tài khoản Claude của chủ dự án
-curl -fsSL https://claude.ai/install.sh | bash
-claude   # đăng nhập lần đầu theo hướng dẫn, rồi /exit
+# Sau khi cài Codex CLI từ bản phân phối chính chủ
+codex login --device-auth
 
 # Clone repo (repo riêng tư: chủ dự án tạo deploy key chỉ đọc trên GitHub cho máy này)
 git clone git@github.com:<chủ-repo>/Sirlocked.git ~/Sirlocked
-cd ~/Sirlocked && git checkout feat/claude-vu-an
+cd ~/Sirlocked
 
 cd tools/studio-mcp && npm ci && npm test && cd ../..
+cd tools/studio-runner && npm ci && cd ../..
 cd src/FE && npm ci && npx playwright install chromium && cd ../..
 dotnet restore SirLocked.sln
 ```
@@ -148,9 +146,8 @@ dotnet restore SirLocked.sln
 
 ```bash
 mkdir -p ~/.config/sirlocked && chmod 700 ~/.config/sirlocked
-nano ~/.config/sirlocked/env        # gõ tay hai dòng dưới, lưu lại
+nano ~/.config/sirlocked/env        # đặt biến dưới đây, rồi lưu lại
 #   export SIRLOCKED_BRIDGE_KEY='...'
-#   export PIXELLAB_API_KEY='...'
 chmod 600 ~/.config/sirlocked/env
 echo '[ -f ~/.config/sirlocked/env ] && . ~/.config/sirlocked/env' >> ~/.bashrc
 ```
@@ -163,11 +160,13 @@ Mở phiên SSH mới rồi kiểm (không in giá trị): `[ -n "$SIRLOCKED_BRI
 ssh studio@<ip-vps-studio>
 tmux new -A -s studio          # rớt mạng thì SSH lại và gõ đúng lệnh này để vào lại phiên
 cd ~/Sirlocked && git pull
-claude mcp list                # sirlocked-studio và pixellab: Connected
-claude
+codex mcp list
+codex mcp login pixellab       # lần đầu nếu PixelLab yêu cầu đăng nhập
+node tools/studio-runner/src/index.mjs --check
+node tools/studio-runner/src/index.mjs
 ```
 
-Trong Claude Code gõ `/tao-vu-an`. Từ điện thoại dùng app SSH bất kỳ (Termius, JuiceSSH) với cùng lệnh `tmux new -A -s studio`.
+Nếu chạy thủ công, mở Codex từ thư mục repo và gọi skill `$tao-vu-an`. Từ điện thoại dùng app SSH bất kỳ để mở lại phiên `tmux new -A -s studio`.
 
 Ảnh gốc của thư viện không có trên VPS (nằm trên Cloudinary). `library_search { download: true }` tải về `tmp/library-cache/`.
 
@@ -205,4 +204,4 @@ npm run e2e:local        # trọn vòng trên máy: backend chế độ bridge +
 
 `e2e:local` dùng khóa ngẫu nhiên cho stack local (không cần khóa thật), cổng 5251/5252/27051, không tốn lượt PixelLab, khoảng 2 phút.
 
-Thư viện đợt 0 (chỉ máy có `Claude outputs/thu-vien-dot0/`): `npm run import:library` xử lý lại ảnh vào `tmp/library-build/` và ghi `tools/studio-mcp/library/index.json`; rồi trong Claude Code: `library_sync { direction: "push" }` để đưa lên Cloudinary qua server.
+Thư viện đợt 0 (chỉ máy có `Claude outputs/thu-vien-dot0/`): `npm run import:library` xử lý ảnh vào `tmp/library-build/` và ghi `tools/studio-mcp/library/index.json`. Trong Codex, dùng `library_sync { direction: "push" }` để đưa ảnh lên Cloudinary qua server.

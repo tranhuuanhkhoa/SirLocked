@@ -13,6 +13,8 @@ public sealed record AiTextRequest
     public string Step { get; init; } = string.Empty;
     public string SchemaVersion { get; init; } = string.Empty;
     public JsonObject Schema { get; init; } = new();
+    public CaseTruthPackage? TruthRepairUpstream { get; init; }
+    public string? TruthEditScope { get; init; }
     public string Instructions { get; init; } = string.Empty;
     public string Prompt { get; init; } = string.Empty;
     /// <summary>Length hint for the answer, in model output tokens.</summary>

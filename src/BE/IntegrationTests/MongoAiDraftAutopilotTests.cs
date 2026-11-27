@@ -39,13 +39,61 @@ public sealed class MongoAiDraftAutopilotTests
             Assert.False(raw.Contains("autopilotRepairs")); // the state every new draft starts in
 
             var cases = Recorder.Create();
-            var autopilot = new AiDraftAutopilot(db, cases, new AiDraftWorkflowCoordinator(db, TimeProvider.System),
+            var workflow = new AiDraftWorkflowCoordinator(db, TimeProvider.System);
+            var recorder = (Recorder)(object)cases;
+            recorder.OnCall = () => workflow.EnqueueAsync(draft, [draft.Status], draft.Status,
+                AiQueuedOperations.TruthRepair, "CASE_TRUTH_REPAIR", countAutopilotRepair: true);
+            var autopilot = new AiDraftAutopilot(db, cases, workflow,
                 NullLogger<AiDraftAutopilot>.Instance);
             await autopilot.AdvanceAsync(draft.Id, CancellationToken.None);
 
             Assert.Equal([nameof(IAiCaseService.RepairTruthAsync)], ((Recorder)(object)cases).Calls);
             var stored = await db.AiCaseDrafts.Find(item => item.Id == draft.Id).SingleAsync();
             Assert.Equal(1, stored.AutopilotRepairs);
+        });
+    }
+
+    [Fact]
+    public async Task ARefusedRepair_DoesNotSpendTheBudget()
+    {
+        await WithDatabase(async db =>
+        {
+            var draft = FailedTruth();
+            await db.AiCaseDrafts.InsertOneAsync(draft);
+            var workflow = new AiDraftWorkflowCoordinator(db, TimeProvider.System);
+            var cases = Recorder.Create();
+            ((Recorder)(object)cases).OnCall = () => workflow.EnqueueAsync(draft, [AiDraftStatus.FullLogicAwaitingApproval],
+                draft.Status, AiQueuedOperations.TruthRepair, "CASE_TRUTH_REPAIR", countAutopilotRepair: true);
+            await new AiDraftAutopilot(db, cases, workflow, NullLogger<AiDraftAutopilot>.Instance)
+                .AdvanceAsync(draft.Id, CancellationToken.None);
+
+            var stored = await db.AiCaseDrafts.Find(item => item.Id == draft.Id).SingleAsync();
+            Assert.Equal(0, stored.AutopilotRepairs);
+            Assert.Equal(AiQueueStates.None, stored.QueueState);
+        });
+    }
+
+    [Fact]
+    public async Task AcceptedTruthCandidate_QueuesTheNextGateInTheSameWakeUp()
+    {
+        await WithDatabase(async db =>
+        {
+            var draft = FailedTruth();
+            draft.TruthRepairStatus = AiRepairStatus.CandidateReady;
+            await db.AiCaseDrafts.InsertOneAsync(draft);
+            var cases = Recorder.Create();
+            var calls = (Recorder)(object)cases;
+            calls.OnCall = async () =>
+            {
+                if (calls.Calls.Last() == nameof(IAiCaseService.AcceptTruthRepairAsync))
+                    await db.AiCaseDrafts.UpdateOneAsync(item => item.Id == draft.Id,
+                        Builders<AiCaseDraft>.Update.Set(item => item.Status, AiDraftStatus.CaseTruthAwaitingApproval)
+                            .Set(item => item.TruthRepairStatus, AiRepairStatus.Accepted)
+                            .Set(item => item.TruthReviewerResult.Status, CaseTruthReviewStatuses.Passed));
+            };
+            await new AiDraftAutopilot(db, cases, new AiDraftWorkflowCoordinator(db, TimeProvider.System),
+                NullLogger<AiDraftAutopilot>.Instance).AdvanceAsync(draft.Id, CancellationToken.None);
+            Assert.Equal(new[] { nameof(IAiCaseService.AcceptTruthRepairAsync), nameof(IAiCaseService.ApproveTruthAsync) }, calls.Calls);
         });
     }
 
@@ -67,12 +115,19 @@ public sealed class MongoAiDraftAutopilotTests
     public class Recorder : DispatchProxy
     {
         public List<string> Calls { get; } = [];
+        public Func<Task>? OnCall { get; set; }
         public static IAiCaseService Create() => Create<IAiCaseService, Recorder>();
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
             Calls.Add(targetMethod!.Name);
-            return Task.FromResult(new AiDraftResponse());
+            return RespondAsync();
+        }
+
+        private async Task<AiDraftResponse> RespondAsync()
+        {
+            if (OnCall is not null) await OnCall();
+            return new AiDraftResponse();
         }
     }
 

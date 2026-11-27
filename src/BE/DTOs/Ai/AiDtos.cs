@@ -125,6 +125,7 @@ public class AiDraftResponse
     public AiCaseOrder? Order { get; set; }
     /// <summary>AWAITING_OWNER_APPROVAL, QUEUED_FOR_CLAUDE, CLAUDE_WORKING, AWAITING_GATE, SUBMITTED, REJECTED or CANCELLED.</summary>
     public string OrderStatus { get; set; } = string.Empty;
+    public string? AutopilotNextStep { get; set; }
     public List<AiOrderStatusChange> OrderStatusHistory { get; set; } = new();
     /// <summary>Questions the bot asked the creator (draft_ask); the page shows the open ones with a button per option.</summary>
     public List<AiDecision> Decisions { get; set; } = new();
@@ -260,6 +261,7 @@ public class AiDraftResponse
         Order = d.Order,
         // Drafts from before orders existed get their status derived from the workflow.
         OrderStatus = string.IsNullOrWhiteSpace(d.OrderStatus) ? AiCaseOrderPolicy.Derive(d, false) : d.OrderStatus,
+        AutopilotNextStep = AiDraftAutopilot.NextStep(d)?.Name,
         OrderStatusHistory = d.OrderStatusHistory,
         Decisions = d.Decisions,
         OrderRejectReason = d.OrderRejectReason,

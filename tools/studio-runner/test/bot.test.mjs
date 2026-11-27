@@ -26,6 +26,12 @@ test('preflight requires both enabled production MCP servers', async () => {
   assert.match(result.reason, /pixellab/);
 });
 
+test('the smoke check cannot take an order or generate PixelLab images', () => {
+  const { args } = buildBotCommand({ repoRoot: path.resolve('repo'), check: true });
+  assert.ok(args.includes('mcp_servers.sirlocked-studio.enabled_tools=["bridge_list","studio_read","studio_write"]'));
+  assert.ok(args.includes('mcp_servers.pixellab.enabled_tools=["get_balance"]'));
+});
+
 test('preflight reports when Codex cannot list MCP servers', async () => {
   const result = await checkPrerequisites(async () => { throw new Error('spawn codex ENOENT'); });
   assert.equal(result.ok, false);

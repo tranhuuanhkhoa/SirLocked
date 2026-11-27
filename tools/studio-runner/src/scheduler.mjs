@@ -44,7 +44,7 @@ export function createScheduler({ pendingCount, pendingSnapshot, runBot, log, ma
         }
         streak++;
         try {
-          const code = await runBot();
+          const code = await runBot(state);
           log(`Bot thoát với mã ${code}.`);
         } catch (error) {
           log(`Không chạy được bot: ${error instanceof Error ? error.message : String(error)}`);

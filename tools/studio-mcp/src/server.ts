@@ -76,7 +76,7 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
     { draftId: id, layerId: id, file: z.string().min(1) }, (args) => foregroundUpload(ctx, args));
 
   // ---------------------------------------------------------------- bridge
-  tool('bridge_list', 'Danh sách yêu cầu của server đang chờ Claude (mặc định PENDING), gồm cả đơn của VIP.',
+  tool('bridge_list', 'Danh sách yêu cầu đang chờ xử lý qua Bridge (mặc định PENDING), gồm cả đơn của VIP.',
     { status: z.string().optional().describe('PENDING | TAKEN | SUBMITTED | ACCEPTED | REJECTED | STALE'), draftId: id.optional(), limit: z.number().int().min(1).max(500).optional() },
     (args) => bridgeList(ctx, args));
   tool('bridge_take', 'Nhận một yêu cầu (giữ lease). Ghi prompt.md, schema.json, order.json, instructions.md vào tmp/bridge/<requestId>/ và chỉ trả đường dẫn. Câu trả lời viết vào answer.json cùng thư mục.',
@@ -167,7 +167,7 @@ export function createStudioServer(ctx: ToolContext, version = '0.1.0'): McpServ
     (args) => assetProcess(ctx, args));
   tool('asset_variant', [
     'Biến thể miễn phí từ ảnh/mục thư viện có sẵn (input = đường dẫn hoặc key thư viện). type:',
-    'night {lights:[[x,y,r]], windows:[[x0,y0,x1,y1]]} (Claude tự nhìn ảnh để chấm đèn, cửa) | dusk | snow {amount} |',
+    'night {lights:[[x,y,r]], windows:[[x0,y0,x1,y1]]} (xem ảnh để xác định vị trí đèn và cửa) | dusk | snow {amount} |',
     'after_rain {lights, puddles:[[x,y,rx,ry]]} | mirror {boxes, points, coordinateWidth, mask} | recolor {hueFrom:[min,max], hueTo, satMul, minSat, region} |',
     'compose {remove:[[x0,y0,x1,y1]]} (xóa vật bằng nội suy, cả mẩu vật cũ sót ngoài mask inpaint). Không dán ảnh vật lên cảnh (ITEM_PASTE_FORBIDDEN): thêm vật bằng asset_process inpaint_prep/inpaint_merge, mask rộng theo cả mặt.',
     'Không đổi được hình khối (thêm tầng, đổi phòng): cần PixelLab.',

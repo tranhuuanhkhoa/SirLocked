@@ -13,6 +13,75 @@ public sealed class CaseTruthGenerationQualityTests
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     [Fact]
+    public void FindingEditIsAtomicAndPreservesUnchangedArtifacts()
+    {
+        var truth = MockTruth();
+        var evt = truth.TrueTimeline.First();
+        var oldText = evt.Action;
+        var edit = new { rowId = evt.EventId, field = "action", value = "Corrected action" };
+        var json = JsonSerializer.Serialize(new { edits = new[] { edit } });
+        var result = TruthFindingRepair.Apply(truth, CaseTruthArtifacts.Timeline, json, 400)!;
+        Assert.Equal("Corrected action", result.TrueTimeline.First().Action);
+        Assert.Equal(oldText, evt.Action);
+        Assert.Equal(JsonSerializer.Serialize(truth.ProofGraph), JsonSerializer.Serialize(result.ProofGraph));
+        Assert.Null(TruthFindingRepair.Apply(truth, CaseTruthArtifacts.Statements, json, 400));
+        var bad = JsonSerializer.Serialize(new { edits = new[] { edit, new { rowId = "missing", field = "action", value = "bad" } } });
+        Assert.Null(TruthFindingRepair.Apply(truth, CaseTruthArtifacts.Timeline, bad, 400));
+        Assert.Equal(oldText, evt.Action);
+    }
+
+    [Fact]
+    public void RepeatFindingsUseTheRuleAndRelatedIdsAcrossReviews()
+    {
+        var review = new CaseTruthFeasibilityReview();
+        var finding = new CaseTruthReviewFinding { Code = "PROOF_SCOPE", RelatedIds = ["trace-a", "statement-b"] };
+        review.Findings.Add(finding);
+        var key = TruthFindingRepair.FindingsKey(review);
+        finding.FindingId = "different-reviewer-label";
+        finding.Message = "Reworded description";
+        finding.RelatedIds.Reverse();
+        Assert.Equal(key, TruthFindingRepair.FindingsKey(review));
+        finding.RelatedIds.Add("event-c");
+        Assert.NotEqual(key, TruthFindingRepair.FindingsKey(review));
+    }
+
+    [Theory]
+    [InlineData(11, 1, true)]
+    [InlineData(10, 0, false)]
+    public void ATravelDurationIsInferredOnlyWhenTheGapAllowsIt(int start, int duration, bool possible)
+    {
+        var truth = MockTruth();
+        var first = truth.TrueTimeline.First();
+        var next = truth.TrueTimeline.Skip(1).First();
+        truth.TrueTimeline = [first, next];
+        first.StartMinute = 8;
+        first.EndMinute = 10;
+        first.LocationId = "a";
+        next.ActorId = first.ActorId;
+        next.LocationId = "b";
+        next.StartMinute = start;
+        next.EndMinute = start + 2;
+        next.TravelFromPreviousMinutes = 0;
+        truth.CaseSeed.LocationGraph = [new LocationTravelEdge { FromLocationId = "a", ToLocationId = "b", TravelMinutes = 1 }];
+        CaseTruthService.FillMissingTravelDurations(truth);
+        Assert.Equal(duration, next.TravelFromPreviousMinutes);
+        var validation = new CaseTruthService().ValidateTimelineReferences(truth, AiTruthGenerationBudget.For(ShortDraft().Settings));
+        Assert.Equal(!possible, validation.Errors.Any(error => error.Code == "InsufficientTravelTime"));
+    }
+
+    [Fact]
+    public void AScopedRepairGetsThePreviousVersionOfTheArtifactItIsEditing()
+    {
+        var checkpoint = MockTruth();
+        var baseline = AiCaseService.BuildTruthRepairBaseline(CaseTruthArtifacts.Timeline, checkpoint);
+
+        Assert.Contains(checkpoint.TrueTimeline.First().EventId, baseline, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"proofGraph\"", baseline, StringComparison.Ordinal);
+        checkpoint.TrueTimeline.Clear();
+        Assert.Empty(AiCaseService.BuildTruthRepairBaseline(CaseTruthArtifacts.Timeline, checkpoint));
+    }
+
+    [Fact]
     public void TimelineContract_ReservesDistinctCoreSlotsAndKeepsAuxiliaryIdsAvailable()
     {
         var truth = MockTruth();

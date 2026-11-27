@@ -7,8 +7,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $runnerDir = Join-Path $repoRoot 'tools/studio-runner'
 $taskName = 'SirLocked Studio Runner'
 
-$nodeExe = (Get-Command node.exe -ErrorAction Stop).Source
-$codexExe = (Get-Command codex.exe -ErrorAction Stop).Source
+Get-Command node.exe -ErrorAction Stop | Out-Null
 if (-not [Environment]::GetEnvironmentVariable('SIRLOCKED_BRIDGE_KEY', 'User')) {
     throw 'Chua dat SIRLOCKED_BRIDGE_KEY cho tai khoan Windows.'
 }
@@ -28,19 +27,19 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Khong build duoc sirlocked-studio MCP.' }
 } finally { Pop-Location }
 
-$runner = Join-Path $runnerDir 'src/index.mjs'
-$quote = { param($value) "'" + $value.Replace("'", "''") + "'" }
-$command = '$env:SIRLOCKED_CODEX_BIN = ' + (& $quote $codexExe) +
-    '; & ' + (& $quote $nodeExe) + ' ' + (& $quote $runner) + '; exit $LASTEXITCODE'
+$launcher = Join-Path $PSScriptRoot 'run-studio-runner.ps1'
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' `
-    -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command `"$command`"" -WorkingDirectory $repoRoot
+    -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$launcher`"" -WorkingDirectory $repoRoot
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 `
     -RestartInterval (New-TimeSpan -Minutes 1) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew
+$existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+if ($existingTask.State -eq 'Disabled') { $settings.Enabled = $false }
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Settings $settings `
     -Description 'SirLocked: tu dong xu ly don bridge bang Codex tren may nay.' -Force | Out-Null
 
 Write-Host "Da dang ky tac vu '$taskName' (chay khi dang nhap)."
+if (-not $settings.Enabled) { Write-Host "Bat tac vu: Enable-ScheduledTask -TaskName '$taskName'" }
 Write-Host "Chay ngay khong can dang nhap lai: Start-ScheduledTask -TaskName '$taskName'"
 Write-Host "Kiem tra: Get-ScheduledTask -TaskName '$taskName' | Get-ScheduledTaskInfo"
 Write-Host "Log: $(Join-Path $repoRoot 'tmp/studio-runner/runner.log')"

@@ -21,13 +21,13 @@ export function tmpDir(config: StudioConfig, ...parts: string[]): string {
   return dir;
 }
 
-/** Resolves a path given by Claude: absolute, or relative to the repo root. */
+/** Resolves an absolute or repository-relative tool path. */
 function resolveFile(config: StudioConfig, file: string): string {
   if (!file || typeof file !== 'string') throw new StudioError('BAD_PATH', 'Thiếu đường dẫn file.');
   return path.isAbsolute(file) ? path.normalize(file) : path.resolve(config.repoRoot, file);
 }
 
-const readableRoots = ['docs', 'ai-game-docs', '.agents/skills', '.claude/agents', '.claude/skills',
+const readableRoots = ['docs', 'ai-game-docs', '.agents/skills/tao-vu-an',
   'src/FE/public/assets', 'tools/studio-mcp/library'];
 
 export function studioPath(config: StudioConfig, file: string, write = false): string {
@@ -38,7 +38,7 @@ export function studioPath(config: StudioConfig, file: string, write = false): s
   const tmp = inside(path.relative(config.repoRoot, config.tmpRoot)) && !inside(path.join('tmp', 'studio-runner'));
   if (path.isAbsolute(relative) || (!tmp && (write || !readableRoots.some((root) => inside(path.normalize(root))))) ||
     parts.some((part) => /[:\x00-\x1f]|[. ]$|^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part) ||
-      (part.startsWith('.') && !['.agents', '.claude'].includes(part)))) {
+      (part.startsWith('.') && part !== '.agents'))) {
     throw new StudioError('BAD_PATH', 'Đường dẫn nằm ngoài vùng làm việc của studio.');
   }
   let current = config.repoRoot;

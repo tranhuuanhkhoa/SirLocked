@@ -78,7 +78,8 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
         string generatingStatus,
         string operation,
         string phase,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool countAutopilotRepair = false)
     {
         if (observedDraft.QueuedOperation == operation
             && observedDraft.QueueState is AiQueueStates.Pending or AiQueueStates.Running
@@ -87,7 +88,20 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         var inputHash = ComputeGenerationInputHash(observedDraft, phase);
+        var filters = Builders<AiCaseDraft>.Filter;
+        var budget = filters.Empty;
+        var isJsonRetry = operation == AiQueuedOperations.RetryJson
+            || (operation == AiQueuedOperations.FullLogic && observedDraft.Status == AiDraftStatus.GeneratedInvalid);
+        if (countAutopilotRepair)
+        {
+            budget = filters.Or(filters.Exists(item => item.AutopilotRepairs, false),
+                filters.Lt(item => item.AutopilotRepairs, AiDraftAutopilot.MaxRepairs));
+            if (isJsonRetry)
+                budget &= filters.Or(filters.Exists(item => item.AutopilotJsonRetries, false),
+                    filters.Lt(item => item.AutopilotJsonRetries, AiDraftAutopilot.MaxJsonRetries));
+        }
         var filter = Builders<AiCaseDraft>.Filter.And(
+            budget,
             Builders<AiCaseDraft>.Filter.Eq(item => item.Id, observedDraft.Id),
             ObservedVersionFilter(observedDraft),
             Builders<AiCaseDraft>.Filter.In(item => item.Status, expectedStatuses),
@@ -110,6 +124,12 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
             .Set(item => item.QueueAttemptCount, 0)
             .Inc(item => item.WorkflowVersion, 1)
             .Set(item => item.UpdatedAt, now);
+        if (countAutopilotRepair)
+        {
+            update = update.Inc(item => item.AutopilotRepairs, 1);
+            if (isJsonRetry)
+                update = update.Inc(item => item.AutopilotJsonRetries, 1);
+        }
         var queued = await _db.AiCaseDrafts.FindOneAndUpdateAsync(
             filter,
             update,
@@ -134,6 +154,7 @@ public sealed class AiDraftWorkflowCoordinator : IAiDraftWorkflowCoordinator
             && string.Equals(currentInputHash, inputHash, StringComparison.Ordinal))
         {
             var refreshedFilter = Builders<AiCaseDraft>.Filter.And(
+                budget,
                 Builders<AiCaseDraft>.Filter.Eq(item => item.Id, current.Id),
                 ObservedVersionFilter(current),
                 Builders<AiCaseDraft>.Filter.In(item => item.Status, expectedStatuses),

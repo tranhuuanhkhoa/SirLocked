@@ -3,9 +3,11 @@ using SirLocked.Api.Configurations;
 using SirLocked.Api.DTOs;
 using SirLocked.Api.DTOs.Ai;
 using SirLocked.Api.Models;
+using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Bridge;
 using SirLocked.Api.Services.Interfaces;
+using SirLocked.Api.Services.Projection;
 using Xunit;
 
 namespace SirLocked.Tests;
@@ -141,6 +143,7 @@ public sealed class AiDraftAutopilotTests
     [InlineData(AiDraftStatus.CaseTruthInvalid, AiRepairStatus.CandidateInvalid, AiDraftAutopilot.RepairTruthCandidate)]
     [InlineData(AiDraftStatus.CaseTruthInvalid, AiRepairStatus.CandidateReady, AiDraftAutopilot.AcceptTruthRepair)]
     [InlineData(AiDraftStatus.CaseTruthAwaitingApproval, AiRepairStatus.CandidateReady, AiDraftAutopilot.AcceptTruthRepair)]
+    [InlineData(AiDraftStatus.FullLogicAwaitingApproval, AiRepairStatus.CandidateReady, AiDraftAutopilot.AcceptTruthRepair)]
     [InlineData(AiDraftStatus.GeneratedInvalid, AiRepairStatus.None, AiDraftAutopilot.RetryJson)]
     public void AFailedStep_IsRepairedOnAutopilot(string status, string truthRepair, string step) =>
         Assert.Equal(step, AiDraftAutopilot.NextStep(Failed(status, truthRepair))?.Name);
@@ -182,6 +185,54 @@ public sealed class AiDraftAutopilotTests
         Assert.Null(AiDraftAutopilot.NextStep(draft));
     }
 
+    [Fact]
+    public void AFailedRepairOfReviewedTruth_ContinuesFromTheInvalidCandidate()
+    {
+        var draft = TruthReviewed(CaseTruthReviewStatuses.Failed, repairs: 2);
+        draft.TruthRepairStatus = AiRepairStatus.CandidateInvalid;
+
+        var next = AiDraftAutopilot.NextStep(draft);
+
+        Assert.Equal(AiDraftAutopilot.RepairTruthCandidate, next?.Name);
+        Assert.True(next!.CostsRepair);
+    }
+
+    [Fact]
+    public void AnIdenticalCandidateWithTheSameFailedVerdict_DoesNotStartAnotherRepair()
+    {
+        var draft = TruthReviewed(CaseTruthReviewStatuses.Failed, repairs: 1);
+        draft.TruthRepairStatus = AiRepairStatus.CandidateReady;
+        draft.TruthRepairCandidateHash = draft.TruthRepairBaseHash = "same-truth";
+        draft.TruthRepairReviewerResult.Status = CaseTruthReviewStatuses.Failed;
+        Assert.Null(AiDraftAutopilot.NextStep(draft));
+        draft.TruthRepairCandidateHash = "changed-truth";
+        Assert.Equal(AiDraftAutopilot.AcceptTruthRepair, AiDraftAutopilot.NextStep(draft)?.Name);
+        draft.TruthRepairReasonCodes.Add(TruthFindingRepair.UnresolvedAfterRebuild);
+        Assert.Null(AiDraftAutopilot.NextStep(draft));
+    }
+
+    [Fact]
+    public void BlindVerdictIsReusableOnlyForTheSameInputAndValidatorVersion()
+    {
+        var draft = BlindReviewed(BlindReviewAssessmentStatuses.Passed);
+        draft.BlindSolvabilityReview.SchemaVersion = CaseTruthSchemaVersions.BlindReviewV3;
+        draft.BlindReviewAssessment.InputHash = "original-view";
+        draft.BlindReviewAssessment.ValidatorVersion = "blind-review-validator-v3";
+        Assert.True(AiCaseService.CanReuseBlindResult(draft, "original-view"));
+        Assert.False(AiCaseService.CanReuseBlindResult(draft, "new-view"));
+        draft.BlindReviewAssessment.ValidatorVersion = "old-validator";
+        Assert.False(AiCaseService.CanReuseBlindResult(draft, "original-view"));
+    }
+
+    [Fact]
+    public void AnUnconfirmedTruthReview_WaitsForAnAdminWithoutSpendingARepair()
+    {
+        var draft = TruthReviewed(CaseTruthReviewStatuses.NotRun);
+        draft.TruthReviewerResult.Findings.Add(new CaseTruthReviewFinding { Message = "Review unavailable." });
+        Assert.Null(AiDraftAutopilot.GateToPass(draft));
+        Assert.Null(AiDraftAutopilot.NextStep(draft));
+    }
+
     // ------------------------------------------------------------ the AI blind detective decides the LOGIC gate
 
     private static AiCaseDraft BlindReviewed(string assessment, int repairs = 0)
@@ -199,9 +250,34 @@ public sealed class AiDraftAutopilotTests
     [Theory]
     [InlineData(BlindReviewAssessmentStatuses.Passed)]
     [InlineData(BlindReviewAssessmentStatuses.NotRun)]
-    [InlineData(BlindReviewAssessmentStatuses.Unavailable)]
     public void ALogicTheBlindDetectiveSolved_GoesThroughTheLogicGate(string status) =>
         Assert.Equal(BridgeGates.Logic, AiDraftAutopilot.NextStep(BlindReviewed(status))?.Name);
+
+    [Theory]
+    [InlineData(BlindReviewAssessmentStatuses.Unavailable)]
+    [InlineData(BlindReviewAssessmentStatuses.Invalid)]
+    public void AnUnconfirmedBlindReview_WaitsForAnAdminWithoutSpendingARepair(string status)
+    {
+        var draft = BlindReviewed(status);
+        Assert.Null(AiDraftAutopilot.GateToPass(draft));
+        Assert.Null(AiDraftAutopilot.NextStep(draft));
+    }
+
+    [Fact]
+    public void ALogicRepairCandidate_IsAcceptedEvenWhenTheBudgetIsSpent()
+    {
+        var draft = BlindReviewed(BlindReviewAssessmentStatuses.Failed, AiDraftAutopilot.MaxRepairs);
+        draft.TruthRepairStatus = AiRepairStatus.CandidateReady;
+        Assert.Equal(new AutopilotStep(AiDraftAutopilot.AcceptTruthRepair, false), AiDraftAutopilot.NextStep(draft));
+    }
+
+    [Fact]
+    public void ABlindFailure_WithAProjectionPlan_RepairsTheProjectionFirst()
+    {
+        var draft = BlindReviewed(BlindReviewAssessmentStatuses.Failed);
+        draft.ProjectionPlan = new GameplayProjectionPlan();
+        Assert.Equal(new AutopilotStep(AiDraftAutopilot.RepairProjection, true), AiDraftAutopilot.NextStep(draft));
+    }
 
     [Theory]
     [InlineData(BlindReviewAssessmentStatuses.Failed)]
@@ -223,11 +299,31 @@ public sealed class AiDraftAutopilotTests
     }
 
     [Fact]
-    public void EveryAutopilotOrder_RunsTheBlindDetective_WhateverTheSetting()
+    public void BlindDetectiveHonorsTheOrderSwitchAndKeepsLegacyBehavior()
     {
         var settings = new AiGenerationSettings { EnableBlindSolvabilityReview = false };
         Assert.True(AiCaseService.BlindReviewEnabled(settings, Draft(AiDraftStatus.GeneratingFullCase)));
         Assert.False(AiCaseService.BlindReviewEnabled(settings, Draft(AiDraftStatus.GeneratingFullCase, AiCaseReviewModes.Full)));
+        var draft = Draft(AiDraftStatus.GeneratingFullCase);
+        draft.Order = AiCaseOrderPolicy.Normalize(new AiCaseOrder(), UserRole.Admin, AiDifficultyProfiles.For("easy"));
+        settings.EnableBlindSolvabilityReview = true;
+        Assert.False(AiCaseService.BlindReviewEnabled(settings, draft));
+        draft.Order = AiCaseOrderPolicy.Normalize(new AiCaseOrder { BlindReviewEnabled = true }, UserRole.Admin, AiDifficultyProfiles.For("easy"));
+        settings.EnableBlindSolvabilityReview = false;
+        Assert.True(AiCaseService.BlindReviewEnabled(settings, draft));
+    }
+
+    [Fact]
+    public void ExplicitBlindReviewRequiresAVerifiedPassAtLogic()
+    {
+        var draft = BlindReviewed(BlindReviewAssessmentStatuses.NotRun);
+        draft.Order!.BlindReviewEnabled = true;
+        Assert.Null(AiDraftAutopilot.GateToPass(draft));
+        draft.BlindReviewAssessment.Status = BlindReviewAssessmentStatuses.Passed;
+        Assert.Equal("LOGIC", AiDraftAutopilot.GateToPass(draft));
+        draft.Order.BlindReviewEnabled = false;
+        draft.BlindReviewAssessment.Status = BlindReviewAssessmentStatuses.Disabled;
+        Assert.Equal("LOGIC", AiDraftAutopilot.GateToPass(draft));
     }
 
     [Fact]

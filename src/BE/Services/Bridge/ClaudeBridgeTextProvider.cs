@@ -88,6 +88,8 @@ public sealed class ClaudeBridgeTextProvider : IAiTextProvider
             Prompt = request.Prompt,
             Instructions = request.Instructions,
             SchemaJson = request.Schema.ToJsonString(),
+            TruthRepairUpstream = request.TruthRepairUpstream,
+            TruthEditScope = request.TruthEditScope,
             PromptSha256 = promptSha,
             MaxOutputTokens = request.MaxOutputTokens,
             MockResponseJson = MockAnswerForSmokeTests(request)

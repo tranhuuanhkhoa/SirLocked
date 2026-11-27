@@ -19,6 +19,7 @@ export async function draftGet(ctx: ToolContext, args: { draftId: string }) {
     draftId, status: data.status, queueState: data.queueState, orderStatus: data.orderStatus, waitingGate: data.waitingGate ?? null,
     nextAction: data.nextAction, reviewMode: data.order?.order?.reviewMode ?? data.order?.reviewMode ?? null,
     pixelLabCap: data.order?.order?.pixelLabCap ?? null, world: data.order?.order?.world ?? null,
+    blindReviewEnabled: data.order?.order?.blindReviewEnabled ?? null,
     caseId: data.caseId, caseTitle: data.caseTitle, importedCaseId: data.importedCaseId || null,
     claudeWait: data.claudeWait ?? null,
     openRequests: list(data.openRequests),

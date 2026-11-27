@@ -44,6 +44,10 @@ public static class ProjectionWireContract
         return Project(node, schema).ToJsonString();
     }
 
+    internal static string SerializeFields(GameplayProjectionContent content, JsonObject schema) =>
+        Project(JsonSerializer.SerializeToNode(content, new JsonSerializerOptions(JsonSerializerDefaults.Web))!, schema)
+            .ToJsonString(AiCaseService.PromptJson);
+
     private static JsonNode Project(JsonNode node, JsonObject schema)
     {
         if (node is JsonObject obj && schema["properties"] is JsonObject properties)

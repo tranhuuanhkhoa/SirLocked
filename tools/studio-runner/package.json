@@ -2,7 +2,7 @@
   "name": "sirlocked-studio-runner",
   "version": "0.1.0",
   "private": true,
-  "description": "Giữ kết nối tới /hubs/bridge và chạy claude -p \"/tao-vu-an\" khi server báo có việc. Không hỏi server theo chu kỳ.",
+  "description": "Nhận tín hiệu từ /hubs/bridge và chạy Codex để xử lý đơn tạo vụ án.",
   "type": "module",
   "engines": {
     "node": ">=22"

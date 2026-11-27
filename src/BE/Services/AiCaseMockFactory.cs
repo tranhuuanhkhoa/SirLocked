@@ -152,9 +152,13 @@ internal static class AiCaseMockFactory
         var crimeLocation = locations.First();
         const string crimeActionId = "action-crime";
         var categories = ProofConclusionCategories.All.ToList();
-        var actionByLocation = locations.Select((location, index) => new
+        // Keep the easy mock's clue count while obeying the two-traces-per-event schema rule.
+        var actionCount = openCoopProfile?.Difficulty == AiDifficultyProfiles.Easy
+            ? locations.Count * Math.Max(1, (int)Math.Ceiling(traceCount / (2d * locations.Count)))
+            : locations.Count;
+        var actionByLocation = Enumerable.Range(0, actionCount).Select(index => new
         {
-            Location = location,
+            Location = locations[index % locations.Count],
             ActionId = index == 0 ? crimeActionId : $"action-crime-{index + 1}",
             Start = 30 + index * 15
         }).ToList();
@@ -279,8 +283,7 @@ internal static class AiCaseMockFactory
         {
             var index = traceIndex + 1;
             var category = categories[traceIndex % categories.Count];
-            var clueScene = locations[traceIndex % locations.Count];
-            var sourceAction = actionByLocation.FirstOrDefault(item => item.Location == clueScene) ?? actionByLocation[0];
+            var sourceAction = actionByLocation[traceIndex % actionByLocation.Count];
             return new TraceLedgerEntry
             {
                 TraceId = $"trace-{index}", SourceActionId = sourceAction.ActionId,

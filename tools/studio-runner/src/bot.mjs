@@ -13,16 +13,19 @@ const botPrompt = 'Studio runner đã nhận sự kiện WorkAvailable. Dùng sk
 const checkPrompt = 'Chỉ kiểm tra runner. Gọi bridge_list status PENDING limit 1, get_balance của PixelLab, và studio_read đọc .agents/skills/tao-vu-an/SKILL.md. ' +
   'Dùng studio_write ghi {"ok":true} vào tmp/bridge/runner-smoke/answer.json rồi studio_read lại file local đó. Không nhận hay sửa yêu cầu trên server, không tạo ảnh. Báo kết quả ngắn.';
 
-export function buildBotCommand({ repoRoot, executable = 'codex', model = 'gpt-6.2-sol', servers = [], check = false }) {
+export function buildBotCommand({ repoRoot, executable = 'codex', model = 'gpt-6.2-sol', servers = [], check = false, easyScript = false }) {
   const args = ['--ask-for-approval', 'never', 'exec', '--ephemeral', '--json', '--sandbox', 'read-only', '-m', model,
     '--disable', 'shell_tool', ...disabledFeatures,
-    '-c', 'web_search="disabled"', '-c', 'model_reasoning_effort="high"',
+    '-c', 'web_search="disabled"', '-c', easyScript ? 'model_reasoning_effort="medium"' : 'model_reasoning_effort="high"',
     '-c', 'mcp_servers.sirlocked-studio.default_tools_approval_mode="approve"',
     '-c', 'mcp_servers.sirlocked-studio.required=true',
     '-c', 'mcp_servers.pixellab.default_tools_approval_mode="approve"',
     '-c', 'mcp_servers.pixellab.required=true', '-c', 'mcp_servers.pixellab.tool_timeout_sec=660',
-    '-c', `mcp_servers.pixellab.enabled_tools=${JSON.stringify(pixelLabTools)}`,
+    '-c', `mcp_servers.pixellab.enabled_tools=${JSON.stringify(check ? ['get_balance'] : pixelLabTools)}`,
   ];
+  if (check) {
+    args.push('-c', 'mcp_servers.sirlocked-studio.enabled_tools=["bridge_list","studio_read","studio_write"]');
+  }
   for (const name of servers) {
     if (!studioServers.includes(name)) args.push('-c', `mcp_servers.${name}.enabled=false`);
   }

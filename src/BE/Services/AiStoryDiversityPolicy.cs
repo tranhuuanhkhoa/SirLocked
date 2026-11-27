@@ -288,6 +288,23 @@ internal static class AiStoryDiversityPolicy
         "a reliable record is authentic but was created earlier than assumed"
     ];
 
+    // Lock a clue interpretation at STORY time that a single-incident Easy truth can actually prove.
+    private static readonly string[] EasyTwists =
+    [
+        "a witness correctly reports a sound but mistakes its source",
+        "a reliable record is authentic but was created earlier than assumed",
+        "an innocent suspect has a separate everyday reason for handling the object",
+        "a witness tells the truth but misidentifies what the event means"
+    ];
+
+    private static readonly string[] EasyMethods =
+    [
+        "one direct action during an ordinary change of shift",
+        "one direct action using access already granted for routine work",
+        "one direct action during a short, independently observed absence",
+        "one direct action identifiable from a distinctive physical trace"
+    ];
+
     private static readonly string[] InvestigationMechanics =
     [
         "reconcile mutually incompatible timelines",
@@ -300,7 +317,8 @@ internal static class AiStoryDiversityPolicy
         "use travel time to invalidate an otherwise plausible alibi"
     ];
 
-    public static AiStoryDiversityProfile Create(string? requestedCaseType, string? seed = null, string? world = null)
+    public static AiStoryDiversityProfile Create(string? requestedCaseType, string? seed = null, string? world = null,
+        string? difficulty = null)
     {
         var settings = world is not null && WorldSettings.TryGetValue(world, out var worldSettings) ? worldSettings : Settings;
         var eras = world is not null && WorldEras.TryGetValue(world, out var worldEras) ? worldEras : Eras;
@@ -321,8 +339,8 @@ internal static class AiStoryDiversityPolicy
             EvidenceMotif = Pick(EvidenceMotifs, effectiveSeed, "evidence"),
             CulpritRelationship = Pick(Relationships, effectiveSeed, "relationship"),
             MotiveArchetype = Pick(Motives, effectiveSeed, "motive"),
-            MethodArchetype = Pick(Methods, effectiveSeed, "method"),
-            TwistArchetype = Pick(Twists, effectiveSeed, "twist"),
+            MethodArchetype = Pick(difficulty == "easy" ? EasyMethods : Methods, effectiveSeed, "method"),
+            TwistArchetype = Pick(difficulty == "easy" ? EasyTwists : Twists, effectiveSeed, "twist"),
             InvestigationMechanic = Pick(InvestigationMechanics, effectiveSeed, "investigation")
         };
         profile.CoreFingerprint = ComputeCoreFingerprint(profile);
@@ -333,7 +351,7 @@ internal static class AiStoryDiversityPolicy
         string? requestedCaseType,
         string seed,
         IEnumerable<AiStoryDiversityProfile> recentProfiles,
-        string? world = null)
+        string? world = null, string? difficulty = null)
     {
         var history = recentProfiles.Where(IsUsable).Take(50).ToList();
         AiStoryDiversityProfile? best = null;
@@ -342,7 +360,7 @@ internal static class AiStoryDiversityPolicy
         for (var attempt = 0; attempt < 32; attempt++)
         {
             var candidateSeed = attempt == 0 ? seed : $"{seed}:{attempt}";
-            var candidate = Create(requestedCaseType, candidateSeed, world);
+            var candidate = Create(requestedCaseType, candidateSeed, world, difficulty);
             var maximumSimilarity = history.Count == 0
                 ? 0
                 : history.Max(previous => StructuralSimilarity(candidate, previous));
@@ -354,7 +372,7 @@ internal static class AiStoryDiversityPolicy
             }
         }
 
-        return best ?? Create(requestedCaseType, seed, world);
+        return best ?? Create(requestedCaseType, seed, world, difficulty);
     }
 
     public static double StructuralSimilarity(AiStoryDiversityProfile left, AiStoryDiversityProfile right)
