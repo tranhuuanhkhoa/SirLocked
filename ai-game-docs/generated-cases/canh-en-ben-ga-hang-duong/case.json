@@ -142,7 +142,7 @@
   "projectionBuildMode": "AI_COMPILED",
   "aiSemanticReviewStatus": "PASSED",
   "estimatedMinutes": 12,
-  "coverImageUrl": "/assets/pixel/canh-en-ben-ga-hang-duong/scenes/bindery-front-counter.png",
+  "coverImageUrl": "/assets/pixel/canh-en-ben-ga-hang-duong/scenes/bindery-front-counter.png?v=8e24723502d0",
   "stages": [
     {
       "stageId": "stage-01",
@@ -152,7 +152,7 @@
         {
           "sceneId": "bindery_front_counter",
           "title": "Quầy hiệu đóng sách",
-          "backgroundUrl": "/assets/pixel/canh-en-ben-ga-hang-duong/scenes/bindery-front-counter.png",
+          "backgroundUrl": "/assets/pixel/canh-en-ben-ga-hang-duong/scenes/bindery-front-counter.png?v=8e24723502d0",
           "description": "Đèn khí hắt xuống mặt quầy, nơi một mép khay đang gác lên cuốn sổ nhận việc. Hốc vừa chiếc thẻ én giờ trống. Qua cửa kính trước hiệu có thể nhìn sang mái hiên ga. Cánh cửa gỗ sau quầy dẫn vào phòng đóng gáy.",
           "visualDescription": "Amber gaslight falls across a dark oak counter inside a brick shopfront. A shallow walnut tray rests at a slight angle, with a pale wax bed and a wing-shaped recess. Tall glass panes face the square. A partly open pine door stands behind the counter.",
           "itemIds": [
@@ -1642,7 +1642,7 @@
         {
           "sceneId": "bindery_back_room",
           "title": "Phòng đóng gáy",
-          "backgroundUrl": "/assets/pixel/canh-en-ben-ga-hang-duong/scenes/bindery-back-room.png",
+          "backgroundUrl": "/assets/pixel/canh-en-ben-ga-hang-duong/scenes/bindery-back-room.png?v=879692ced209",
           "description": "Máy ép sách kê cạnh ô kính nhìn chéo ra bàn nhận bưu kiện bên ga. Từ chỗ đứng bên tay ép, còn có thể nhìn ra quầy qua khe cửa gỗ. Phía trên là một ô thông gió nhỏ.",
           "visualDescription": "A cast iron book press stands on worn floorboards beside a narrow side window. A partly open pine door leads to the amber-lit counter. High on the plaster wall, a brass ventilation grille sits under a dark timber beam.",
           "itemIds": [],
