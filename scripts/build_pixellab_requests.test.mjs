@@ -88,6 +88,8 @@ test('every isometric scene has an interior request that depends on the map and 
     assert.equal(interior.references[0].url, '{{exteriorCropRef}}');
     assert.equal(interior.references[0].usage, templates.byId.interior.references[0].usage);
     assert.match(interior.prompt, /Isometric 2:1 pixel art interior cutaway room/);
+    assert.match(interior.prompt, /both back walls as solid, continuous surfaces/);
+    assert.match(interior.prompt, /backdrop outside the room silhouette only/);
     assert.match(interior.prompt, /No people, no animals, no readable text or letters\./);
     assert.ok(interior.outputs.some((o) => o.kind === 'runtime' && o.path === scene.backgroundUrl), `runtime path matches ${scene.backgroundUrl}`);
   }
@@ -251,7 +253,7 @@ test('--style-ref and --map-description are applied; bad arguments are rejected'
   assert.throws(() => buildPlan(gameCase, { templates, mapDescription: 'phố cổ' }), /ASCII/);
 });
 
-test('templates reproduce the prompts that were actually sent for this case', () => {
+test('historical requests preserve the original room layout and the unchanged template prompts', () => {
   const record = readJson(RECORD_FILE);
   const sent = new Map(record.requests.map((request) => [request.id, request]));
   let checked = 0;
@@ -259,12 +261,19 @@ test('templates reproduce the prompts that were actually sent for this case', ()
     const request = sent.get(template.example.requestId);
     assert.ok(request, `record has ${template.example.requestId}`);
     assert.equal(request.tool.split(' ')[0], template.tool, `${template.id} tool`);
-    assert.equal(renderTemplate(template, template.example.values), request.prompt, `${template.id} reproduces ${request.id}`);
+    const prompt = renderTemplate(template, template.example.values);
+    if (template.id === 'interior') {
+      const lighting = 'Warm morning light from the windows.';
+      assert.equal(prompt.split(lighting)[0], request.prompt.split(lighting)[0]);
+    } else {
+      assert.equal(prompt, request.prompt, `${template.id} reproduces ${request.id}`);
+    }
     checked++;
   }
   assert.ok(checked >= 8);
-  // Fixed interior wording is identical for all five rooms.
-  const suffix = renderTemplate(templates.byId.interior, { roomSubject: 'x', roomContents: 'y' }).split(' y ')[1];
+  const layout = 'Isometric 2:1 pixel art interior cutaway room';
+  const historicalPrompt = sent.get(templates.byId.interior.example.requestId).prompt;
+  const suffix = historicalPrompt.slice(historicalPrompt.indexOf(layout));
   for (const request of record.requests.filter((r) => r.stage === 'interior')) assert.ok(request.prompt.endsWith(suffix), request.id);
 });
 

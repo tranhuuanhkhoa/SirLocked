@@ -1380,14 +1380,7 @@ export async function renderAdminAiPage(app) {
     const generating = isGeneratingDraft(d);
     const cannotResume = !generating && d.status === STATUS_GENERATED_INVALID && !d.hasGeneratedJson && !published && !d.canContinue;
     const title = d.caseTitle || preview?.title || tr('Untitled draft', 'Bản nháp chưa có tên');
-    const intro = d.introCutsceneStatus;
-    const introMessage = intro === 'QUEUED'
-      ? tr('The opening comic is being prepared.', 'Cảnh mở đầu đang được chuẩn bị.')
-      : intro === 'READY'
-        ? tr('The opening comic is ready.', 'Cảnh mở đầu đã sẵn sàng.')
-        : intro?.startsWith('FAILED')
-          ? tr('The opening comic could not be created. An admin can retry it from the case editor.', 'Chưa tạo được cảnh mở đầu. Quản trị viên có thể thử lại trong trang chỉnh sửa vụ án.')
-          : '';
+    const introMessage = introProgressMessage(d);
     // Technical fingerprints of the run, one per line in monospace.
     const codes = [
       d.storyDiversity?.seed ? `Diversity seed: <code>${escapeHtml(d.storyDiversity.seed)}</code>${d.storyDiversity?.coreFingerprint ? ` · Core: <code>${escapeHtml(d.storyDiversity.coreFingerprint.slice(0, 12))}</code>` : ''}${d.storyFingerprint ? ` · Preview: <code>${escapeHtml(d.storyFingerprint.slice(0, 12))}</code>` : ''}` : '',
@@ -1890,17 +1883,18 @@ export async function renderAdminAiPage(app) {
     };
     const stopped = draft && isTerminalDraft(draft);
     const pendingIntro = draft?.introCutsceneStatus === 'QUEUED';
+    const introStep = pendingIntro ? humanAiStep(draft?.introCutsceneStep) : undefined;
     const complete = !pendingIntro && ['READY_TO_PUBLISH', 'IMPORTED', 'PUBLISHED'].includes(status);
     const clock = orderClock(draft, stopped);
     const started = clock.started ?? (runStartedAt || Date.now());
     const now = Number.isFinite(clock.ended) ? clock.ended : Date.now();
     const elapsed = Math.max(0, Math.floor((now - started) / 1000));
-    const detail = overrideDetail || (pendingIntro
-      ? tr('The case is ready. The opening comic is being prepared.', 'Vụ án đã xong. AI đang chuẩn bị truyện mở đầu.')
-      : localizedPair(state.detail));
+    const detail = overrideDetail || introProgressMessage(draft) || localizedPair(state.detail);
     const fill = qs('#generation-progress-fill', panel);
     const track = panel.querySelector('[role="progressbar"]');
-    const step = !orderState && humanAiStep(pendingIntro ? 'CutsceneScript' : draft?.claudeWait?.step);
+    const step = !orderState && (pendingIntro
+      ? introStep || ['Waiting for the opening scene', 'Đang chờ cảnh mở đầu']
+      : humanAiStep(draft?.claudeWait?.step));
     const phaseProgress = draft?.generationProgress;
     const measured = !stopped && phaseProgress > 0 && phaseProgress < 100;
     const percent = complete ? 100 : measured ? phaseProgress : null;
@@ -1912,12 +1906,14 @@ export async function renderAdminAiPage(app) {
       : draft?.queueState === 'PENDING' ? tr('Queued', 'Đang chờ') : '');
     setText('#generation-progress-detail', detail);
     const stepStarted = Date.parse(draft?.claudeWait?.since);
-    const stepElapsed = !stopped && Number.isFinite(stepStarted)
+    const stepElapsed = !stopped && !pendingIntro && Number.isFinite(stepStarted)
       ? ` · ${tr('This step', 'Bước này')} ${formatAiElapsed(Math.max(0, Math.floor((now - stepStarted) / 1000)))}`
       : '';
-    setText('#generation-progress-elapsed', `${tr('Elapsed', 'Đã chạy')} ${formatAiElapsed(elapsed)}${stepElapsed}`);
-    panel.classList.toggle('generation-progress-live', !stopped && percent === null);
-    fill.style.width = percent === null && !stopped ? '' : `${percent ?? 0}%`;
+    const timeLabel = draft?.introCutsceneStartedAt || pendingIntro ? tr('Case creation', 'Tạo vụ án') : tr('Elapsed', 'Đã chạy');
+    setText('#generation-progress-elapsed', `${timeLabel} ${formatAiElapsed(elapsed)}${stepElapsed}`);
+    const live = !stopped && percent === null && (!pendingIntro || Boolean(introStep));
+    panel.classList.toggle('generation-progress-live', live);
+    fill.style.width = live ? '' : `${percent ?? 0}%`;
     if (percent === null) track.removeAttribute('aria-valuenow');
     else track.setAttribute('aria-valuenow', String(percent));
     panel.classList.toggle('generation-progress-error', status === 'GENERATED_INVALID');
@@ -1926,6 +1922,18 @@ export async function renderAdminAiPage(app) {
       const node = qs(selector, panel);
       if (node.textContent !== value) node.textContent = value;
     }
+  }
+
+  function introProgressMessage(draft) {
+    const intro = draft?.introCutsceneStatus;
+    if (intro === 'QUEUED') return draft.introCutsceneStep
+      ? tr('The case is ready. The runner is preparing the opening scene.', 'Vụ án đã xong. Runner đang tạo cảnh mở đầu.')
+      : tr('The case is ready. The opening scene is waiting to be processed.', 'Vụ án đã xong. Cảnh mở đầu đang chờ xử lý.');
+    if (intro === 'READY') return tr('The opening comic is ready.', 'Cảnh mở đầu đã sẵn sàng.');
+    if (intro === 'AWAITING_APPROVAL') return tr('The opening scene was saved and is awaiting approval.', 'Cảnh mở đầu đã được lưu và đang chờ duyệt.');
+    if (intro === 'TIMED_OUT') return tr('The opening scene did not finish in time. You can playtest the case or check the opening in Case Studio.', 'Cảnh mở đầu chưa hoàn tất trong thời gian chờ. Bạn vẫn có thể chơi thử vụ án hoặc kiểm tra cảnh mở đầu trong Case Studio.');
+    if (intro?.startsWith('FAILED')) return tr('The opening comic could not be created. An admin can retry it from the case editor.', 'Chưa tạo được cảnh mở đầu. Quản trị viên có thể thử lại trong trang chỉnh sửa vụ án.');
+    return '';
   }
 
   function stopPolling() {
@@ -1974,7 +1982,8 @@ export async function renderAdminAiPage(app) {
         if (prior?.draftId !== current.draftId || prior.status !== current.status
             || prior.orderStatus !== current.orderStatus || prior.queueState !== current.queueState
             || prior.generationPhase !== current.generationPhase
-            || prior.claudeWait?.step !== current.claudeWait?.step || prior.introCutsceneStatus !== current.introCutsceneStatus) {
+            || prior.claudeWait?.step !== current.claudeWait?.step || prior.introCutsceneStatus !== current.introCutsceneStatus
+            || prior.introCutsceneStep !== current.introCutsceneStep) {
           drafts = drafts.map(draft => draft.draftId === current.draftId ? current : draft);
           draw(current);
         } else {

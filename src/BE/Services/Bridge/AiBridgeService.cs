@@ -482,7 +482,7 @@ public sealed class AiBridgeService(
                     new ApiErrorDetails("ASSET_NEEDS_ALPHA", "ai.bridge.assetNeedsAlpha"));
             if (slot.Kind == AiAssetSlotKinds.Background && BridgeAssetStorage.HasOpaqueMagentaPatch(bytes))
                 throw ApiException.BadRequest(
-                    $"Slot '{slotId}' has a solid magenta patch. Replace this scene image with the removal option enabled and natural colors inside the doorway.",
+                    $"Slot '{slotId}' has a solid magenta patch. Repair this scene image with natural colors inside the doorway and keep the surrounding wall intact.",
                     new ApiErrorDetails("ASSET_CHROMA_BACKGROUND", "ai.bridge.assetChromaBackground"));
             if (slot.Kind == AiAssetSlotKinds.CharacterSprite)
             {

@@ -2391,7 +2391,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             ? Builders<AiCaseDraft>.Filter.Empty
             : Builders<AiCaseDraft>.Filter.Eq(draft => draft.CreatedByUserId, user.Id);
         var drafts = await _db.AiCaseDrafts.Find(filter).SortByDescending(d => d.CreatedAt).Limit(50).ToListAsync();
-        return drafts.Select(d => AiDraftResponse.From(d, includeJson: false)).ToList();
+        return await BuildDraftResponsesAsync(drafts, includeJson: false);
     }
 
     public async Task<AiDraftResponse> GetDraftAsync(CurrentUser user, string draftId)
@@ -2399,7 +2399,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
         var draft = await _db.AiCaseDrafts.Find(d => d.Id == draftId).FirstOrDefaultAsync()
             ?? throw ApiException.NotFound("AI draft not found.");
         EnsureDraftAccess(user, draft);
-        return AiDraftResponse.From(draft);
+        return (await BuildDraftResponsesAsync([draft], includeJson: true))[0];
     }
 
     public async Task<AiDraftResponse> CancelDraftAsync(CurrentUser user, string draftId)
@@ -2619,6 +2619,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
             var summary = await _caseService.ImportJsonAsync(doc.RootElement, overwrite, preserveServerMetadata: true);
             if (publish) summary = await _caseService.PublishAsync(summary.CaseId);
 
+            var importedAt = DateTime.UtcNow;
+            var queueIntro = _introCutsceneStarter is not null && AiPipelineVersions.IsOpenCoop(draft.Settings);
             var completed = await _db.AiCaseDrafts.UpdateOneAsync(
                 d => d.Id == draftId
                     && d.WorkflowVersion == draft.WorkflowVersion
@@ -2628,9 +2630,8 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                 Builders<AiCaseDraft>.Update
                     .Set(d => d.Status, publish ? AiDraftStatus.Published : AiDraftStatus.Imported)
                     .Set(d => d.ImportedCaseId, summary.CaseId)
-                    .Set(d => d.IntroCutsceneStatus,
-                        _introCutsceneStarter is not null && AiPipelineVersions.IsOpenCoop(draft.Settings)
-                            ? AiIntroCutsceneStatuses.Queued : null)
+                    .Set(d => d.IntroCutsceneStatus, queueIntro ? AiIntroCutsceneStatuses.Queued : null)
+                    .Set(d => d.IntroCutsceneStartedAt, queueIntro ? importedAt : (DateTime?)null)
                     .Set(d => d.IntroCutsceneFinishedAt, null)
                     .Set(d => d.QueueState, AiQueueStates.None)
                     .Set(d => d.QueuedOperation, AiQueuedOperations.None)
@@ -2640,7 +2641,7 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
                     .Set(d => d.ActiveQuotaKey, null)
                     .Set(d => d.OrderStatus, AiOrderStatuses.Submitted)
                     .Inc(d => d.WorkflowVersion, 1)
-                    .Set(d => d.UpdatedAt, DateTime.UtcNow));
+                    .Set(d => d.UpdatedAt, importedAt));
             if (completed.MatchedCount == 0)
                 throw ApiException.Conflict("The draft changed before import completion could be committed.");
             await QueueIntroCutsceneAsync(draft, summary.CaseId);
@@ -2673,13 +2674,13 @@ public partial class AiCaseService : IAiCaseService, IAiGenerationExecutor, IAiA
     {
         if (_introCutsceneStarter is null || !AiPipelineVersions.IsOpenCoop(draft.Settings)) return;
         var status = await _introCutsceneStarter.StartAsync(draft.Settings, caseId, _operationCancellationToken);
+        if (status == AiIntroCutsceneStatuses.Queued) return; // Import already set this; an answer may since have arrived.
         try
         {
             await _db.AiCaseDrafts.UpdateOneAsync(d => d.Id == draft.Id
-                    && d.IntroCutsceneStatus != AiIntroCutsceneStatuses.Ready
-                    && (status != AiIntroCutsceneStatuses.Queued || d.IntroCutsceneStatus != AiIntroCutsceneStatuses.Failed),
+                    && d.IntroCutsceneStatus == AiIntroCutsceneStatuses.Queued,
                 Builders<AiCaseDraft>.Update.Set(d => d.IntroCutsceneStatus, status)
-                    .Set(d => d.IntroCutsceneFinishedAt, status != AiIntroCutsceneStatuses.Queued ? DateTime.UtcNow : null),
+                    .Set(d => d.IntroCutsceneFinishedAt, DateTime.UtcNow),
                 cancellationToken: _operationCancellationToken);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)

@@ -327,9 +327,11 @@ public class AiCaseDraft
     public DateTime? GenerationClaimedAt { get; set; }
     /// <summary>Set when the draft has been imported into gameCases.</summary>
     public string? ImportedCaseId { get; set; }
-    /// <summary>OPEN_COOP_1: what happened when the intro cutscene was queued after import (QUEUED, EXISTS, FAILED: …).</summary>
+    /// <summary>OPEN_COOP_1: the outcome of queuing or generating the intro after import.</summary>
     [BsonIgnoreIfNull]
     public string? IntroCutsceneStatus { get; set; }
+    [BsonIgnoreIfNull]
+    public DateTime? IntroCutsceneStartedAt { get; set; }
     [BsonIgnoreIfNull]
     public DateTime? IntroCutsceneFinishedAt { get; set; }
     [BsonIgnoreIfDefault]

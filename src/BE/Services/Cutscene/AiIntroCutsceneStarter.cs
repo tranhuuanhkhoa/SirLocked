@@ -10,6 +10,8 @@ public static class AiIntroCutsceneStatuses
     public const string Skipped = "SKIPPED";
     public const string Exists = "EXISTS";
     public const string Failed = "FAILED";
+    public const string AwaitingApproval = "AWAITING_APPROVAL";
+    public const string TimedOut = "TIMED_OUT";
 }
 
 public interface IAiIntroCutsceneStarter

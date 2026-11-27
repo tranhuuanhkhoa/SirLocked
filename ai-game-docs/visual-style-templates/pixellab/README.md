@@ -43,7 +43,7 @@ Làm theo đúng thứ tự. Bước sau dùng kết quả của bước trướ
   - Bộ mẫu phong cách Yen đã chốt (PixelLab, 96×96, 8 hướng): Sherlock V3 96, Watson V3 96, 6 NPC vụ Lò thuốc (Hoc Viec, Dang Buu, To Khanh, Trinh Luc, Ly Hanh, Lam The Bao), 4 NPC màn tân thủ (Tan Thu A Phuc, Tan Thu Hamilton, Tan Thu Co Lan, Tan Thu Ong Luu).
   - Đợt 0 (16/11) làm tắt (3 lượt mỗi NPC) nên ra kiểu chibi đầu to, mắt to. 39 NPC đó đã khóa (`retired`) trong `tools/studio-mcp/library/index.json`, chờ vẽ lại.
 - **Mask và ảnh tham chiếu ngoại thất lấy từ bản đồ NATIVE 512**, không dùng bản phóng to. Ghép animation môi trường lại đúng toạ độ crop.
-- **Nội thất:** isometric 2:1, một sàn + hai tường sau, mặt trước và ngưỡng cửa để trống, không NPC. Vật phẩm điều tra của cảnh phải có trong mô tả vì pixel mode vẽ vật vào nền.
+- **Nội thất:** isometric 2:1, một sàn + hai tường sau, mặt trước và ngưỡng cửa để trống, không NPC. Vẽ với `no_background: false` để giữ tường và cửa. Cắt phông trơn ngoài viền phòng bằng `asset_process cut_background` và kiểm ảnh PNG trên nền sáng trước khi đặt lưới đi. Vật phẩm điều tra của cảnh phải có trong mô tả vì pixel mode vẽ vật vào nền.
 - **Vật điều tra không bao giờ dán ảnh lên cảnh** (Yen chốt 17/11/2026). Dán icon hay ảnh vật lên bản đồ thì lệch phối cảnh và ánh sáng, nhìn rất xấu. Làm như vụ Lò thuốc thứ Năm và Trâm hồng ngọc:
   - **Vật nên tạo trước.** Cảnh vẽ mới: ghi mọi vật vào `visualDescription` của cảnh để PixelLab vẽ luôn (`outdoor-map`, `interior`).
   - Cảnh đã vẽ xong (thư viện, biến thể, hay cần thêm vật sau): `item-inpaint`, **inpaint cho chuẩn** theo tài liệu Inpaint Pro (`inpaint_image`, REST `POST /v2/inpaint-v3`; `mask_image` cùng cỡ ảnh, trắng = vẽ lại, đen = giữ, hình gì cũng được).

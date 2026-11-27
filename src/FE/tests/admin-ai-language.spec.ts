@@ -195,6 +195,39 @@ test('active order resumes its server clock after refresh and updates steps in t
   await expect(title).toHaveText('Putting events in order');
 });
 
+test('an imported case keeps its finished clock while the opening waits and unlocks playtest on timeout', async ({ page }) => {
+  await page.unroute('**/api/admin/ai-cases');
+  const draft = {
+    draftId: 'draft-intro-progress', caseTitle: 'The Finished Case', importedCaseId: 'case-intro-progress',
+    status: 'IMPORTED', queueState: 'NONE', orderStatus: 'SUBMITTED', generationProgress: 100,
+    createdAt: '2026-11-27T10:00:00Z', introCutsceneStartedAt: '2026-11-27T10:20:00Z',
+    introCutsceneStatus: 'QUEUED', introCutsceneStep: '',
+    settings: { generationPreset: 'NORMAL_RANDOM', language: 'en' },
+  };
+  await page.route('**/api/admin/ai-cases', route => route.fulfill({ json: { success: true, data: [draft] } }));
+  await page.route('**/api/admin/ai-cases/draft-intro-progress', route => route.fulfill({ json: { success: true, data: draft } }));
+  await page.clock.setFixedTime(new Date('2026-11-27T17:21:00Z'));
+  await page.goto('/admin/ai');
+  const elapsed = page.locator('#generation-progress-elapsed');
+  const title = page.locator('#generation-progress-title');
+  const progress = page.locator('#generation-progress');
+  await expect(title).toHaveText('Waiting for the opening scene');
+  await expect(progress).not.toHaveClass(/generation-progress-live/);
+  await expect(elapsed).toHaveText('Case creation 20m 0s');
+  await page.reload();
+  await expect(elapsed).toHaveText('Case creation 20m 0s');
+
+  draft.introCutsceneStep = 'CutsceneScriptRepair';
+  await expect(title).toHaveText('Polishing the opening scene');
+  await expect(progress).toHaveClass(/generation-progress-live/);
+  draft.introCutsceneStatus = 'TIMED_OUT';
+  draft.introCutsceneStep = '';
+  await expect(progress).not.toHaveClass(/generation-progress-live/);
+  await expect(progress).toContainText('The opening scene did not finish in time.');
+  await expect(elapsed).toHaveText('Case creation 20m 0s');
+  await expect(page.getByRole('button', { name: 'Playtest', exact: true }).first()).toBeEnabled();
+});
+
 test('failed drafts expose phase-specific retry actions and endpoints', async ({ page }) => {
   await page.unroute('**/api/admin/ai-cases');
   const drafts = [

@@ -32,9 +32,10 @@ export function orderClock(draft, stopped) {
   if (!draft) return {};
   const started = Date.parse(draft.createdAt);
   const finished = draft.orderStatusHistory?.find(change => orderEnds.has(change.status));
+  const caseFinished = draft.introCutsceneStartedAt || finished?.at || draft.updatedAt || draft.createdAt;
   return {
     started: Number.isFinite(started) ? started : undefined,
-    ended: stopped ? Date.parse(draft.introCutsceneFinishedAt || finished?.at || draft.updatedAt || draft.createdAt) : undefined,
+    ended: stopped || draft.introCutsceneStatus === 'QUEUED' ? Date.parse(caseFinished) : undefined,
   };
 }
 

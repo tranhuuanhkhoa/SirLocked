@@ -27,6 +27,7 @@ using SirLocked.Api.Models.Enums;
 using SirLocked.Api.Services;
 using SirLocked.Api.Services.Admin;
 using SirLocked.Api.Services.Bridge;
+using SirLocked.Api.Services.Cutscene;
 using SirLocked.Api.Services.Interfaces;
 using SirLocked.Api.Services.Vip;
 using SirLocked.Api.Services.Market;
@@ -85,6 +86,64 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
     }
 
     // ---------------------------------------------------------------- full order through the bridge
+
+    [Fact]
+    public async Task ImportedDraftIntroProgressUsesStoredVersionsAndStopsOnTimeout()
+    {
+        if (!Enabled) return;
+        await using var factory = new BridgeFactory(cleanupBridgeAssets: false);
+        await SeedUsersAsync(factory);
+        using var admin = User(factory, AdminId, UserRole.Admin);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
+        var now = DateTime.UtcNow;
+        var old = now.AddHours(-7);
+
+        async Task<AiCaseDraft> InsertDraft(string label, DateTime importedAt, bool legacy = false)
+        {
+            var draft = new AiCaseDraft
+            {
+                Id = ObjectId.GenerateNewId().ToString(), CreatedByUserId = AdminId, CreatedByRole = UserRole.Admin,
+                Status = AiDraftStatus.Imported, ImportedCaseId = $"case-intro-progress-{label}",
+                CreatedAt = importedAt.AddMinutes(-20), UpdatedAt = now,
+                OrderStatus = AiOrderStatuses.Submitted,
+                OrderStatusHistory = [new AiOrderStatusChange { Status = AiOrderStatuses.Submitted, At = importedAt }],
+                IntroCutsceneStatus = AiIntroCutsceneStatuses.Queued, IntroCutsceneStartedAt = legacy ? null : importedAt
+            };
+            await db.AiCaseDrafts.InsertOneAsync(draft);
+            return draft;
+        }
+
+        var approved = await InsertDraft("approved", old, legacy: true);
+        var pendingApproval = await InsertDraft("approval", old, legacy: true);
+        var expired = await InsertDraft("expired", old, legacy: true);
+        var working = await InsertDraft("working", now.AddMinutes(-2));
+        await db.CaseCutscenes.InsertManyAsync([
+            new CaseCutscene { Id = "test-intro-approved", CaseId = approved.ImportedCaseId!, Status = CutsceneStatus.Approved,
+                Version = 1, CreatedAt = old.AddMinutes(1), ApprovedAt = old.AddMinutes(2) },
+            new CaseCutscene { Id = "test-intro-needs-approval", CaseId = pendingApproval.ImportedCaseId!, Status = CutsceneStatus.Draft,
+                Version = 1, CreatedAt = old.AddMinutes(1) }
+        ]);
+        await db.AiBridgeRequests.InsertManyAsync([
+            new AiBridgeRequest { Id = ObjectId.GenerateNewId().ToString(), OwnerType = AiBridgeOwnerTypes.Cutscene,
+                OwnerId = expired.ImportedCaseId!, RequestKey = "test-intro-expired", Step = "CutsceneScript",
+                Status = AiBridgeStatuses.Accepted, CreatedAt = old },
+            new AiBridgeRequest { Id = ObjectId.GenerateNewId().ToString(), OwnerType = AiBridgeOwnerTypes.Cutscene,
+                OwnerId = working.ImportedCaseId!, RequestKey = "test-intro-working", Step = "CutsceneScriptRepair",
+                Status = AiBridgeStatuses.Taken, CreatedAt = now.AddMinutes(-1), LeaseExpiresAt = now.AddMinutes(5) }
+        ]);
+
+        var list = (await GetData<List<AiDraftResponse>>(admin, "/api/admin/ai-cases")).ToDictionary(response => response.DraftId);
+        Assert.Equal(AiIntroCutsceneStatuses.Ready, list[approved.Id].IntroCutsceneStatus);
+        Assert.Equal(AiIntroCutsceneStatuses.AwaitingApproval, list[pendingApproval.Id].IntroCutsceneStatus);
+        Assert.Equal(AiIntroCutsceneStatuses.TimedOut, list[expired.Id].IntroCutsceneStatus);
+        Assert.Equal(AiIntroCutsceneStatuses.Queued, list[working.Id].IntroCutsceneStatus);
+        Assert.Equal("CutsceneScriptRepair", list[working.Id].IntroCutsceneStep);
+        var detail = await GetData<AiDraftResponse>(admin, $"/api/admin/ai-cases/{expired.Id}");
+        Assert.Equal(list[expired.Id].IntroCutsceneStatus, detail.IntroCutsceneStatus);
+        Assert.Equal(detail.IntroCutsceneStartedAt!.Value.AddMinutes(30), detail.IntroCutsceneFinishedAt);
+        Assert.Equal(AiDraftStatus.Imported, detail.Status);
+    }
 
     [Fact]
     public async Task FullOrder_RunsThroughTheBridgeWithMockAnswers_ToAnUnpublishedImport()
@@ -1330,7 +1389,7 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             Builders<MarketAccount>.Update.Set(account => account.Balance, VipCoins));
     }
 
-    private sealed class BridgeFactory(string key = BridgeKey, bool vipLaneOpen = true) : WebApplicationFactory<Program>
+    private sealed class BridgeFactory(string key = BridgeKey, bool vipLaneOpen = true, bool cleanupBridgeAssets = true) : WebApplicationFactory<Program>
     {
         private readonly string _connectionString =
             Environment.GetEnvironmentVariable("SIRLOCKED_TEST_MONGO_CONNECTION_STRING")
@@ -1413,7 +1472,7 @@ public sealed partial class AiBridgeWorkflowHostTests(ITestOutputHelper output)
             TestMongoSafetyGuard.EnsureSafe(new MongoDbSettings { ConnectionString = _connectionString, DatabaseName = _databaseName });
             await new MongoClient(_connectionString).DropDatabaseAsync(_databaseName);
             // Images stored locally during the test live under the frontend's ignored ai-generated folder.
-            var bridgeAssets = FindBridgeAssetsFolder();
+            var bridgeAssets = cleanupBridgeAssets ? FindBridgeAssetsFolder() : null;
             if (bridgeAssets is not null && Directory.Exists(bridgeAssets))
             {
                 foreach (var folder in Directory.GetDirectories(bridgeAssets))

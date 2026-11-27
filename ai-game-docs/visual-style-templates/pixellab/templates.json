@@ -75,7 +75,7 @@
       "step": 1,
       "title": "Bản đồ ngoài trời 512x512",
       "tool": "create_image_pro",
-      "fixedParams": { "width": 512, "height": 512, "no_background": true, "seed": 707 },
+      "fixedParams": { "width": 512, "height": 512, "no_background": false, "seed": 707 },
       "promptParam": "description",
       "promptParts": [
         "Top-down, front-facing pixel art map, not isometric.",
@@ -311,14 +311,14 @@
       "step": 7,
       "title": "Nội thất isometric 2:1 từ ngoại thất",
       "tool": "create_image_pro",
-      "fixedParams": { "width": 512, "height": 512, "no_background": true, "seed": 707 },
+      "fixedParams": { "width": 512, "height": 512, "no_background": false, "seed": 707 },
       "promptParam": "description",
       "promptParts": [
         "Interior of a {{era}} {{roomSubject}}.",
         "{{roomContents}}",
         "Isometric 2:1 pixel art interior cutaway room seen from above at the front: one floor and two back walls only (a left wall and a right wall meeting at the back corner), no roof and no front walls. Floor edges and wall bases run along true 2:1 isometric axes (26.565 degrees). The entrance threshold at the front edge of the floor is open and clear, with a clear walkable floor area in the middle of the room.",
         "{{lighting}}",
-        "Keep the area outside the room transparent. Draw any visible doorway with real room materials and natural shadow. Do not fill openings with magenta, green screen, or other placeholder colors.",
+        "Paint both back walls as solid, continuous surfaces with visible material and detail in the shadows. Paint visible doorways and windows with their frames and the surfaces seen through them. Use a flat light gray backdrop outside the room silhouette only.",
         "No people, no animals, no readable text or letters. Detailed pixel art matching the reference's pixel style."
       ],
       "placeholders": {
@@ -335,6 +335,7 @@
       "notes": [
         "Ảnh tham chiếu: cắt đúng tòa nhà từ bản đồ NATIVE 512 (không phóng to), upload rồi truyền ref upload:<id>.",
         "Một sàn + hai tường sau, mặt trước mở, ngưỡng cửa trống, không NPC (NPC là sprite riêng).",
+        "Giữ nền khi vẽ. Chỉ cắt phông trơn ngoài viền phòng sau khi kiểm tra tường, cửa và cửa sổ.",
         "Lưới đi trong nhà vẽ tay theo ảnh: sàn thoi + khối đồ đạc."
       ],
       "example": {

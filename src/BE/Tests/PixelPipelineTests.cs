@@ -544,6 +544,8 @@ public sealed class PixelPipelineTests
             (requests[0]["tool"]!.GetValue<string>(), requests[1]["tool"]!.GetValue<string>(), requests[2]["tool"]!.GetValue<string>(), requests[3]["tool"]!.GetValue<string>()));
         Assert.Equal(96, requests[0]["params"]!["width"]!.GetValue<int>());
         Assert.Equal(512, requests[3]["params"]!["width"]!.GetValue<int>());
+        Assert.True(requests[0]["params"]!["no_background"]!.GetValue<bool>());
+        Assert.False(requests[3]["params"]!["no_background"]!.GetValue<bool>());
         Assert.Equal(templates.StyleReferenceUrl, requests[0]["references"]![0]!["url"]!.GetValue<string>());
         Assert.Equal(templates.Render("character-idle", new Dictionary<string, object?>()), requests[2]["prompt"]!.GetValue<string>());
         Assert.Equal(templates.Render("interior", new Dictionary<string, object?> { ["era"] = "Victorian", ["roomSubject"] = "photographer's studio" }),

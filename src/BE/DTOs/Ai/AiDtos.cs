@@ -114,7 +114,9 @@ public class AiDraftResponse
     public int GenerationProgress { get; set; }
     public DateTime UpdatedAt { get; set; }
     public string? IntroCutsceneStatus { get; set; }
+    public DateTime? IntroCutsceneStartedAt { get; set; }
     public DateTime? IntroCutsceneFinishedAt { get; set; }
+    public string? IntroCutsceneStep { get; set; }
     public bool GenerateBothLanguages { get; set; }
     public DateTime? GenerationClaimedAt { get; set; }
     public long WorkflowVersion { get; set; }
@@ -254,6 +256,7 @@ public class AiDraftResponse
         GenerationProgress = d.GenerationProgress,
         UpdatedAt = d.UpdatedAt,
         IntroCutsceneStatus = d.IntroCutsceneStatus,
+        IntroCutsceneStartedAt = d.IntroCutsceneStartedAt,
         IntroCutsceneFinishedAt = d.IntroCutsceneFinishedAt,
         GenerateBothLanguages = d.GenerateBothLanguages,
         GenerationClaimedAt = d.GenerationClaimedAt,
