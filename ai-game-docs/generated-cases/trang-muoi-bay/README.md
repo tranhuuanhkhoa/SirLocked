@@ -13,3 +13,12 @@ dotnet run --project tools/ValidateCase -- --new ai-game-docs/generated-cases/tr
 ```
 
 Trong trang **Vụ án → Nhập JSON** của admin, dán nội dung `case.json` và nhấn **Nhập dưới dạng bản nháp**. Case Studio dùng ID `case-trang-muoi-bay`. Tệp JSON chứa lời giải để phục vụ việc nhập và kiểm định.
+
+## Kịch bản chơi thử với hai người
+
+1. Mở phòng thử trong Case Studio. Kiểm tra cả hai người đi được từ quầy hiệu đóng sách qua mái hiên ga tới phòng đóng gáy và quay lại.
+2. Chụp ba vật chứng ở quầy và phiếu 18:12 ở mái hiên. Kiểm tra phiếu ghi hai chữ ký và hai nửa dấu đỏ hiện đúng trên mép sổ và trang giấy gập.
+3. Hỏi Vinh ở quầy, Trạch ở mái hiên và Miên trong phòng đóng gáy. Kiểm tra lời Miên đặt vụ mất trang trong khoảng 18:10–18:16.
+4. Trong lượt đối chất, ghép lời phủ nhận của Vinh với giấy hẹn đối sổ trước. Lượt này phải giữ nguyên lời khai. Ghép lại với phiếu 18:12 để mở lời thừa nhận vào quầy.
+5. Kiểm tra câu đố ghép giấy có thể bỏ qua và nhóm vẫn đủ ba vật chứng để buộc tội. Trong lượt thử riêng, giải câu đố để xác nhận biên nhận về ca trực của Trạch xuất hiện trong sổ.
+6. Gửi lời buộc tội với giấy hẹn đối sổ cho động cơ, trang 17 trong bìa da cho cách thực hiện và phiếu 18:12 cho cơ hội. Kiểm tra kết thúc chỉ xuất hiện sau khi cả hai người xác nhận cùng đề xuất.
